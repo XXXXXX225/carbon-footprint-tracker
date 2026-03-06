@@ -1,0 +1,68 @@
+{
+  "name": "carbon-footprint-tracker",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "electron:build": "npm run build && electron-builder"
+  },
+  "main": "electron/main.js",
+  "dependencies": {
+    "echarts": "^5.5.1",
+    "element-plus": "^2.8.5",
+    "file-saver": "^2.0.5",
+    "jspdf": "^4.0.0",
+    "pinia": "^2.3.0",
+    "vue": "^3.5.13",
+    "vue-router": "^4.4.5",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "electron": "^40.6.1",
+    "electron-builder": "^26.8.1",
+    "electron-packager": "^17.1.2",
+    "terser": "^5.46.0",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.3",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vue-tsc": "^2.2.2"
+  },
+  "build": {
+    "appId": "com.carbonfootprint.tracker",
+    "productName": "碳足迹追踪平台",
+    "directories": {
+      "output": "dist-electron",
+      "app": "."
+    },
+    "files": [
+      "dist",
+      "electron",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "electronDownload": {
+      "mirror": "https://npmmirror.com/mirrors/electron/"
+    }
+  }
+}
