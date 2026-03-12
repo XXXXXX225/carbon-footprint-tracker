@@ -19,7 +19,7 @@ onMounted(() => {
   --primary-color: #4CAF50;
   --secondary-color: #81C784;
   --accent-color: #2E7D32;
-  --background-color: #F5F5F5;
+  --background-color: #F0F8F0;
   --text-color: #333333;
 }
 

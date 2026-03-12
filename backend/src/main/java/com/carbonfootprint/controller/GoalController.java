@@ -14,7 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/goals")
+@RequestMapping("/api/goals")
 @RequiredArgsConstructor
 @Tag(name = "目标管理", description = "减排目标管理相关接口")
 public class GoalController {

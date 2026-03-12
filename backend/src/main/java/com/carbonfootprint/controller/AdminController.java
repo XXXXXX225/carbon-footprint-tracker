@@ -18,7 +18,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/admin")
+@RequestMapping("/api/admin")
 @RequiredArgsConstructor
 @Tag(name = "管理员接口", description = "管理员查看用户注册情况等相关接口")
 public class AdminController {

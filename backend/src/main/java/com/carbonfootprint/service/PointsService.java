@@ -7,6 +7,8 @@ import com.carbonfootprint.repository.PointsRecordRepository;
 import com.carbonfootprint.repository.PointsRuleRepository;
 import com.carbonfootprint.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,7 @@ public class PointsService {
      * @return 获得的积分
      */
     @Transactional
+    @CacheEvict(value = "userPoints", key = "#userId")
     public Integer calculateAndAwardPoints(Long userId, Double emissionReduced, String reason) {
         // 获取当前有效的积分规则
         PointsRule rule = pointsRuleRepository.findByIsActiveTrue()
@@ -96,6 +99,7 @@ public class PointsService {
      * @param userId 用户ID
      * @return 总积分
      */
+    @Cacheable(value = "userPoints", key = "#userId")
     public Integer getUserTotalPoints(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));

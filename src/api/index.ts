@@ -1,10 +1,18 @@
 // API接口封装
 
-const BASE_URL = '/api'
+const BASE_URL = ''
 
 // 通用请求方法
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
     const token = localStorage.getItem('token')
+
+    console.log(`[API请求] URL: ${url}`)
+    console.log(`[API请求] Token存在: ${!!token}`)
+    console.log(`[API请求] Token值: ${token ? token.substring(0, 20) + '...' : 'null'}`)
+    console.log(`[API请求] localStorage内容:`, {
+        token: localStorage.getItem('token'),
+        user: localStorage.getItem('user')
+    })
 
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -14,16 +22,24 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     // 对于认证相关的请求，不添加Authorization token
     if (token && !url.startsWith('/auth/')) {
         headers['Authorization'] = `Bearer ${token}`
+        console.log(`[API请求] 已添加Authorization头: Bearer ${token.substring(0, 20)}...`)
     }
+
+    console.log(`[API请求] 完整headers:`, headers)
+    console.log(`[API请求] 完整URL: ${BASE_URL}${url}`)
 
     const response = await fetch(`${BASE_URL}${url}`, {
         ...options,
         headers
     })
 
+    console.log(`[API响应] 状态码: ${response.status}`)
+    console.log(`[API响应] 响应头:`, Object.fromEntries(response.headers.entries()))
+
     if (!response.ok) {
         try {
             const error = await response.json()
+            console.error(`[API错误] 错误详情:`, error)
             if (error.message) {
                 throw new Error(error.message)
             } else if (error.error) {
@@ -38,6 +54,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 
     try {
         const result = await response.json()
+        console.log(`[API响应] 数据:`, result)
         return (result.data || result) as T
     } catch (e) {
         throw new Error('响应数据格式错误')
@@ -53,7 +70,7 @@ export const authApi = {
             username: string
             name: string
             role: string
-        }>('/auth/login', {
+        }>('/api/auth/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -68,7 +85,7 @@ export const authApi = {
             username: string
             name: string
             role: string
-        }>('/auth/register', {
+        }>('/api/auth/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -78,7 +95,7 @@ export const authApi = {
     },
     // 登出
     logout: () => {
-        return request<{ success: boolean }>('/auth/logout', {
+        return request<{ success: boolean }>('/api/auth/logout', {
             method: 'POST'
         })
     }
@@ -97,7 +114,7 @@ export const carbonApi = {
             electricityEmission: number
             averageDailyEmission: number
             recordCount: number
-        }>(`/emission/summary?period=${period}`)
+        }>(`/api/emission/summary?period=${period}`)
     },
     // 获取交通排放记录
     getTransportRecords: () => {
@@ -112,7 +129,7 @@ export const carbonApi = {
             emissionDate: string
             description: string
             createdAt: string
-        }>>('/emission/transport')
+        }>>('/api/emission/transport')
     },
     // 添加交通排放记录
     addTransportRecord: (record: {
@@ -134,7 +151,7 @@ export const carbonApi = {
             emissionDate: string
             description: string
             createdAt: string
-        }>('/emission/transport', {
+        }>('/api/emission/transport', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -155,7 +172,7 @@ export const carbonApi = {
             emissionDate: string
             description: string
             createdAt: string
-        }>>('/emission/diet')
+        }>>('/api/emission/diet')
     },
     // 添加饮食排放记录
     addDietRecord: (record: {
@@ -177,7 +194,7 @@ export const carbonApi = {
             emissionDate: string
             description: string
             createdAt: string
-        }>('/emission/diet', {
+        }>('/api/emission/diet', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -199,7 +216,7 @@ export const carbonApi = {
             emissionDate: string
             description: string
             createdAt: string
-        }>>('/emission/electricity')
+        }>>('/api/emission/electricity')
     },
     // 添加用电排放记录
     addElectricityRecord: (record: {
@@ -222,7 +239,7 @@ export const carbonApi = {
             emissionDate: string
             description: string
             createdAt: string
-        }>('/emission/electricity', {
+        }>('/api/emission/electricity', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -240,7 +257,7 @@ export const carbonApi = {
             impact: number
             difficulty: string
             cost: string
-        }>>('/recommendations')
+        }>>('/api/recommendations')
     }
 }
 
@@ -252,7 +269,7 @@ export const userApi = {
             id: string
             name: string
             email: string
-        }>('/user/info')
+        }>('/api/user/info')
     },
     // 更新用户信息
     updateUserInfo: (userInfo: {
@@ -263,7 +280,7 @@ export const userApi = {
             id: string
             name: string
             email: string
-        }>('/user/info', {
+        }>('/api/user/info', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -286,7 +303,7 @@ export const adminApi = {
             totalPoints: number
             createdAt: string
             updatedAt: string
-        }>>('/admin/users')
+        }>>('/api/admin/users')
     },
     // 获取用户注册统计
     getUserStats: () => {
@@ -297,7 +314,7 @@ export const adminApi = {
             monthNewUsers: number
             roleDistribution: Record<string, number>
             dailyRegistrationTrend: Record<string, number>
-        }>('/admin/users/stats')
+        }>('/api/admin/users/stats')
     },
     // 编辑用户信息
     updateUser: (id: number, userData: {
@@ -315,7 +332,7 @@ export const adminApi = {
             totalPoints: number
             createdAt: string
             updatedAt: string
-        }>(`/admin/users/${id}`, {
+        }>(`/api/admin/users/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -325,8 +342,88 @@ export const adminApi = {
     },
     // 删除用户
     deleteUser: (id: number) => {
-        return request<{ success: boolean }>(`/admin/users/${id}`, {
+        return request<{ success: boolean }>(`/api/admin/users/${id}`, {
             method: 'DELETE'
         })
+    }
+}
+
+// AI预测相关API
+export const predictionApi = {
+    // 预测下月碳排放
+    getNextMonthPrediction: () => {
+        return request<{
+            userId: number
+            predictionDate: string
+            predictedEmission: number
+            confidence: number
+            trend: string
+            dailyPredictions: Array<{
+                date: string
+                predictedEmission: number
+                lowerBound: number
+                upperBound: number
+            }>
+            monthlyPredictions: Array<{
+                month: string
+                predictedEmission: number
+                trend: number
+            }>
+            suggestion: {
+                category: string
+                suggestion: string
+                potentialReduction: number
+                priority: number
+            } | null
+        }>('/api/prediction/next-month')
+    }
+}
+
+// 数据大屏相关API
+export const dashboardApi = {
+    // 获取大屏数据
+    getDashboardData: () => {
+        return request<{
+            overview: {
+                totalUsers: number
+                totalEmission: number
+                totalReduction: number
+                totalPoints: number
+                avgDailyEmission: number
+                activeUsersToday: number
+            }
+            emissionTrends: Array<{
+                date: string
+                emission: number
+                transportEmission: number
+                dietEmission: number
+                electricityEmission: number
+            }>
+            categoryDistribution: Array<{
+                category: string
+                value: number
+                percentage: number
+            }>
+            topUsers: Array<{
+                userId: number
+                username: string
+                totalPoints: number
+                totalReduction: number
+                rank: number
+            }>
+            regionalStats: Array<{
+                region: string
+                userCount: number
+                totalEmission: number
+                avgEmission: number
+            }>
+            realTimeActivities: Array<{
+                time: string
+                username: string
+                activity: string
+                emission: number
+                type: string
+            }>
+        }>('/api/dashboard/data')
     }
 }

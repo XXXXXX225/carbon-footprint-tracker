@@ -291,7 +291,7 @@ import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
 import CarbonChart from '../components/CarbonChart.vue'
-import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, ArrowUp, Download, Document, CollectionTag } from '@element-plus/icons-vue'
+import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, ArrowUp, Download, Document, CollectionTag, TrendCharts } from '@element-plus/icons-vue'
 import { ExportService, type ExportData } from '../utils/export'
 import { ElMessage } from 'element-plus'
 

@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/recommendations")
+@RequestMapping("/api/recommendations")
 @RequiredArgsConstructor
 @Tag(name = "减排建议", description = "减排建议相关接口")
 public class RecommendationController {

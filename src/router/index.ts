@@ -70,6 +70,24 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Admin',
     component: () => import('../views/Admin.vue'),
     meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/news',
+    name: 'News',
+    component: () => import('../views/News.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/news/:id',
+    name: 'NewsDetail',
+    component: () => import('../views/NewsDetail.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/dashboard-screen',
+    name: 'DashboardScreen',
+    component: () => import('../views/DashboardScreen.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
 

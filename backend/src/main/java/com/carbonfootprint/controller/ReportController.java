@@ -14,7 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/report")
+@RequestMapping("/api/report")
 @RequiredArgsConstructor
 @Tag(name = "数据报表", description = "碳足迹汇总和报表相关接口")
 public class ReportController {

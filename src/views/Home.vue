@@ -27,6 +27,12 @@
                       </el-icon>
                       仪表盘
                     </el-dropdown-item>
+                    <el-dropdown-item v-if="user.role === 'ADMIN'" command="dashboard-screen">
+                      <el-icon>
+                        <DataLine />
+                      </el-icon>
+                      数据大屏
+                    </el-dropdown-item>
                     <el-dropdown-item command="profile">
                       <el-icon>
                         <User />
@@ -169,11 +175,17 @@
       </div>
       <div class="hero-container">
         <div class="hero-content">
-          <h2>了解并减少您的碳足迹</h2>
+          <h2 class="scrolling-text">
+            <span class="text-wrapper">
+              <span class="text-content" v-for="(text, index) in scrollingTexts" :key="index" :class="{ active: currentTextIndex === index }">
+                {{ text }}
+              </span>
+            </span>
+          </h2>
           <p>通过我们的平台，您可以追踪、分析和减少您的日常碳排放，为环保事业贡献力量。</p>
           <div class="hero-buttons">
-            <router-link to="/login" class="btn btn-large btn-primary">立即开始</router-link>
-            <router-link to="/dashboard" class="btn btn-large btn-secondary">了解更多</router-link>
+            <router-link :to="user && user.id ? '/dashboard' : '/login'" class="btn btn-large btn-primary">立即开始</router-link>
+            <router-link to="/news" class="btn btn-large btn-secondary">了解更多</router-link>
           </div>
         </div>
         <div class="hero-carousel">
@@ -343,6 +355,7 @@
         <div class="footer-links">
           <router-link to="/">首页</router-link>
           <router-link to="/dashboard">仪表盘</router-link>
+          <router-link v-if="user && user.role === 'ADMIN'" to="/dashboard-screen">数据大屏</router-link>
           <router-link to="/recommendations">减排建议</router-link>
           <router-link to="/login">登录/注册</router-link>
         </div>
@@ -359,7 +372,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
-import { UserFilled, User, House, CollectionTag, SwitchButton, ArrowDown, Setting } from '@element-plus/icons-vue'
+import { UserFilled, User, House, CollectionTag, SwitchButton, ArrowDown, Setting, DataLine } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -368,11 +381,43 @@ const carbonStore = useCarbonStore()
 // 用户信息
 const user = computed(() => carbonStore.user)
 
+// 滚动文字列表
+const scrollingTexts = ref([
+  '了解并减少您的碳足迹',
+  '追踪您的日常碳排放',
+  '为环保事业贡献力量',
+  '实现可持续的生活方式',
+  '加入全球减排行动',
+  '创建绿色未来'
+])
+
+// 当前显示的文字索引
+const currentTextIndex = ref(0)
+
+// 自动切换文字
+let textInterval: number | null = null
+
+const startTextScroll = () => {
+  textInterval = window.setInterval(() => {
+    currentTextIndex.value = (currentTextIndex.value + 1) % scrollingTexts.value.length
+  }, 3000)
+}
+
+const stopTextScroll = () => {
+  if (textInterval) {
+    clearInterval(textInterval)
+    textInterval = null
+  }
+}
+
 // 处理用户下拉菜单命令
 const handleUserCommand = (command: string) => {
   switch (command) {
     case 'dashboard':
       router.push('/dashboard')
+      break
+    case 'dashboard-screen':
+      router.push('/dashboard-screen')
       break
     case 'profile':
       router.push('/profile')
@@ -428,6 +473,7 @@ onMounted(() => {
   carbonStore.loadUserFromLocalStorage()
 
   startCarousel()
+  startTextScroll()
 
   // 滚动动画
   const observer = new IntersectionObserver((entries) => {
@@ -453,6 +499,8 @@ onUnmounted(() => {
   if (carouselInterval) {
     clearInterval(carouselInterval)
   }
+
+  stopTextScroll()
 
   // 移除鼠标移动监听
   window.removeEventListener('mousemove', handleMouseMove)
@@ -2079,6 +2127,91 @@ body {
   letter-spacing: -1px;
   opacity: 0;
   animation: fadeInUp 1s ease forwards;
+}
+
+/* 滚动文字效果 */
+.scrolling-text {
+  overflow: hidden;
+  position: relative;
+  display: inline-block;
+  min-height: 4.5rem;
+  width: 100%;
+  text-align: center;
+}
+
+.scrolling-text {
+  overflow: hidden;
+  position: relative;
+  display: inline-block;
+  min-height: 4.5rem;
+  width: 100%;
+  text-align: center;
+  z-index: 3;
+}
+
+.scrolling-text .text-wrapper {
+  display: inline-block;
+  white-space: nowrap;
+  position: relative;
+  width: 100%;
+  height: 4.5rem;
+  z-index: 3;
+  border: none;
+  background: transparent;
+}
+
+.scrolling-text .text-content {
+  display: inline-block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: all 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  background: linear-gradient(90deg, #ffffff 0%, #e8f5e9 50%, #ffffff 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  font-weight: 700;
+  font-size: 3.2rem;
+  line-height: 4.5rem;
+  z-index: 1;
+  animation: gradientShift 3s ease infinite;
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.scrolling-text .text-content.active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  z-index: 3;
+}
+
+.scrolling-text .text-content:not(.active) {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  z-index: 1;
 }
 
 .hero-content p {

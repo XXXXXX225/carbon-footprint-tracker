@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/emission")
+@RequestMapping("/api/emission")
 @RequiredArgsConstructor
 @Tag(name = "排放记录", description = "碳排放记录相关接口")
 public class EmissionController {

@@ -1,2 +1,0 @@
--- 修改 users 表的 role 列，添加 ADMIN 选项
-ALTER TABLE users MODIFY COLUMN role ENUM('INDIVIDUAL', 'ENTERPRISE', 'ADMIN') NOT NULL;

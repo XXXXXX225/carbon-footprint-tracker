@@ -12,6 +12,8 @@ import com.carbonfootprint.repository.ElectricityEmissionRepository;
 import com.carbonfootprint.repository.TransportEmissionRepository;
 import com.carbonfootprint.service.PointsService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -50,6 +52,7 @@ public class EmissionService {
          * @param dto    交通排放DTO
          * @return 交通排放记录
          */
+        @CacheEvict(value = {"userTransportEmissions", "userEmissionsSummary"}, key = "#userId")
         public TransportEmission recordTransportEmission(Long userId, TransportEmissionDTO dto) {
                 double emissionAmount = emissionCalculator.calculateTransportEmission(dto.getTransportType(),
                                 dto.getDistance());
@@ -85,6 +88,7 @@ public class EmissionService {
          * @param dto    饮食排放DTO
          * @return 饮食排放记录
          */
+        @CacheEvict(value = {"userDietEmissions", "userEmissionsSummary"}, key = "#userId")
         public DietEmission recordDietEmission(Long userId, DietEmissionDTO dto) {
                 double emissionAmount = emissionCalculator.calculateDietEmission(dto.getFoodType(), dto.getAmount());
 
@@ -119,6 +123,7 @@ public class EmissionService {
          * @param dto    用电排放DTO
          * @return 用电排放记录
          */
+        @CacheEvict(value = {"userElectricityEmissions", "userEmissionsSummary"}, key = "#userId")
         public ElectricityEmission recordElectricityEmission(Long userId, ElectricityEmissionDTO dto) {
                 double electricityAmount = emissionCalculator.calculateElectricityAmount(dto.getPower(),
                                 dto.getUsageTime(),
@@ -156,6 +161,7 @@ public class EmissionService {
          * @param userId 用户ID
          * @return 交通排放记录列表
          */
+        @Cacheable(value = "userTransportEmissions", key = "#userId")
         public List<TransportEmission> getTransportEmissions(Long userId) {
                 return transportEmissionRepository.findByUserId(userId);
         }
@@ -166,6 +172,7 @@ public class EmissionService {
          * @param userId 用户ID
          * @return 饮食排放记录列表
          */
+        @Cacheable(value = "userDietEmissions", key = "#userId")
         public List<DietEmission> getDietEmissions(Long userId) {
                 return dietEmissionRepository.findByUserId(userId);
         }
@@ -176,6 +183,7 @@ public class EmissionService {
          * @param userId 用户ID
          * @return 用电排放记录列表
          */
+        @Cacheable(value = "userElectricityEmissions", key = "#userId")
         public List<ElectricityEmission> getElectricityEmissions(Long userId) {
                 return electricityEmissionRepository.findByUserId(userId);
         }
@@ -187,6 +195,7 @@ public class EmissionService {
          * @param period 汇总周期（week/month/year）
          * @return 交通排放汇总
          */
+        @Cacheable(value = "userTransportSummary", key = "#userId + ':' + #period")
         public EmissionsSummaryDTO getTransportEmissionSummary(Long userId, String period) {
                 LocalDate endDate = LocalDate.now();
                 LocalDate startDate = calculateStartDate(endDate, period);
@@ -222,6 +231,7 @@ public class EmissionService {
          * @param period 汇总周期（week/month/year）
          * @return 总排放汇总
          */
+        @Cacheable(value = "userEmissionsSummary", key = "#userId + ':' + #period")
         public EmissionsSummaryDTO getEmissionsSummary(Long userId, String period) {
                 LocalDate endDate = LocalDate.now();
                 LocalDate startDate = calculateStartDate(endDate, period);

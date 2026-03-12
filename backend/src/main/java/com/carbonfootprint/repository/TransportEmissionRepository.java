@@ -11,4 +11,5 @@ import java.util.List;
 public interface TransportEmissionRepository extends JpaRepository<TransportEmission, Long> {
     List<TransportEmission> findByUserId(Long userId);
     List<TransportEmission> findByUserIdAndEmissionDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
+    List<TransportEmission> findByEmissionDate(LocalDate emissionDate);
 }

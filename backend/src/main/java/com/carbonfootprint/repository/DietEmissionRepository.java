@@ -11,4 +11,5 @@ import java.util.List;
 public interface DietEmissionRepository extends JpaRepository<DietEmission, Long> {
     List<DietEmission> findByUserId(Long userId);
     List<DietEmission> findByUserIdAndEmissionDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
+    List<DietEmission> findByEmissionDate(LocalDate emissionDate);
 }

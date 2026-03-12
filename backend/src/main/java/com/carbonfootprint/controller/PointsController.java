@@ -1,6 +1,7 @@
 package com.carbonfootprint.controller;
 
 import com.carbonfootprint.entity.PointsRecord;
+import com.carbonfootprint.entity.User;
 import com.carbonfootprint.service.PointsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +25,12 @@ public class PointsController {
     @GetMapping("/total")
     public ResponseEntity<Integer> getTotalPoints() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = Long.parseLong(auth.getName());
+        
+        // 获取用户ID
+        Long userId = getUserIdFromAuthentication(auth);
+        if (userId == null) {
+            return ResponseEntity.badRequest().build();
+        }
         
         Integer totalPoints = pointsService.getUserTotalPoints(userId);
         return ResponseEntity.ok(totalPoints);
@@ -37,7 +43,12 @@ public class PointsController {
     @GetMapping("/records")
     public ResponseEntity<List<PointsRecord>> getPointsRecords() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = Long.parseLong(auth.getName());
+        
+        // 获取用户ID
+        Long userId = getUserIdFromAuthentication(auth);
+        if (userId == null) {
+            return ResponseEntity.badRequest().build();
+        }
         
         List<PointsRecord> records = pointsService.getUserPointsRecords(userId);
         return ResponseEntity.ok(records);
@@ -54,9 +65,31 @@ public class PointsController {
             @RequestParam Double emissionReduced,
             @RequestParam String reason) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = Long.parseLong(auth.getName());
+        
+        // 获取用户ID
+        Long userId = getUserIdFromAuthentication(auth);
+        if (userId == null) {
+            return ResponseEntity.badRequest().build();
+        }
         
         Integer pointsEarned = pointsService.calculateAndAwardPoints(userId, emissionReduced, reason);
         return ResponseEntity.ok(pointsEarned);
+    }
+    
+    /**
+     * 从Authentication对象中获取用户ID
+     */
+    private Long getUserIdFromAuthentication(Authentication auth) {
+        if (auth == null || auth.getPrincipal() == null) {
+            return null;
+        }
+        
+        Object principal = auth.getPrincipal();
+        if (!(principal instanceof User)) {
+            return null;
+        }
+        
+        User user = (User) principal;
+        return user.getId();
     }
 }
