@@ -40,7 +40,7 @@ public class EmissionController {
         Long userId = getUserIdFromAuthentication(authentication);
         TransportEmission emission = emissionService.recordTransportEmission(userId, dto);
         TransportEmissionDTO result = new TransportEmissionDTO();
-        result.setTransportType(emission.getTransportType());
+        result.setTransportType(Integer.parseInt(emission.getTransportType()));
         result.setDistance(emission.getDistance());
         result.setEmissionDate(emission.getEmissionDate());
         result.setDescription(emission.getDescription());
@@ -62,7 +62,7 @@ public class EmissionController {
         Long userId = getUserIdFromAuthentication(authentication);
         DietEmission emission = emissionService.recordDietEmission(userId, dto);
         DietEmissionDTO result = new DietEmissionDTO();
-        result.setFoodType(emission.getFoodType());
+        result.setFoodType(Integer.parseInt(emission.getFoodType()));
         result.setSpecificFood(emission.getSpecificFood());
         result.setAmount(emission.getAmount());
         result.setEmissionDate(emission.getEmissionDate());

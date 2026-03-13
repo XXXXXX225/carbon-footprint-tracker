@@ -23,7 +23,7 @@ public class Recommendation {
     @Column(name = "description", nullable = false, columnDefinition = "TEXT")
     private String description;
     
-    @Column(name = "impact", nullable = false)
+    @Column(name = "impact", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private Double impact;
     
     @Enumerated(EnumType.STRING)

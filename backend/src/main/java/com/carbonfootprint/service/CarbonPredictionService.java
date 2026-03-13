@@ -239,8 +239,15 @@ public class CarbonPredictionService {
         
         if (!transport.isEmpty()) {
             Map<Integer, Double> transportByType = transport.stream()
+                    .filter(e -> e.getTransportType() != null)
                     .collect(Collectors.groupingBy(
-                            TransportEmission::getTransportType,
+                            e -> { 
+                                try { 
+                                    return Integer.parseInt(e.getTransportType()); 
+                                } catch (NumberFormatException ex) { 
+                                    return 0; 
+                                } 
+                            },
                             Collectors.summingDouble(TransportEmission::getEmissionAmount)));
             
             Integer maxType = transportByType.entrySet().stream()
@@ -272,8 +279,15 @@ public class CarbonPredictionService {
         
         if (!diet.isEmpty()) {
             Map<Integer, Double> dietByType = diet.stream()
+                    .filter(e -> e.getFoodType() != null)
                     .collect(Collectors.groupingBy(
-                            DietEmission::getFoodType,
+                            e -> { 
+                                try { 
+                                    return Integer.parseInt(e.getFoodType()); 
+                                } catch (NumberFormatException ex) { 
+                                    return 0; 
+                                } 
+                            },
                             Collectors.summingDouble(DietEmission::getEmissionAmount)));
             
             // 假设 1=牛肉, 2=羊肉, 3=鸡肉, 4=蔬菜, 5=水果

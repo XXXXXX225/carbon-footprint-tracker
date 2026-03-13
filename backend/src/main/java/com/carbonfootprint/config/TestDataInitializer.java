@@ -57,7 +57,7 @@ public class TestDataInitializer implements CommandLineRunner {
         if (random.nextDouble() > 0.3) {
             TransportEmission emission = new TransportEmission();
             emission.setUserId(userId);
-            emission.setTransportType(random.nextInt(6) + 1);
+            emission.setTransportType(String.valueOf(random.nextInt(6) + 1));
             emission.setDistance(5.0 + random.nextDouble() * 30.0);
             emission.setEmissionAmount(emission.getDistance() * 0.15 * (random.nextDouble() * 0.5 + 0.75));
             emission.setEmissionDate(date);
@@ -70,7 +70,7 @@ public class TestDataInitializer implements CommandLineRunner {
         if (random.nextDouble() > 0.4) {
             DietEmission emission = new DietEmission();
             emission.setUserId(userId);
-            emission.setFoodType(random.nextInt(5) + 1);
+            emission.setFoodType(String.valueOf(random.nextInt(5) + 1));
             emission.setSpecificFood("测试食物");
             emission.setAmount(1.0 + random.nextDouble() * 2.0);
             emission.setEmissionAmount(emission.getAmount() * 2.5 * (random.nextDouble() * 0.4 + 0.8));

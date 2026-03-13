@@ -20,19 +20,19 @@ public class ElectricityEmission {
     @Column(name = "device_type", nullable = false)
     private String deviceType;
     
-    @Column(name = "power", nullable = false)
+    @Column(name = "power", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private Double power;
     
-    @Column(name = "usage_time", nullable = false)
+    @Column(name = "usage_time", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private Double usageTime;
     
     @Column(name = "usage_days", nullable = false)
     private Integer usageDays;
     
-    @Column(name = "electricity_amount", nullable = false)
+    @Column(name = "electricity_amount", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private Double electricityAmount;
     
-    @Column(name = "emission_amount", nullable = false)
+    @Column(name = "emission_amount", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private Double emissionAmount;
     
     @Column(name = "emission_date", nullable = false)

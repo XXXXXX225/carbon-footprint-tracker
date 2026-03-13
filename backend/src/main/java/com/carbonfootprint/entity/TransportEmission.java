@@ -17,19 +17,19 @@ public class TransportEmission {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "transport_type", nullable = false)
-    private Integer transportType;
+    @Column(name = "transport_type", nullable = false, columnDefinition = "VARCHAR(50)")
+    private String transportType;
 
-    @Column(name = "distance", nullable = false)
+    @Column(name = "distance", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private Double distance;
 
     @Column(name = "fuel_type")
     private String fuelType;
 
-    @Column(name = "fuel_consumption")
+    @Column(name = "fuel_consumption", columnDefinition = "DECIMAL(10,2)")
     private Double fuelConsumption;
 
-    @Column(name = "emission_amount", nullable = false)
+    @Column(name = "emission_amount", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private Double emissionAmount;
 
     @Column(name = "emission_date", nullable = false)

@@ -33,8 +33,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-      - ./src/main/resources/db/migration_add_admin_role.sql:/docker-entrypoint-initdb.d/02-migration.sql
+      - ./src/main/resources/db/01-init.sql:/docker-entrypoint-initdb.d/01-init.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PASSWORD:-123456}"]
       interval: 10s
@@ -67,7 +66,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ../dist:/usr/share/nginx/html:ro
+      - ./:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
     depends_on:

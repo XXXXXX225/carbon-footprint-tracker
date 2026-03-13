@@ -17,19 +17,19 @@ public class DietEmission {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "food_type", nullable = false)
-    private Integer foodType;
+    @Column(name = "food_type", nullable = false, columnDefinition = "VARCHAR(50)")
+    private String foodType;
 
     @Column(name = "specific_food", nullable = false)
     private String specificFood;
 
-    @Column(name = "amount", nullable = false)
+    @Column(name = "amount", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private Double amount;
 
     @Column(name = "cooking_method")
     private String cookingMethod;
 
-    @Column(name = "emission_amount", nullable = false)
+    @Column(name = "emission_amount", nullable = false, columnDefinition = "DECIMAL(10,2)")
     private Double emissionAmount;
 
     @Column(name = "emission_date", nullable = false)

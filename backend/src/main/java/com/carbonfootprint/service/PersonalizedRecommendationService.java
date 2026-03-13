@@ -75,7 +75,15 @@ public class PersonalizedRecommendationService {
 
         // 汽车类型：5-14 (小型、中型、大型汽车)
         long carUsageCount = emissions.stream()
-                .filter(e -> e.getTransportType() != null && (e.getTransportType() >= 5 && e.getTransportType() <= 14))
+                .filter(e -> e.getTransportType() != null)
+                .filter(e -> {
+                    try {
+                        int type = Integer.parseInt(e.getTransportType());
+                        return type >= 5 && type <= 14;
+                    } catch (NumberFormatException ex) {
+                        return false;
+                    }
+                })
                 .count();
         long shortTripCount = emissions.stream()
                 .filter(e -> e.getDistance() != null && e.getDistance() < 3.0)
@@ -94,7 +102,15 @@ public class PersonalizedRecommendationService {
 
         // 红肉类型：0-2 (牛肉、羊肉、猪肉)
         double redMeatEmission = emissions.stream()
-                .filter(e -> e.getFoodType() != null && (e.getFoodType() >= 0 && e.getFoodType() <= 2))
+                .filter(e -> e.getFoodType() != null)
+                .filter(e -> {
+                    try {
+                        int type = Integer.parseInt(e.getFoodType());
+                        return type >= 0 && type <= 2;
+                    } catch (NumberFormatException ex) {
+                        return false;
+                    }
+                })
                 .mapToDouble(DietEmission::getEmissionAmount).sum();
         double totalDietEmission = emissions.stream()
                 .mapToDouble(DietEmission::getEmissionAmount).sum();

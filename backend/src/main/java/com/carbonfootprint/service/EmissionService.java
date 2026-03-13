@@ -59,7 +59,7 @@ public class EmissionService {
 
                 TransportEmission emission = new TransportEmission();
                 emission.setUserId(userId);
-                emission.setTransportType(dto.getTransportType());
+                emission.setTransportType(String.valueOf(dto.getTransportType()));
                 emission.setDistance(dto.getDistance());
                 emission.setFuelType(dto.getFuelType());
                 emission.setFuelConsumption(dto.getFuelConsumption());
@@ -94,7 +94,7 @@ public class EmissionService {
 
                 DietEmission emission = new DietEmission();
                 emission.setUserId(userId);
-                emission.setFoodType(dto.getFoodType());
+                emission.setFoodType(String.valueOf(dto.getFoodType()));
                 emission.setSpecificFood(dto.getSpecificFood());
                 emission.setAmount(dto.getAmount());
                 emission.setCookingMethod(dto.getCookingMethod());
