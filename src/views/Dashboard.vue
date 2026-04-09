@@ -23,223 +23,240 @@
     </el-header>
     <el-container>
       <el-aside width="200px" class="dashboard-aside">
-        <el-menu :default-active="activeMenu" class="dashboard-menu" @select="handleMenuSelect">
-          <el-menu-item index="/dashboard">
-            <el-icon><House /></el-icon>
-            <span>仪表盘</span>
-          </el-menu-item>
-          <el-menu-item index="/transport">
-            <el-icon><Van /></el-icon>
-            <span>交通排放</span>
-          </el-menu-item>
-          <el-menu-item index="/diet">
-            <el-icon><KnifeFork /></el-icon>
-            <span>饮食排放</span>
-          </el-menu-item>
-          <el-menu-item index="/electricity">
-            <el-icon><Lightning /></el-icon>
-            <span>用电排放</span>
-          </el-menu-item>
-          <el-menu-item index="/report">
-            <el-icon><DataLine /></el-icon>
-            <span>报表展示</span>
-          </el-menu-item>
-          <el-menu-item index="/recommendations">
-            <el-icon><Star /></el-icon>
-            <span>减排建议</span>
-          </el-menu-item>
-          <el-menu-item index="/points">
-            <el-icon><CollectionTag /></el-icon>
-            <span>减碳积分</span>
-          </el-menu-item>
-        </el-menu>
+        <RoleSidebar />
       </el-aside>
       <el-main class="dashboard-main">
-        <h2>个人碳足迹仪表盘</h2>
-        
-        <!-- 时间范围选择 -->
-        <div class="time-range-selector">
-          <el-button-group>
-            <el-button 
-              v-for="range in timeRanges" 
-              :key="range.value"
-              :type="selectedRange === range.value ? 'primary' : 'default'"
-              @click="handleTimeRangeChange(range.value)"
-            >
-              {{ range.label }}
-            </el-button>
-          </el-button-group>
-          <div class="export-all">
-            <el-button type="primary" @click="handleExportAll">
-              <el-icon><Download /></el-icon>
-              导出完整报表
-            </el-button>
-          </div>
+        <div class="dashboard-shell page-shell">
+          <section class="page-hero">
+            <div class="page-section-header">
+              <div>
+                <p class="page-kicker">个人碳足迹管理</p>
+                <h2 class="page-title">个人碳足迹仪表盘</h2>
+                <p class="page-desc">按时间范围统一查看排放、积分和趋势变化，支持快速导出和钻取分析。</p>
+              </div>
+              <div class="page-actions">
+                <el-button type="primary" @click="openGoalDialog">设置目标</el-button>
+                <el-button type="primary" @click="handleExportAll">
+                  <el-icon><Download /></el-icon>
+                  导出完整报表
+                </el-button>
+              </div>
+            </div>
+          </section>
+
+          <section class="page-section kpi-section">
+            <div class="page-section-header kpi-header">
+              <div>
+                <p class="page-kicker">核心指标</p>
+                <h3 class="page-title" style="font-size: 22px; margin-bottom: 0;">本期碳足迹总览</h3>
+              </div>
+              <div class="kpi-hint">突出总量和积分，辅助指标放在下层</div>
+            </div>
+
+            <div class="time-range-selector">
+              <el-button-group>
+                <el-button 
+                  v-for="range in timeRanges" 
+                  :key="range.value"
+                  :type="selectedRange === range.value ? 'primary' : 'default'"
+                  @click="handleTimeRangeChange(range.value)"
+                >
+                  {{ range.label }}
+                </el-button>
+              </el-button-group>
+            </div>
+
+            <!-- 碳足迹概览卡片 -->
+            <el-row :gutter="20" class="kpi-hero-row">
+              <el-col :xs="24" :md="12" class="stagger-item delay-0">
+                <el-card class="overview-card hero-overview-card glow-card">
+                  <div class="overview-item">
+                    <div class="overview-label">总碳足迹</div>
+                    <div class="overview-value">{{ totalFootprint.toFixed(2) }} kg CO₂e</div>
+                    <div class="overview-subtitle">当前周期所有来源的综合排放</div>
+                    <div class="overview-change" :class="{ positive: totalChange > 0 }">
+                      <el-icon v-if="totalChange > 0"><ArrowDown /></el-icon>
+                      <el-icon v-else><ArrowUp /></el-icon>
+                      <span>{{ Math.abs(totalChange).toFixed(1) }}%</span>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :xs="24" :md="12" class="stagger-item delay-1">
+                <el-card class="overview-card hero-overview-card points-card glow-card">
+                  <div class="overview-badge">最活跃指标</div>
+                  <div class="overview-item">
+                    <div class="overview-label">减碳积分</div>
+                    <div class="overview-value points-value">{{ totalPoints }}</div>
+                    <div class="overview-subtitle">累计减碳 {{ totalEmissionReduced.toFixed(2) }} kg</div>
+                    <div class="overview-change points-change">
+                      <el-icon><Star /></el-icon>
+                      <span>持续积累中</span>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+            </el-row>
+
+            <el-row :gutter="20" class="kpi-secondary-row">
+              <el-col :xs="24" :md="8" class="stagger-item delay-2">
+                <el-card class="overview-card glow-card">
+                  <div class="overview-item">
+                    <div class="overview-label">交通排放</div>
+                    <div class="overview-value">{{ footprint.transport.toFixed(2) }} kg CO₂e</div>
+                    <div class="overview-subtitle">出行方式对排放的影响</div>
+                    <div class="overview-change" :class="{ positive: transportChange > 0 }">
+                      <el-icon v-if="transportChange > 0"><ArrowDown /></el-icon>
+                      <el-icon v-else><ArrowUp /></el-icon>
+                      <span>{{ Math.abs(transportChange).toFixed(1) }}%</span>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :xs="24" :md="8" class="stagger-item delay-3">
+                <el-card class="overview-card glow-card">
+                  <div class="overview-item">
+                    <div class="overview-label">饮食排放</div>
+                    <div class="overview-value">{{ footprint.diet.toFixed(2) }} kg CO₂e</div>
+                    <div class="overview-subtitle">饮食结构的碳排放变化</div>
+                    <div class="overview-change" :class="{ positive: dietChange > 0 }">
+                      <el-icon v-if="dietChange > 0"><ArrowDown /></el-icon>
+                      <el-icon v-else><ArrowUp /></el-icon>
+                      <span>{{ Math.abs(dietChange).toFixed(1) }}%</span>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :xs="24" :md="8" class="stagger-item delay-4">
+                <el-card class="overview-card glow-card">
+                  <div class="overview-item">
+                    <div class="overview-label">用电排放</div>
+                    <div class="overview-value">{{ footprint.electricity.toFixed(2) }} kg CO₂e</div>
+                    <div class="overview-subtitle">家庭和办公用电消耗</div>
+                    <div class="overview-change" :class="{ positive: electricityChange > 0 }">
+                      <el-icon v-if="electricityChange > 0"><ArrowDown /></el-icon>
+                      <el-icon v-else><ArrowUp /></el-icon>
+                      <span>{{ Math.abs(electricityChange).toFixed(1) }}%</span>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+            </el-row>
+          </section>
+
+          <section class="page-section">
+            <div class="page-section-header">
+              <div>
+                <p class="page-kicker">数据视图</p>
+                <h3 class="page-title" style="font-size: 22px; margin-bottom: 0;">排放趋势与对比</h3>
+              </div>
+            </div>
+
+            <!-- 数据可视化图表 -->
+            <el-row :gutter="20">
+              <!-- 目标完成度仪表盘 -->
+              <el-col :xs="24" :md="8">
+                <el-card class="chart-card">
+                  <template #header>
+                    <div class="card-header">
+                      <span>月度碳排放目标</span>
+                    </div>
+                  </template>
+                  <CarbonChart 
+                    type="gauge"
+                    :data="gaugeData"
+                    :height="300"
+                    @drillDown="handleChartDrillDown"
+                  />
+                </el-card>
+              </el-col>
+              
+              <!-- 碳足迹分类占比 -->
+              <el-col :xs="24" :md="8">
+                <el-card class="chart-card">
+                  <template #header>
+                    <div class="card-header">
+                      <span>碳足迹分类占比</span>
+                    </div>
+                  </template>
+                  <CarbonChart 
+                    type="pie"
+                    :data="pieData"
+                    :height="300"
+                    @drillDown="handleChartDrillDown"
+                  />
+                </el-card>
+              </el-col>
+              
+              <!-- 历史排放趋势 -->
+              <el-col :xs="24" :md="8">
+                <el-card class="chart-card">
+                  <template #header>
+                    <div class="card-header">
+                      <span>历史排放趋势</span>
+                    </div>
+                  </template>
+                  <CarbonChart 
+                    type="line"
+                    :data="lineData"
+                    :height="300"
+                    @drillDown="handleChartDrillDown"
+                  />
+                </el-card>
+              </el-col>
+            </el-row>
+            
+            <!-- 对比分析图表 -->
+            <el-row :gutter="20" style="margin-top: 20px;">
+              <el-col :xs="24">
+                <el-card class="chart-card">
+                  <template #header>
+                    <div class="card-header">
+                      <span>不同时期排放量对比</span>
+                    </div>
+                  </template>
+                  <CarbonChart 
+                    type="bar"
+                    :data="barData"
+                    :height="400"
+                    @drillDown="handleChartDrillDown"
+                  />
+                </el-card>
+              </el-col>
+            </el-row>
+          </section>
+
+          <section class="page-section">
+            <div class="page-section-header">
+              <div>
+                <p class="page-kicker">减排目标</p>
+                <h3 class="page-title" style="font-size: 22px; margin-bottom: 0;">目标进度</h3>
+              </div>
+            </div>
+
+            <el-card class="goal-card">
+              <template #header>
+                <div class="card-header">
+                  <span>减排目标</span>
+                  <el-button type="primary" size="small" @click="openGoalDialog">设置目标</el-button>
+                </div>
+              </template>
+              <div class="goal-content">
+                <div class="goal-progress">
+                  <el-progress 
+                    :percentage="progress" 
+                    :color="['#4CAF50', '#FFC107', '#F44336']" 
+                    :format="formatProgress"
+                  />
+                </div>
+                <div class="goal-info">
+                  <span>当前目标：减少 {{ reductionGoal }}% 的碳排放</span>
+                  <span>距离目标还有 {{ remainingDays }} 天</span>
+                </div>
+              </div>
+            </el-card>
+          </section>
         </div>
-        
-        <!-- 碳足迹概览卡片 -->
-        <el-row :gutter="20" style="margin-top: 20px;">
-          <el-col :xs="24" :sm="12" :md="8">
-            <el-card class="overview-card">
-              <div class="overview-item">
-                <div class="overview-label">总碳足迹</div>
-                <div class="overview-value">{{ totalFootprint.toFixed(2) }} kg CO₂e</div>
-                <div class="overview-change" :class="{ positive: totalChange > 0 }">
-                  <el-icon v-if="totalChange > 0"><ArrowDown /></el-icon>
-                  <el-icon v-else><ArrowUp /></el-icon>
-                  <span>{{ Math.abs(totalChange).toFixed(1) }}%</span>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="8">
-            <el-card class="overview-card">
-              <div class="overview-item">
-                <div class="overview-label">交通排放</div>
-                <div class="overview-value">{{ footprint.transport.toFixed(2) }} kg CO₂e</div>
-                <div class="overview-change" :class="{ positive: transportChange > 0 }">
-                  <el-icon v-if="transportChange > 0"><ArrowDown /></el-icon>
-                  <el-icon v-else><ArrowUp /></el-icon>
-                  <span>{{ Math.abs(transportChange).toFixed(1) }}%</span>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="8">
-            <el-card class="overview-card">
-              <div class="overview-item">
-                <div class="overview-label">饮食排放</div>
-                <div class="overview-value">{{ footprint.diet.toFixed(2) }} kg CO₂e</div>
-                <div class="overview-change" :class="{ positive: dietChange > 0 }">
-                  <el-icon v-if="dietChange > 0"><ArrowDown /></el-icon>
-                  <el-icon v-else><ArrowUp /></el-icon>
-                  <span>{{ Math.abs(dietChange).toFixed(1) }}%</span>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="8">
-            <el-card class="overview-card">
-              <div class="overview-item">
-                <div class="overview-label">用电排放</div>
-                <div class="overview-value">{{ footprint.electricity.toFixed(2) }} kg CO₂e</div>
-                <div class="overview-change" :class="{ positive: electricityChange > 0 }">
-                  <el-icon v-if="electricityChange > 0"><ArrowDown /></el-icon>
-                  <el-icon v-else><ArrowUp /></el-icon>
-                  <span>{{ Math.abs(electricityChange).toFixed(1) }}%</span>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="8">
-            <el-card class="overview-card points-card">
-              <div class="overview-item">
-                <div class="overview-label">减碳积分</div>
-                <div class="overview-value points-value">{{ totalPoints }}</div>
-                <div class="overview-change points-change">
-                  <el-icon><Star /></el-icon>
-                  <span>累计减碳 {{ totalEmissionReduced.toFixed(2) }} kg</span>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
-        
-        <!-- 数据可视化图表 -->
-        <el-row :gutter="20" style="margin-top: 20px;">
-          <!-- 目标完成度仪表盘 -->
-          <el-col :xs="24" :md="8">
-            <el-card class="chart-card">
-              <template #header>
-                <div class="card-header">
-                  <span>月度碳排放目标</span>
-                </div>
-              </template>
-              <CarbonChart 
-                type="gauge"
-                :data="gaugeData"
-                :height="300"
-                @drillDown="handleChartDrillDown"
-              />
-            </el-card>
-          </el-col>
-          
-          <!-- 碳足迹分类占比 -->
-          <el-col :xs="24" :md="8">
-            <el-card class="chart-card">
-              <template #header>
-                <div class="card-header">
-                  <span>碳足迹分类占比</span>
-                </div>
-              </template>
-              <CarbonChart 
-                type="pie"
-                :data="pieData"
-                :height="300"
-                @drillDown="handleChartDrillDown"
-              />
-            </el-card>
-          </el-col>
-          
-          <!-- 历史排放趋势 -->
-          <el-col :xs="24" :md="8">
-            <el-card class="chart-card">
-              <template #header>
-                <div class="card-header">
-                  <span>历史排放趋势</span>
-                </div>
-              </template>
-              <CarbonChart 
-                type="line"
-                :data="lineData"
-                :height="300"
-                @drillDown="handleChartDrillDown"
-              />
-            </el-card>
-          </el-col>
-        </el-row>
-        
-        <!-- 对比分析图表 -->
-        <el-row :gutter="20" style="margin-top: 20px;">
-          <el-col :xs="24">
-            <el-card class="chart-card">
-              <template #header>
-                <div class="card-header">
-                  <span>不同时期排放量对比</span>
-                </div>
-              </template>
-              <CarbonChart 
-                type="bar"
-                :data="barData"
-                :height="400"
-                @drillDown="handleChartDrillDown"
-              />
-            </el-card>
-          </el-col>
-        </el-row>
-        
-        <!-- 减排目标 -->
-        <el-card class="goal-card" style="margin-top: 20px;">
-          <template #header>
-            <div class="card-header">
-              <span>减排目标</span>
-              <el-button type="primary" size="small" @click="openGoalDialog">设置目标</el-button>
-            </div>
-          </template>
-          <div class="goal-content">
-            <div class="goal-progress">
-              <el-progress 
-                :percentage="progress" 
-                :color="['#4CAF50', '#FFC107', '#F44336']" 
-                :format="formatProgress"
-              />
-            </div>
-            <div class="goal-info">
-              <span>当前目标：减少 {{ reductionGoal }}% 的碳排放</span>
-              <span>距离目标还有 {{ remainingDays }} 天</span>
-            </div>
-          </div>
-        </el-card>
       </el-main>
     </el-container>
     
@@ -291,6 +308,7 @@ import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
 import CarbonChart from '../components/CarbonChart.vue'
+import RoleSidebar from '../components/RoleSidebar.vue'
 import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, ArrowUp, Download, Document, CollectionTag, TrendCharts } from '@element-plus/icons-vue'
 import { ExportService, type ExportData } from '../utils/export'
 import { ElMessage } from 'element-plus'
@@ -656,6 +674,7 @@ const elMessage = {
 <style scoped>
 .dashboard-container {
   min-height: 100vh;
+  background: transparent !important;
 }
 
 .dashboard-header {
@@ -688,16 +707,40 @@ const elMessage = {
 }
 
 .dashboard-aside {
-  background-color: #fff;
+  background-color: transparent !important;
 }
 
 .dashboard-menu {
   height: 100%;
   border-right: none;
+  background-color: transparent !important;
 }
 
 .dashboard-main {
   padding: 20px;
+}
+
+.dashboard-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.kpi-section {
+  padding-bottom: 24px;
+}
+
+.kpi-header {
+  margin-bottom: 16px;
+}
+
+.kpi-hint {
+  color: #6b7b6e;
+  font-size: 13px;
+  background: rgba(76, 175, 80, 0.08);
+  border: 1px solid rgba(76, 175, 80, 0.12);
+  padding: 10px 14px;
+  border-radius: 14px;
 }
 
 .time-range-selector {
@@ -711,26 +754,50 @@ const elMessage = {
   margin-left: auto;
 }
 
+.kpi-hero-row {
+  margin-top: 16px;
+}
+
+.kpi-secondary-row {
+  margin-top: 20px;
+}
+
 .overview-card {
-  height: 120px;
+  min-height: 160px;
+  border-radius: 16px;
+}
+
+.hero-overview-card {
+  min-height: 180px;
 }
 
 .overview-item {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 120px;
+  position: relative;
 }
 
 .overview-label {
   font-size: 14px;
   color: #666;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .overview-value {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 32px;
+  font-weight: 900;
   color: #4CAF50;
+  line-height: 1.2;
+  margin-bottom: 8px;
+  word-wrap: break-word;
+}
+
+.overview-subtitle {
+  font-size: 13px;
+  color: #8ba390;
+  margin-bottom: 12px;
   flex: 1;
 }
 
@@ -750,13 +817,14 @@ const elMessage = {
 
 /* 积分卡片样式 */
 .points-card {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%);
-  border-left: 4px solid #4CAF50;
+  background: linear-gradient(135deg, rgba(236, 255, 239, 0.9) 0%, rgba(248, 255, 249, 0.8) 100%) !important;
+  border-left: 4px solid #4CAF50 !important;
+  box-shadow: 0 8px 32px rgba(76, 175, 80, 0.15) !important;
 }
 
 .points-value {
   color: #4CAF50;
-  font-size: 28px;
+  font-size: 36px;
   font-weight: bold;
 }
 
@@ -765,6 +833,17 @@ const elMessage = {
   font-size: 12px;
   display: flex;
   align-items: center;
+}
+
+.overview-badge {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-size: 11px;
+  color: #2e7d32;
+  background: rgba(76, 175, 80, 0.12);
+  border-radius: 999px;
+  padding: 4px 10px;
 }
 
 .chart-card {
@@ -807,7 +886,11 @@ const elMessage = {
 
 @media (max-width: 1200px) {
   .overview-card {
-    height: 140px;
+    min-height: 140px;
+  }
+
+  .hero-overview-card {
+    min-height: 160px;
   }
   
   .chart-card {
@@ -817,11 +900,19 @@ const elMessage = {
 
 @media (max-width: 992px) {
   .overview-card {
-    height: 120px;
+    min-height: 120px;
+  }
+
+  .hero-overview-card {
+    min-height: 150px;
   }
   
   .overview-value {
     font-size: 20px;
+  }
+
+  .points-value {
+    font-size: 26px;
   }
   
   .chart-card {
@@ -861,6 +952,11 @@ const elMessage = {
     height: auto;
     min-height: 100px;
   }
+
+  .hero-overview-card {
+    height: auto;
+    min-height: 120px;
+  }
   
   .overview-item {
     padding: 15px 0;
@@ -868,6 +964,10 @@ const elMessage = {
   
   .overview-value {
     font-size: 18px;
+  }
+
+  .points-value {
+    font-size: 22px;
   }
   
   .chart-card {
@@ -905,6 +1005,10 @@ const elMessage = {
   
   .overview-value {
     font-size: 16px;
+  }
+
+  .points-value {
+    font-size: 20px;
   }
   
   .overview-label {

@@ -64,7 +64,8 @@ public class PointsService {
                     .orElseThrow(() -> new RuntimeException("用户不存在"));
 
             // 计算新的总积分
-            int newTotalPoints = user.getTotalPoints() + pointsEarned;
+            int currentTotalPoints = user.getTotalPoints() == null ? 0 : user.getTotalPoints();
+            int newTotalPoints = currentTotalPoints + pointsEarned;
 
             // 更新用户总积分
             user.setTotalPoints(newTotalPoints);
@@ -103,6 +104,6 @@ public class PointsService {
     public Integer getUserTotalPoints(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
-        return user.getTotalPoints();
+        return user.getTotalPoints() == null ? 0 : user.getTotalPoints();
     }
 }

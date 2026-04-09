@@ -21,35 +21,11 @@
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="dashboard">
+                    <el-dropdown-item v-for="item in topNavItems" :key="item.command" :command="item.command">
                       <el-icon>
-                        <House />
+                        <component :is="iconMap[item.command]" />
                       </el-icon>
-                      仪表盘
-                    </el-dropdown-item>
-                    <el-dropdown-item v-if="user.role === 'ADMIN'" command="dashboard-screen">
-                      <el-icon>
-                        <DataLine />
-                      </el-icon>
-                      数据大屏
-                    </el-dropdown-item>
-                    <el-dropdown-item command="profile">
-                      <el-icon>
-                        <User />
-                      </el-icon>
-                      个人中心
-                    </el-dropdown-item>
-                    <el-dropdown-item command="points">
-                      <el-icon>
-                        <CollectionTag />
-                      </el-icon>
-                      减碳积分
-                    </el-dropdown-item>
-                    <el-dropdown-item v-if="user.role === 'ADMIN'" command="admin">
-                      <el-icon>
-                        <Setting />
-                      </el-icon>
-                      管理员
+                      {{ item.label }}
                     </el-dropdown-item>
                     <el-dropdown-item divided command="logout">
                       <el-icon>
@@ -173,7 +149,7 @@
         <div class="particle particle-99"></div>
         <div class="particle particle-100"></div>
       </div>
-      <div class="hero-container">
+      <div class="hero-container page-shell">
         <div class="hero-content">
           <h2 class="scrolling-text">
             <span class="text-wrapper">
@@ -184,12 +160,13 @@
           </h2>
           <p>通过我们的平台，您可以追踪、分析和减少您的日常碳排放，为环保事业贡献力量。</p>
           <div class="hero-buttons">
-            <router-link :to="user && user.id ? '/dashboard' : '/login'" class="btn btn-large btn-primary">立即开始</router-link>
+            <router-link :to="user && user.id ? landingRoute : '/login'" class="btn btn-large btn-secondary">立即开始</router-link>
             <router-link to="/news" class="btn btn-large btn-secondary">了解更多</router-link>
           </div>
         </div>
-        <div class="hero-carousel">
-          <div class="carousel-slides" :style="{ transform: `translateX(-${currentSlide * 100}%)` }">
+        <div class="hero-carousel-wrapper">
+          <div class="hero-carousel" :style="{ transform: carouselTransform }">
+            <div class="carousel-slides" :style="{ transform: `translateX(-${currentSlide * 100}%)` }">
             <div class="carousel-slide">
               <img
                 src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=carbon%20footprint%20tracking%20dashboard%20with%20charts%20and%20environmental%20icons%2C%20clean%20modern%20design%2C%20minimalist%2C%20professional%2C%20high%20quality%20rendering&image_size=landscape_16_9"
@@ -216,12 +193,13 @@
               :class="{ active: index === currentSlide }" @click="currentSlide = index"></button>
           </div>
         </div>
+        </div>
       </div>
     </section>
 
     <!-- 功能介绍 -->
-    <section class="features-section">
-      <div class="features-container">
+    <section class="features-section page-section">
+      <div class="features-container page-shell">
         <h3>核心功能</h3>
         <div class="features-grid">
           <div class="feature-card fade-in" data-aos="fade-up">
@@ -283,8 +261,8 @@
     </section>
 
     <!-- 为什么选择我们 -->
-    <section class="why-us-section">
-      <div class="why-us-container">
+    <section class="why-us-section page-section">
+      <div class="why-us-container page-shell">
         <h3>为什么选择我们的平台</h3>
         <div class="why-us-grid">
           <div class="why-us-item fade-in" data-aos="fade-up">
@@ -337,8 +315,8 @@
     </section>
 
     <!-- 行动召唤 -->
-    <section class="cta-section">
-      <div class="cta-container">
+    <section class="cta-section page-section">
+      <div class="cta-container page-shell">
         <h3>立即开始您的环保之旅</h3>
         <p>加入我们的平台，一起为地球的可持续未来努力。</p>
         <router-link to="/login" class="btn btn-large btn-primary">开始注册</router-link>
@@ -354,8 +332,9 @@
         </div>
         <div class="footer-links">
           <router-link to="/">首页</router-link>
-          <router-link to="/dashboard">仪表盘</router-link>
-          <router-link v-if="user && user.role === 'ADMIN'" to="/dashboard-screen">数据大屏</router-link>
+            <router-link to="/dashboard">仪表盘</router-link>
+            <router-link v-if="user && (user.role === 'ENTERPRISE' || user.role === 'ADMIN')" to="/dashboard-screen">运营视图</router-link>
+            <router-link v-if="user && user.role === 'ADMIN'" to="/admin">管理员后台</router-link>
           <router-link to="/recommendations">减排建议</router-link>
           <router-link to="/login">登录/注册</router-link>
         </div>
@@ -374,12 +353,23 @@ import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
 import { UserFilled, User, House, CollectionTag, SwitchButton, ArrowDown, Setting, DataLine } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { getLandingRoute, getTopNavItems } from '../utils/access'
 
 const router = useRouter()
 const carbonStore = useCarbonStore()
 
 // 用户信息
 const user = computed(() => carbonStore.user)
+const landingRoute = computed(() => getLandingRoute(user.value.role))
+const topNavItems = computed(() => getTopNavItems(user.value.role))
+
+const iconMap: Record<string, any> = {
+  dashboard: House,
+  'dashboard-screen': DataLine,
+  profile: User,
+  points: CollectionTag,
+  admin: Setting
+}
 
 // 滚动文字列表
 const scrollingTexts = ref([
@@ -449,11 +439,19 @@ const handleLogout = () => {
 const mouseX = ref(0)
 const mouseY = ref(0)
 
-// 处理鼠标移动
+const isHovered = ref(false)
+
 const handleMouseMove = (event: MouseEvent) => {
   mouseX.value = event.clientX
   mouseY.value = event.clientY
 }
+
+const carouselTransform = computed(() => {
+  if (typeof window === 'undefined') return ''
+  const x = (mouseX.value / window.innerWidth - 0.5) * 10
+  const y = (mouseY.value / window.innerHeight - 0.5) * -10
+  return `perspective(1200px) rotateY(${x}deg) rotateX(${y}deg) translateY(-10px) scale(1.02)`
+})
 
 // 轮播功能
 const currentSlide = ref(0)
@@ -623,28 +621,41 @@ body {
 .hero-section::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.15)"/></svg>') repeat;
-  opacity: 0.5;
-  animation: float 20s infinite linear;
-  pointer-events: none;
+  top: -20%;
+  left: -10%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, rgba(129, 199, 132, 0.45) 0%, transparent 65%);
+  border-radius: 50%;
+  animation: auroraFlow 15s infinite alternate ease-in-out;
+  filter: blur(60px);
   z-index: 0;
+  pointer-events: none;
 }
 
 .hero-section::after {
   content: '';
   position: absolute;
-  top: 10%;
-  left: 5%;
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  bottom: -20%;
+  right: -10%;
+  width: 70vw;
+  height: 70vw;
+  background: radial-gradient(circle, rgba(165, 214, 167, 0.35) 0%, transparent 65%);
   border-radius: 50%;
-  animation: pulse 8s ease-in-out infinite;
+  animation: auroraFlowReverse 18s infinite alternate ease-in-out;
+  filter: blur(80px);
+  z-index: 0;
   pointer-events: none;
+}
+
+@keyframes auroraFlow {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  100% { transform: translate(15%, 10%) scale(1.2) rotate(10deg); }
+}
+
+@keyframes auroraFlowReverse {
+  0% { transform: translate(0, 0) scale(1.1) rotate(0deg); }
+  100% { transform: translate(-15%, -15%) scale(0.9) rotate(-15deg); }
 }
 
 @keyframes float {
@@ -1877,6 +1888,7 @@ body {
   animation-delay: 24.9s;
 }
 
+
 .particle-85 {
   width: 2px;
   height: 2px;
@@ -2233,17 +2245,24 @@ body {
 }
 
 /* 轮播样式 */
-.hero-carousel {
+.hero-carousel-wrapper {
   margin-top: 4rem;
   max-width: 100%;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  position: relative;
   width: 100%;
   max-width: 900px;
+  position: relative;
   opacity: 0;
-  animation: fadeInUp 1s ease 0.9s forwards;
+  animation: fadeUpElevate 1.2s cubic-bezier(0.25, 0.8, 0.25, 1) 0.6s forwards;
+  will-change: transform, opacity;
+}
+
+.hero-carousel {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+  position: relative;
+  width: 100%;
+  transition: transform 0.1s linear; /* 平滑3D抖动 */
 }
 
 .carousel-slides {
@@ -2812,6 +2831,34 @@ body {
   letter-spacing: 0.5px;
 }
 
+.hero-buttons .btn-primary {
+  background: white;
+  color: var(--primary-color);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+}
+
+.hero-buttons .btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.8), transparent);
+  transform: skewX(-25deg);
+  animation: shimmerEffect 4s infinite;
+  pointer-events: none;
+}
+
+.hero-buttons .btn-primary:hover {
+  background: var(--background-color);
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 10px 25px rgba(255, 255, 255, 0.5);
+}
+
 /* 动画 */
 @keyframes fadeInUp {
   from {
@@ -2823,6 +2870,23 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes fadeUpElevate {
+  from {
+    opacity: 0;
+    transform: translateY(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmerEffect {
+  0% { left: -100%; top: -100%; }
+  50% { left: 100%; top: 100%; }
+  100% { left: 100%; top: 100%; }
 }
 
 /* 响应式设计 */

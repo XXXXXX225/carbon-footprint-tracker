@@ -23,36 +23,7 @@
     </el-header>
     <el-container>
       <el-aside width="200px" class="dashboard-aside">
-        <el-menu :default-active="activeMenu" class="dashboard-menu" @select="handleMenuSelect">
-          <el-menu-item index="/dashboard">
-            <el-icon><House /></el-icon>
-            <span>仪表盘</span>
-          </el-menu-item>
-          <el-menu-item index="/transport">
-            <el-icon><Van /></el-icon>
-            <span>交通排放</span>
-          </el-menu-item>
-          <el-menu-item index="/diet">
-            <el-icon><KnifeFork /></el-icon>
-            <span>饮食排放</span>
-          </el-menu-item>
-          <el-menu-item index="/electricity">
-            <el-icon><Lightning /></el-icon>
-            <span>用电排放</span>
-          </el-menu-item>
-          <el-menu-item index="/report">
-            <el-icon><DataLine /></el-icon>
-            <span>报表展示</span>
-          </el-menu-item>
-          <el-menu-item index="/recommendations">
-            <el-icon><Star /></el-icon>
-            <span>减排建议</span>
-          </el-menu-item>
-          <el-menu-item index="/points">
-            <el-icon><CollectionTag /></el-icon>
-            <span>减碳积分</span>
-          </el-menu-item>
-        </el-menu>
+        <RoleSidebar />
       </el-aside>
       <el-main class="recommendations-main">
         <h2>减排建议</h2>
@@ -262,8 +233,10 @@
 import { ref, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
-import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, CollectionTag } from '@element-plus/icons-vue'
+import RoleSidebar from '../components/RoleSidebar.vue'
+import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, CollectionTag, TrendCharts } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const carbonStore = useCarbonStore()
@@ -490,19 +463,34 @@ const viewDetails = (recommendation: any) => {
   detailDialogVisible.value = true
 }
 
+let currentEditingRecommendation: any = null
+
 const updateStatus = (recommendation: any) => {
-  statusForm.status = recommendation.status
-  statusForm.progress = 0
-  statusForm.notes = ''
+  currentEditingRecommendation = recommendation
+  statusForm.status = recommendation.status || '计划中'
+  statusForm.progress = recommendation.progress || 0
+  statusForm.notes = recommendation.notes || ''
   statusDialogVisible.value = true
 }
 
 const submitStatusUpdate = async () => {
   if (!statusFormRef.value) return
-  
+
   await statusFormRef.value.validate(async (valid) => {
     if (valid) {
-      // 更新状态逻辑
+      if (currentEditingRecommendation) {
+        currentEditingRecommendation.status = statusForm.status
+        currentEditingRecommendation.progress = statusForm.status === '已完成' ? 100 : statusForm.progress
+        currentEditingRecommendation.notes = statusForm.notes
+        
+        // 尝试找到对应在列表中的对象更新
+        const index = adoptedRecommendations.value.findIndex(item => item.id === currentEditingRecommendation.id)
+        if (index !== -1) {
+          adoptedRecommendations.value[index] = { ...currentEditingRecommendation }
+        }
+        
+        ElMessage.success('状态更新成功')
+      }
       statusDialogVisible.value = false
     }
   })

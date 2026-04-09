@@ -8,10 +8,12 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import jakarta.transaction.Transactional;
+import org.springframework.core.annotation.Order;
 import java.time.LocalDate;
 import java.util.Random;
 
 @Component
+@Order(2)
 @RequiredArgsConstructor
 @Slf4j
 public class TestDataInitializer implements CommandLineRunner {

@@ -23,36 +23,7 @@
     </el-header>
     <el-container>
       <el-aside width="200px" class="dashboard-aside">
-        <el-menu :default-active="activeMenu" class="dashboard-menu" @select="handleMenuSelect">
-          <el-menu-item index="/dashboard">
-            <el-icon><House /></el-icon>
-            <span>仪表盘</span>
-          </el-menu-item>
-          <el-menu-item index="/transport">
-            <el-icon><Van /></el-icon>
-            <span>交通排放</span>
-          </el-menu-item>
-          <el-menu-item index="/diet">
-            <el-icon><KnifeFork /></el-icon>
-            <span>饮食排放</span>
-          </el-menu-item>
-          <el-menu-item index="/electricity">
-            <el-icon><Lightning /></el-icon>
-            <span>用电排放</span>
-          </el-menu-item>
-          <el-menu-item index="/report">
-            <el-icon><DataLine /></el-icon>
-            <span>报表展示</span>
-          </el-menu-item>
-          <el-menu-item index="/recommendations">
-            <el-icon><Star /></el-icon>
-            <span>减排建议</span>
-          </el-menu-item>
-          <el-menu-item index="/points">
-            <el-icon><CollectionTag /></el-icon>
-            <span>减碳积分</span>
-          </el-menu-item>
-        </el-menu>
+        <RoleSidebar />
       </el-aside>
       <el-main class="dashboard-main">
         <h2>个人中心</h2>
@@ -133,7 +104,8 @@
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
-import { House, Van, KnifeFork, Lightning, DataLine, Star, User, ArrowDown, CollectionTag } from '@element-plus/icons-vue'
+import RoleSidebar from '../components/RoleSidebar.vue'
+import { House, Van, KnifeFork, Lightning, DataLine, Star, User, ArrowDown, CollectionTag, TrendCharts } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { userApi } from '../api'
 

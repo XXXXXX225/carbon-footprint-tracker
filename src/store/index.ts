@@ -47,6 +47,7 @@ export const useCarbonStore = defineStore('carbon', {
     updateFootprint(type: keyof Omit<CarbonFootprint, 'total'>, value: number) {
       this.footprint[type] = value
       this.calculateTotal()
+      this.saveToLocalStorage()
     },
     calculateTotal() {
       this.footprint.total = this.footprint.transport + this.footprint.diet + this.footprint.electricity
@@ -57,10 +58,13 @@ export const useCarbonStore = defineStore('carbon', {
         id: Date.now().toString()
       }
       this.records.push(newRecord)
-      this.updateFootprint(record.type, this.footprint[record.type] + record.value)
+      this.footprint[record.type] += record.value
+      this.calculateTotal()
+      this.saveToLocalStorage()
     },
     setReductionGoal(goal: number) {
       this.reductionGoal = goal
+      this.saveToLocalStorage()
     },
     clearRecords() {
       this.records = []
@@ -70,8 +74,14 @@ export const useCarbonStore = defineStore('carbon', {
         electricity: 0,
         total: 0
       }
+      this.saveToLocalStorage()
     },
-    // 从localStorage加载用户信息
+    saveToLocalStorage() {
+      localStorage.setItem('carbon_footprint', JSON.stringify(this.footprint))
+      localStorage.setItem('carbon_records', JSON.stringify(this.records))
+      localStorage.setItem('carbon_reductionGoal', JSON.stringify(this.reductionGoal))
+    },
+    // 从localStorage加载用户信息和数据
     loadUserFromLocalStorage() {
       const userStr = localStorage.getItem('user')
       if (userStr) {
@@ -81,6 +91,27 @@ export const useCarbonStore = defineStore('carbon', {
         } catch (error) {
           console.error('解析用户信息失败:', error)
         }
+      }
+
+      const footprintStr = localStorage.getItem('carbon_footprint')
+      if (footprintStr) {
+        try {
+          this.footprint = JSON.parse(footprintStr)
+        } catch (e) { }
+      }
+
+      const recordsStr = localStorage.getItem('carbon_records')
+      if (recordsStr) {
+        try {
+          this.records = JSON.parse(recordsStr)
+        } catch (e) { }
+      }
+
+      const goalStr = localStorage.getItem('carbon_reductionGoal')
+      if (goalStr) {
+        try {
+          this.reductionGoal = JSON.parse(goalStr)
+        } catch (e) { }
       }
     },
     // 设置用户信息

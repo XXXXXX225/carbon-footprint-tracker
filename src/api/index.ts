@@ -159,6 +159,16 @@ export const carbonApi = {
             body: JSON.stringify(record)
         })
     },
+    deleteTransportRecord: (id: number) => {
+        return request<{ success: boolean }>(`/api/emission/transport/${id}`, {
+            method: 'DELETE'
+        })
+    },
+    clearTransportRecords: () => {
+        return request<{ success: boolean }>('/api/emission/transport', {
+            method: 'DELETE'
+        })
+    },
     // 获取饮食排放记录
     getDietRecords: () => {
         return request<Array<{
@@ -200,6 +210,16 @@ export const carbonApi = {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(record)
+        })
+    },
+    deleteDietRecord: (id: number) => {
+        return request<{ success: boolean }>(`/api/emission/diet/${id}`, {
+            method: 'DELETE'
+        })
+    },
+    clearDietRecords: () => {
+        return request<{ success: boolean }>('/api/emission/diet', {
+            method: 'DELETE'
         })
     },
     // 获取用电排放记录
@@ -245,6 +265,16 @@ export const carbonApi = {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(record)
+        })
+    },
+    deleteElectricityRecord: (id: number) => {
+        return request<{ success: boolean }>(`/api/emission/electricity/${id}`, {
+            method: 'DELETE'
+        })
+    },
+    clearElectricityRecords: () => {
+        return request<{ success: boolean }>('/api/emission/electricity', {
+            method: 'DELETE'
         })
     },
     // 获取减排建议
@@ -376,6 +406,44 @@ export const predictionApi = {
                 priority: number
             } | null
         }>('/api/prediction/next-month')
+    },
+    // 获取预测历史
+    getHistory: () => {
+        return request<Array<{
+            id: number
+            targetMonth: string
+            predictionDate: string
+            predictedEmission: number
+            confidence: number
+            trend: string
+            actualEmission: number | null
+            absoluteError: number | null
+            errorRate: number | null
+            status: string
+            createdAt: string
+            updatedAt: string
+        }>>('/api/prediction/history')
+    }
+}
+
+// AI分析相关API
+export const aiAnalysisApi = {
+    getAnalysis: () => {
+        return request<{
+            model: string
+            generatedAt: string
+            headline: string
+            summary: string
+            riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
+            confidence: number
+            insights: Array<{
+                title: string
+                text: string
+            }>
+            recommendations: string[]
+            nextActions: string[]
+            source: string
+        }>('/api/ai/analysis')
     }
 }
 

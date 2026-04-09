@@ -23,36 +23,7 @@
     </el-header>
     <el-container>
       <el-aside width="200px" class="dashboard-aside">
-        <el-menu :default-active="activeMenu" class="dashboard-menu" @select="handleMenuSelect">
-          <el-menu-item index="/dashboard">
-            <el-icon><House /></el-icon>
-            <span>仪表盘</span>
-          </el-menu-item>
-          <el-menu-item index="/transport">
-            <el-icon><Van /></el-icon>
-            <span>交通排放</span>
-          </el-menu-item>
-          <el-menu-item index="/diet">
-            <el-icon><KnifeFork /></el-icon>
-            <span>饮食排放</span>
-          </el-menu-item>
-          <el-menu-item index="/electricity">
-            <el-icon><Lightning /></el-icon>
-            <span>用电排放</span>
-          </el-menu-item>
-          <el-menu-item index="/report">
-            <el-icon><DataLine /></el-icon>
-            <span>报表展示</span>
-          </el-menu-item>
-          <el-menu-item index="/recommendations">
-            <el-icon><Star /></el-icon>
-            <span>减排建议</span>
-          </el-menu-item>
-          <el-menu-item index="/points">
-            <el-icon><CollectionTag /></el-icon>
-            <span>减碳积分</span>
-          </el-menu-item>
-        </el-menu>
+        <RoleSidebar />
       </el-aside>
       <el-main class="diet-main">
         <h2>饮食排放计算</h2>
@@ -108,7 +79,7 @@
               </el-select>
             </el-form-item>
             <el-form-item label="食用日期" prop="date">
-              <el-date-picker v-model="dietForm.date" type="date" placeholder="选择日期" />
+              <el-date-picker v-model="dietForm.date" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" placeholder="选择日期" />
             </el-form-item>
             <el-form-item label="备注" prop="description">
               <el-input v-model="dietForm.description" placeholder="请输入备注信息" type="textarea" :rows="2" />
@@ -175,11 +146,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { onMounted, ref, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
-import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, CollectionTag } from '@element-plus/icons-vue'
+import { carbonApi } from '../api'
+import RoleSidebar from '../components/RoleSidebar.vue'
+import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, CollectionTag, TrendCharts } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const carbonStore = useCarbonStore()
@@ -308,6 +282,16 @@ const dietForm = reactive({
   description: ''
 })
 
+interface DietRecordItem {
+  id: string
+  date: string
+  foodType: string
+  specificFood: string
+  amount: number
+  emission: number
+  description: string
+}
+
 const dietRules = reactive<FormRules>({
   foodType: [
     { required: true, message: '请选择食物类别', trigger: 'blur' }
@@ -327,26 +311,7 @@ const dietRules = reactive<FormRules>({
   ]
 })
 
-const dietRecords = ref([
-  {
-    id: '1',
-    date: '2026-01-30',
-    foodType: 'meat',
-    specificFood: 'chicken',
-    amount: 0.2,
-    emission: 1.38,
-    description: '晚餐'
-  },
-  {
-    id: '2',
-    date: '2026-01-30',
-    foodType: 'vegetables',
-    specificFood: 'tomatoes',
-    amount: 0.3,
-    emission: 0.6,
-    description: '沙拉'
-  }
-])
+const dietRecords = ref<DietRecordItem[]>([])
 
 const handleMenuSelect = (key: string) => {
   router.push(key)
@@ -370,6 +335,43 @@ const getUnit = (foodType: string) => {
     return '升'
   }
   return '千克'
+}
+
+const mapDietFoodTypeToApiCode = (foodType: string, specificFood: string) => {
+  if (foodType === 'meat') {
+    if (specificFood === 'beef' || specificFood === 'lamb') return 1
+    if (specificFood === 'pork') return 2
+    if (specificFood === 'chicken') return 3
+  }
+
+  return 4
+}
+
+const mapDietFoodTypeFromApiCode = (foodType: number) => {
+  if (foodType === 1 || foodType === 2 || foodType === 3) {
+    return 'meat'
+  }
+  return 'vegetables'
+}
+
+const loadDietRecords = async () => {
+  try {
+    const records = await carbonApi.getDietRecords()
+    dietRecords.value = records
+      .map(record => ({
+        id: String(record.id),
+        date: record.emissionDate,
+        foodType: mapDietFoodTypeFromApiCode(record.foodType),
+        specificFood: record.specificFood,
+        amount: record.amount,
+        emission: record.emissionAmount,
+        description: record.description || ''
+      }))
+      .sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime())
+  } catch (error) {
+    console.error('加载饮食历史记录失败:', error)
+    ElMessage.warning('饮食历史记录加载失败，已显示当前页面数据')
+  }
 }
 
 const calculateEmission = async () => {
@@ -406,37 +408,53 @@ const resetForm = () => {
   emissionResult.value = 0
 }
 
-const saveRecord = () => {
-  const record = {
-    type: 'diet' as const,
-    value: emissionResult.value,
-    date: dietForm.date,
-    description: dietForm.description
+const saveRecord = async () => {
+  try {
+    await carbonApi.addDietRecord({
+      foodType: mapDietFoodTypeToApiCode(dietForm.foodType, dietForm.specificFood),
+      specificFood: dietForm.specificFood,
+      amount: dietForm.amount,
+      cookingMethod: dietForm.cookingMethod,
+      emissionDate: dietForm.date,
+      description: dietForm.description
+    })
+
+    carbonStore.addRecord({
+      type: 'diet',
+      value: emissionResult.value,
+      date: dietForm.date,
+      description: dietForm.description
+    })
+
+    await loadDietRecords()
+    ElMessage.success('饮食记录已保存')
+    resetForm()
+  } catch (error) {
+    console.error('保存饮食记录失败:', error)
+    ElMessage.error('保存饮食记录失败，请稍后重试')
   }
-  
-  carbonStore.addRecord(record)
-  
-  // 添加到本地记录
-  dietRecords.value.unshift({
-    id: Date.now().toString(),
-    date: dietForm.date,
-    foodType: dietForm.foodType,
-    specificFood: dietForm.specificFood,
-    amount: dietForm.amount,
-    emission: emissionResult.value,
-    description: dietForm.description
-  })
-  
-  // 重置表单
-  resetForm()
 }
 
-const deleteRecord = (id: string) => {
-  dietRecords.value = dietRecords.value.filter(record => record.id !== id)
+const deleteRecord = async (id: string) => {
+  try {
+    await carbonApi.deleteDietRecord(Number(id))
+    await loadDietRecords()
+    ElMessage.success('饮食记录已删除')
+  } catch (error) {
+    console.error('删除饮食记录失败:', error)
+    ElMessage.error('删除饮食记录失败，请稍后重试')
+  }
 }
 
-const clearHistory = () => {
-  dietRecords.value = []
+const clearHistory = async () => {
+  try {
+    await carbonApi.clearDietRecords()
+    await loadDietRecords()
+    ElMessage.success('饮食记录已清空')
+  } catch (error) {
+    console.error('清空饮食记录失败:', error)
+    ElMessage.error('清空饮食记录失败，请稍后重试')
+  }
 }
 
 const getFoodTypeName = (type: string) => {
@@ -460,6 +478,10 @@ const getSpecificFoodName = (foodType: string, specificFood: string) => {
   const food = foods.find(f => f.value === specificFood)
   return food?.label || specificFood
 }
+
+onMounted(() => {
+  loadDietRecords()
+})
 </script>
 
 <style scoped>

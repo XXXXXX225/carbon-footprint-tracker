@@ -25,6 +25,7 @@ public class TransportEmissionStrategy implements EmissionCalculationStrategy {
         }
         
         return switch (transportType) {
+            case 0 -> 0.0;
             case 1 -> CAR_EMISSION_FACTOR * distance;
             case 2 -> BUS_EMISSION_FACTOR * distance;
             case 3 -> SUBWAY_EMISSION_FACTOR * distance;

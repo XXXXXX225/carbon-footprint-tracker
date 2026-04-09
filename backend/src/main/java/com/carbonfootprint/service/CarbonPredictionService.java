@@ -1,12 +1,17 @@
 package com.carbonfootprint.service;
 
+import com.carbonfootprint.dto.CarbonPredictionHistoryDTO;
 import com.carbonfootprint.dto.CarbonPredictionDTO;
+import com.carbonfootprint.entity.CarbonPredictionHistory;
+import com.carbonfootprint.entity.FootprintSummary;
 import com.carbonfootprint.entity.DietEmission;
 import com.carbonfootprint.entity.ElectricityEmission;
 import com.carbonfootprint.entity.TransportEmission;
+import com.carbonfootprint.repository.CarbonPredictionHistoryRepository;
 import com.carbonfootprint.repository.DietEmissionRepository;
 import com.carbonfootprint.repository.ElectricityEmissionRepository;
 import com.carbonfootprint.repository.TransportEmissionRepository;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,12 +21,15 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class CarbonPredictionService {
 
     private final TransportEmissionRepository transportEmissionRepository;
     private final DietEmissionRepository dietEmissionRepository;
     private final ElectricityEmissionRepository electricityEmissionRepository;
+    private final CarbonPredictionHistoryRepository predictionHistoryRepository;
+    private final ReportService reportService;
 
     public CarbonPredictionDTO predictNextMonth(Long userId) {
         System.out.println("开始预测，用户ID: " + userId);
@@ -88,10 +96,95 @@ public class CarbonPredictionService {
         prediction.setDailyPredictions(dailyPredictions);
         prediction.setMonthlyPredictions(monthlyPredictions);
         prediction.setSuggestion(suggestions.isEmpty() ? null : suggestions.get(0));
+
+        savePredictionHistory(userId, today.plusMonths(1), prediction);
         
         System.out.println("预测结果: " + prediction);
         
         return prediction;
+    }
+
+    public List<CarbonPredictionHistoryDTO> getPredictionHistory(Long userId) {
+        return predictionHistoryRepository.findByUserIdOrderByTargetMonthDesc(userId).stream()
+                .map(this::syncAndMapHistory)
+                .limit(12)
+                .collect(Collectors.toList());
+    }
+
+    private void savePredictionHistory(Long userId, LocalDate predictionDate, CarbonPredictionDTO prediction) {
+        YearMonth targetMonth = YearMonth.from(predictionDate);
+        String targetMonthValue = targetMonth.toString();
+
+        CarbonPredictionHistory history = predictionHistoryRepository
+                .findByUserIdAndTargetMonth(userId, targetMonthValue)
+                .orElseGet(CarbonPredictionHistory::new);
+
+        history.setUserId(userId);
+        history.setTargetMonth(targetMonthValue);
+        history.setPredictionDate(LocalDate.now());
+        history.setPredictedEmission(prediction.getPredictedEmission());
+        history.setConfidence(prediction.getConfidence());
+        history.setTrend(prediction.getTrend());
+        history.setStatus("PENDING");
+
+        updateActualDataIfAvailable(history);
+        predictionHistoryRepository.save(history);
+    }
+
+    private CarbonPredictionHistoryDTO syncAndMapHistory(CarbonPredictionHistory history) {
+        boolean updated = updateActualDataIfAvailable(history);
+        if (updated) {
+            predictionHistoryRepository.save(history);
+        }
+
+        return new CarbonPredictionHistoryDTO(
+                history.getId(),
+                history.getTargetMonth(),
+                history.getPredictionDate(),
+                history.getPredictedEmission(),
+                history.getConfidence(),
+                history.getTrend(),
+                history.getActualEmission(),
+                history.getAbsoluteError(),
+                history.getErrorRate(),
+                history.getStatus(),
+                history.getCreatedAt(),
+                history.getUpdatedAt()
+        );
+    }
+
+    private boolean updateActualDataIfAvailable(CarbonPredictionHistory history) {
+        YearMonth targetMonth = YearMonth.parse(history.getTargetMonth());
+        if (targetMonth.isAfter(YearMonth.now())) {
+            return false;
+        }
+
+        FootprintSummary summary = reportService.generateFootprintSummary(
+                history.getUserId(),
+                FootprintSummary.Period.MONTHLY,
+                targetMonth.atEndOfMonth());
+
+        double actualEmission = round(summary.getTotalEmission());
+        double absoluteError = round(Math.abs(history.getPredictedEmission() - actualEmission));
+        double errorRate = actualEmission == 0 ? 0.0 : round(absoluteError / actualEmission * 100);
+
+        boolean changed = history.getActualEmission() == null
+                || Math.abs(history.getActualEmission() - actualEmission) > 0.01
+                || history.getAbsoluteError() == null
+                || Math.abs(history.getAbsoluteError() - absoluteError) > 0.01
+                || history.getErrorRate() == null
+                || Math.abs(history.getErrorRate() - errorRate) > 0.01;
+
+        history.setActualEmission(actualEmission);
+        history.setAbsoluteError(absoluteError);
+        history.setErrorRate(errorRate);
+        history.setStatus("COMPLETED");
+
+        return changed;
+    }
+
+    private double round(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 
     private Map<LocalDate, Double> aggregateDailyEmissions(

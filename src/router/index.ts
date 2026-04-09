@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+import { getLandingRoute, normalizeRole } from '../utils/access'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -21,55 +22,61 @@ const routes: Array<RouteRecordRaw> = [
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('../views/Dashboard.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
   },
   {
     path: '/transport',
     name: 'Transport',
     component: () => import('../views/Transport.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
   },
   {
     path: '/diet',
     name: 'Diet',
     component: () => import('../views/Diet.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
   },
   {
     path: '/electricity',
     name: 'Electricity',
     component: () => import('../views/Electricity.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
   },
   {
     path: '/report',
     name: 'Report',
     component: () => import('../views/Report.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
+  },
+  {
+    path: '/ai-analysis',
+    name: 'AIAnalysis',
+    component: () => import('../views/AIAnalysis.vue'),
+    meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
   },
   {
     path: '/recommendations',
     name: 'Recommendations',
     component: () => import('../views/Recommendations.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
   },
   {
     path: '/profile',
     name: 'Profile',
     component: () => import('../views/Profile.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
   },
   {
     path: '/points',
     name: 'Points',
     component: () => import('../views/Points.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
   },
   {
     path: '/admin',
     name: 'Admin',
     component: () => import('../views/Admin.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { requiresAuth: true, roles: ['ADMIN'] }
   },
   {
     path: '/news',
@@ -87,7 +94,7 @@ const routes: Array<RouteRecordRaw> = [
     path: '/dashboard-screen',
     name: 'DashboardScreen',
     component: () => import('../views/DashboardScreen.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { requiresAuth: true, roles: ['ENTERPRISE', 'ADMIN'] }
   }
 ]
 
@@ -103,7 +110,7 @@ router.beforeEach((to, from, next) => {
   if (userStr) {
     try {
       const user = JSON.parse(userStr)
-      userRole = user.role || ''
+      userRole = normalizeRole(user.role) || ''
     } catch (e) {
       console.error('解析用户信息失败:', e)
     }
@@ -111,8 +118,11 @@ router.beforeEach((to, from, next) => {
 
   if (to.matched.some(record => record.meta.requiresAuth) && !isAuthenticated) {
     next({ name: 'Login' })
-  } else if (to.matched.some(record => record.meta.requiresAdmin) && userRole !== 'ADMIN') {
-    next({ name: 'Dashboard' })
+  } else if (to.matched.some(record => Array.isArray(record.meta.roles) && record.meta.roles.length > 0) && !to.matched.every(record => {
+    const roles = record.meta.roles as string[] | undefined
+    return !roles || roles.includes(userRole)
+  })) {
+    next({ path: getLandingRoute(userRole) })
   } else {
     next()
   }

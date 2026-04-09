@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/echarts": "^4.9.22",
+    "@types/geojson": "^7946.0.16",
     "echarts": "^5.5.1",
     "element-plus": "^2.8.5",
     "file-saver": "^2.0.5",

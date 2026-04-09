@@ -46,6 +46,13 @@ springdoc:
   swagger-ui:
     enabled: false
 
+ai:
+  provider: ${AI_PROVIDER:local}
+  base-url: ${AI_BASE_URL:}
+  api-key: ${AI_API_KEY:95b7418745ee47da966f17f9bf5a4d48.BI9EnuPdpt0khKtx}
+  model: ${AI_MODEL:local-rule-engine}
+  timeout-seconds: ${AI_TIMEOUT_SECONDS:45}
+
 # 日志配置
 logging:
   level:

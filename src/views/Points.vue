@@ -23,36 +23,7 @@
     </el-header>
     <el-container>
       <el-aside width="200px" class="points-aside">
-        <el-menu :default-active="activeMenu" class="points-menu" @select="handleMenuSelect">
-          <el-menu-item index="/dashboard">
-            <el-icon><House /></el-icon>
-            <span>仪表盘</span>
-          </el-menu-item>
-          <el-menu-item index="/transport">
-            <el-icon><Van /></el-icon>
-            <span>交通排放</span>
-          </el-menu-item>
-          <el-menu-item index="/diet">
-            <el-icon><KnifeFork /></el-icon>
-            <span>饮食排放</span>
-          </el-menu-item>
-          <el-menu-item index="/electricity">
-            <el-icon><Lightning /></el-icon>
-            <span>用电排放</span>
-          </el-menu-item>
-          <el-menu-item index="/report">
-            <el-icon><DataLine /></el-icon>
-            <span>报表展示</span>
-          </el-menu-item>
-          <el-menu-item index="/recommendations">
-            <el-icon><Star /></el-icon>
-            <span>减排建议</span>
-          </el-menu-item>
-          <el-menu-item index="/points">
-            <el-icon><CollectionTag /></el-icon>
-            <span>减碳积分</span>
-          </el-menu-item>
-        </el-menu>
+        <RoleSidebar />
       </el-aside>
       <el-main class="points-main">
         <h2>减碳积分中心</h2>
@@ -60,7 +31,7 @@
         <!-- 积分概览卡片 -->
         <el-row :gutter="20" style="margin-top: 20px;">
           <el-col :xs="24" :sm="12" :md="8">
-            <el-card class="overview-card points-overview-card">
+            <el-card class="overview-card points-overview-card bounce-animation">
               <div class="overview-item">
                 <div class="overview-label">总积分</div>
                 <div class="overview-value points-value">{{ totalPoints }}</div>
@@ -210,6 +181,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
+import RoleSidebar from '../components/RoleSidebar.vue'
 import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, Download, Calendar, TrendCharts, CollectionTag } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -525,5 +497,17 @@ const handleCurrentChange = (current: number) => {
   .level-item {
     margin-bottom: 15px;
   }
+}
+
+.bounce-animation .points-value {
+  color: #FF9800 !important;
+  display: inline-block;
+  animation: pulse 2.5s infinite ease-in-out;
+  transform-origin: left bottom;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); text-shadow: 0 0 0 rgba(255, 152, 0, 0); }
+  50% { transform: scale(1.08); text-shadow: 0 0 12px rgba(255, 152, 0, 0.4); }
 }
 </style>

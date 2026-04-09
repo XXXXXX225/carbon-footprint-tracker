@@ -136,6 +136,60 @@ public class EmissionController {
         return ApiResult.success(emissions);
     }
 
+    @DeleteMapping("/transport/{id}")
+    @Operation(summary = "删除交通排放记录", description = "删除指定的交通排放记录")
+    public ApiResult<Void> deleteTransportEmission(
+            Authentication authentication,
+            @PathVariable Long id) {
+        Long userId = getUserIdFromAuthentication(authentication);
+        emissionService.deleteTransportEmission(userId, id);
+        return ApiResult.success();
+    }
+
+    @DeleteMapping("/transport")
+    @Operation(summary = "清空交通排放记录", description = "清空当前用户的所有交通排放记录")
+    public ApiResult<Void> clearTransportEmissions(Authentication authentication) {
+        Long userId = getUserIdFromAuthentication(authentication);
+        emissionService.clearTransportEmissions(userId);
+        return ApiResult.success();
+    }
+
+    @DeleteMapping("/diet/{id}")
+    @Operation(summary = "删除饮食排放记录", description = "删除指定的饮食排放记录")
+    public ApiResult<Void> deleteDietEmission(
+            Authentication authentication,
+            @PathVariable Long id) {
+        Long userId = getUserIdFromAuthentication(authentication);
+        emissionService.deleteDietEmission(userId, id);
+        return ApiResult.success();
+    }
+
+    @DeleteMapping("/diet")
+    @Operation(summary = "清空饮食排放记录", description = "清空当前用户的所有饮食排放记录")
+    public ApiResult<Void> clearDietEmissions(Authentication authentication) {
+        Long userId = getUserIdFromAuthentication(authentication);
+        emissionService.clearDietEmissions(userId);
+        return ApiResult.success();
+    }
+
+    @DeleteMapping("/electricity/{id}")
+    @Operation(summary = "删除用电排放记录", description = "删除指定的用电排放记录")
+    public ApiResult<Void> deleteElectricityEmission(
+            Authentication authentication,
+            @PathVariable Long id) {
+        Long userId = getUserIdFromAuthentication(authentication);
+        emissionService.deleteElectricityEmission(userId, id);
+        return ApiResult.success();
+    }
+
+    @DeleteMapping("/electricity")
+    @Operation(summary = "清空用电排放记录", description = "清空当前用户的所有用电排放记录")
+    public ApiResult<Void> clearElectricityEmissions(Authentication authentication) {
+        Long userId = getUserIdFromAuthentication(authentication);
+        emissionService.clearElectricityEmissions(userId);
+        return ApiResult.success();
+    }
+
     /**
      * 获取用户的交通排放汇总
      * 

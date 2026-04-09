@@ -1,6 +1,7 @@
 package com.carbonfootprint.controller;
 
 import com.carbonfootprint.dto.ApiResult;
+import com.carbonfootprint.dto.CarbonPredictionHistoryDTO;
 import com.carbonfootprint.dto.CarbonPredictionDTO;
 import com.carbonfootprint.entity.User;
 import com.carbonfootprint.service.CarbonPredictionService;
@@ -48,5 +49,19 @@ public class CarbonPredictionController {
         CarbonPredictionDTO prediction = predictionService.predictNextMonth(userId);
         
         return ResponseEntity.ok(ApiResult.success(prediction, "预测成功"));
+    }
+
+    @GetMapping("/history")
+    @Operation(summary = "获取预测历史", description = "获取用户的预测记录以及实际对比数据")
+    public ResponseEntity<ApiResult<java.util.List<CarbonPredictionHistoryDTO>>> getPredictionHistory(
+            @AuthenticationPrincipal User user) {
+
+        if (user == null) {
+            return ResponseEntity.status(403).body(ApiResult.error(403, "用户未认证"));
+        }
+
+        return ResponseEntity.ok(ApiResult.success(
+                predictionService.getPredictionHistory(user.getId()),
+                "获取成功"));
     }
 }

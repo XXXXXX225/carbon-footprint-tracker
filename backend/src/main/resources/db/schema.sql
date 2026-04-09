@@ -77,6 +77,25 @@ CREATE TABLE IF NOT EXISTS footprint_summary (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- 预测历史表
+CREATE TABLE IF NOT EXISTS carbon_prediction_history (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    target_month VARCHAR(7) NOT NULL,
+    prediction_date DATE NOT NULL,
+    predicted_emission DOUBLE NOT NULL,
+    confidence DOUBLE NOT NULL,
+    trend VARCHAR(100),
+    actual_emission DOUBLE,
+    absolute_error DOUBLE,
+    error_rate DOUBLE,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT uk_prediction_user_target_month UNIQUE (user_id, target_month),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- 减排建议表
 CREATE TABLE IF NOT EXISTS recommendations (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,

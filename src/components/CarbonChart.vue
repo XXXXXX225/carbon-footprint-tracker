@@ -83,6 +83,8 @@ const updateChart = () => {
           {
             name: props.title || '目标完成度',
             type: 'gauge',
+            center: ['50%', '70%'],
+            radius: '90%',
             startAngle: 180,
             endAngle: 0,
             min: 0,
@@ -165,15 +167,16 @@ const updateChart = () => {
           formatter: '{a} <br/>{b}: {c} ({d}%)'
         },
         legend: {
-          orient: 'vertical',
-          left: 10,
+          orient: 'horizontal',
+          bottom: 0,
           data: props.data.legend || []
         },
         series: [
           {
             name: props.title || '碳足迹',
             type: 'pie',
-            radius: ['50%', '70%'],
+            radius: ['45%', '65%'],
+            center: ['50%', '45%'],
             avoidLabelOverlap: false,
             itemStyle: {
               borderRadius: 10,
@@ -205,12 +208,14 @@ const updateChart = () => {
           trigger: 'axis'
         },
         legend: {
-          data: props.data.legend || []
+          data: props.data.legend || [],
+          bottom: 0
         },
         grid: {
           left: '3%',
           right: '4%',
-          bottom: '3%',
+          bottom: '15%',
+          top: '10%',
           containLabel: true
         },
         xAxis: {
@@ -234,12 +239,14 @@ const updateChart = () => {
           }
         },
         legend: {
-          data: props.data.legend || []
+          data: props.data.legend || [],
+          bottom: 0
         },
         grid: {
           left: '3%',
           right: '4%',
-          bottom: '3%',
+          bottom: '15%',
+          top: '10%',
           containLabel: true
         },
         xAxis: {
@@ -254,6 +261,9 @@ const updateChart = () => {
       }
       break
   }
+
+  // Add ECharts ARIA accessability Support
+  option.aria = { enabled: true, decal: { show: true } }
   
   chart.value.setOption(option)
 }
@@ -305,14 +315,11 @@ onUnmounted(() => {
 
 <style scoped>
 .carbon-chart {
-  background-color: #ffffff;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100%;
 }
 
 .chart-header {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;

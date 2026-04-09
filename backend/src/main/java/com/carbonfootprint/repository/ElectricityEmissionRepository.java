@@ -10,6 +10,8 @@ import java.util.List;
 @Repository
 public interface ElectricityEmissionRepository extends JpaRepository<ElectricityEmission, Long> {
     List<ElectricityEmission> findByUserId(Long userId);
+    java.util.Optional<ElectricityEmission> findByIdAndUserId(Long id, Long userId);
     List<ElectricityEmission> findByUserIdAndEmissionDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
     List<ElectricityEmission> findByEmissionDate(LocalDate emissionDate);
+    void deleteByUserId(Long userId);
 }

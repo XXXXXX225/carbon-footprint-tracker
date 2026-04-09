@@ -23,36 +23,7 @@
     </el-header>
     <el-container>
       <el-aside width="200px" class="dashboard-aside">
-        <el-menu :default-active="activeMenu" class="dashboard-menu" @select="handleMenuSelect">
-          <el-menu-item index="/dashboard">
-            <el-icon><House /></el-icon>
-            <span>仪表盘</span>
-          </el-menu-item>
-          <el-menu-item index="/transport">
-            <el-icon><Van /></el-icon>
-            <span>交通排放</span>
-          </el-menu-item>
-          <el-menu-item index="/diet">
-            <el-icon><KnifeFork /></el-icon>
-            <span>饮食排放</span>
-          </el-menu-item>
-          <el-menu-item index="/electricity">
-            <el-icon><Lightning /></el-icon>
-            <span>用电排放</span>
-          </el-menu-item>
-          <el-menu-item index="/report">
-            <el-icon><DataLine /></el-icon>
-            <span>报表展示</span>
-          </el-menu-item>
-          <el-menu-item index="/recommendations">
-            <el-icon><Star /></el-icon>
-            <span>减排建议</span>
-          </el-menu-item>
-          <el-menu-item index="/points">
-            <el-icon><CollectionTag /></el-icon>
-            <span>减碳积分</span>
-          </el-menu-item>
-        </el-menu>
+        <RoleSidebar />
       </el-aside>
       <el-main class="transport-main">
         <h2>交通排放计算</h2>
@@ -93,7 +64,7 @@
               <span class="unit">升/百公里</span>
             </el-form-item>
             <el-form-item label="出行日期" prop="date">
-              <el-date-picker v-model="transportForm.date" type="date" placeholder="选择日期" />
+              <el-date-picker v-model="transportForm.date" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" placeholder="选择日期" />
             </el-form-item>
             <el-form-item label="备注" prop="description">
               <el-input v-model="transportForm.description" placeholder="请输入备注信息" type="textarea" :rows="2" />
@@ -155,11 +126,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { onMounted, computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
-import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, CollectionTag } from '@element-plus/icons-vue'
+import { carbonApi } from '../api'
+import RoleSidebar from '../components/RoleSidebar.vue'
+import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, CollectionTag, TrendCharts } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const carbonStore = useCarbonStore()
@@ -192,6 +166,15 @@ const transportForm = reactive({
   description: ''
 })
 
+interface TransportRecordItem {
+  id: string
+  date: string
+  transportType: string
+  distance: number
+  emission: number
+  description: string
+}
+
 const transportRules = reactive<FormRules>({
   transportType: [
     { required: true, message: '请选择交通方式', trigger: 'blur' }
@@ -212,24 +195,7 @@ const transportRules = reactive<FormRules>({
   ]
 })
 
-const transportRecords = ref([
-  {
-    id: '1',
-    date: '2026-01-30',
-    transportType: 'bus',
-    distance: 10,
-    emission: 0.89,
-    description: '上班通勤'
-  },
-  {
-    id: '2',
-    date: '2026-01-29',
-    transportType: 'car',
-    distance: 50,
-    emission: 9.6,
-    description: '周末出行'
-  }
-])
+const transportRecords = ref<TransportRecordItem[]>([])
 
 const handleMenuSelect = (key: string) => {
   router.push(key)
@@ -273,36 +239,111 @@ const resetForm = () => {
   emissionResult.value = 0
 }
 
-const saveRecord = () => {
-  const record = {
-    type: 'transport' as const,
-    value: emissionResult.value,
-    date: transportForm.date,
-    description: transportForm.description
+const mapTransportTypeToApiCode = (type: string) => {
+  const typeMap: Record<string, number> = {
+    car: 1,
+    taxi: 1,
+    bus: 2,
+    subway: 3,
+    train: 3,
+    plane: 4,
+    walking: 2,
+    biking: 2
   }
-  
-  carbonStore.addRecord(record)
-  
-  // 添加到本地记录
-  transportRecords.value.unshift({
-    id: Date.now().toString(),
-    date: transportForm.date,
-    transportType: transportForm.transportType,
-    distance: transportForm.distance,
-    emission: emissionResult.value,
-    description: transportForm.description
-  })
-  
-  // 重置表单
-  resetForm()
+
+  return typeMap[type] ?? 1
 }
 
-const deleteRecord = (id: string) => {
-  transportRecords.value = transportRecords.value.filter(record => record.id !== id)
+const mapTransportTypeFromApiCode = (type: number) => {
+  const typeMap: Record<number, string> = {
+    1: 'car',
+    2: 'bus',
+    3: 'subway',
+    4: 'plane'
+  }
+
+  return typeMap[type] || 'car'
 }
 
-const clearHistory = () => {
-  transportRecords.value = []
+const loadTransportRecords = async () => {
+  try {
+    const records = await carbonApi.getTransportRecords()
+    transportRecords.value = records
+      .map(record => ({
+        id: String(record.id),
+        date: record.emissionDate,
+        transportType: mapTransportTypeFromApiCode(record.transportType),
+        distance: record.distance,
+        emission: record.emissionAmount,
+        description: record.description || ''
+      }))
+      .sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime())
+  } catch (error) {
+    console.error('加载交通历史记录失败:', error)
+    ElMessage.warning('交通历史记录加载失败，已显示当前页面数据')
+  }
+}
+
+const saveRecord = async () => {
+  try {
+    const savedRecord = await carbonApi.addTransportRecord({
+      transportType: mapTransportTypeToApiCode(transportForm.transportType),
+      distance: transportForm.distance,
+      fuelType: transportForm.fuelType,
+      fuelConsumption: transportForm.fuelConsumption,
+      emissionDate: transportForm.date,
+      description: transportForm.description
+    })
+
+    carbonStore.addRecord({
+      type: 'transport',
+      value: emissionResult.value,
+      date: transportForm.date,
+      description: transportForm.description
+    })
+
+    transportRecords.value.unshift({
+      id: String(savedRecord.id),
+      date: savedRecord.emissionDate,
+      transportType: mapTransportTypeFromApiCode(savedRecord.transportType),
+      distance: savedRecord.distance,
+      emission: savedRecord.emissionAmount,
+      description: savedRecord.description || ''
+    })
+
+    loadTransportRecords().catch(error => {
+      console.error('刷新交通历史记录失败:', error)
+      ElMessage.warning('记录已保存，但历史列表刷新失败，请稍后手动刷新页面')
+    })
+
+    ElMessage.success('交通记录已保存')
+    resetForm()
+  } catch (error) {
+    console.error('保存交通记录失败:', error)
+    ElMessage.error('保存交通记录失败，请稍后重试')
+  }
+}
+
+const deleteRecord = async (id: string) => {
+  try {
+    await carbonApi.deleteTransportRecord(Number(id))
+    await loadTransportRecords()
+    ElMessage.success('交通记录已删除')
+  } catch (error) {
+    console.error('删除交通记录失败:', error)
+    ElMessage.error('删除交通记录失败，请稍后重试')
+  }
+}
+
+const clearHistory = async () => {
+  try {
+    await carbonApi.clearTransportRecords()
+    await loadTransportRecords()
+    ElMessage.success('交通记录已清空')
+  } catch (error) {
+    console.error('清空交通记录失败:', error)
+    ElMessage.error('清空交通记录失败，请稍后重试')
+  }
 }
 
 const getTransportTypeName = (type: string) => {
@@ -318,6 +359,10 @@ const getTransportTypeName = (type: string) => {
   }
   return typeMap[type as keyof typeof typeMap] || type
 }
+
+onMounted(() => {
+  loadTransportRecords()
+})
 </script>
 
 <style scoped>

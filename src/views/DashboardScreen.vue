@@ -1,160 +1,263 @@
 <template>
-  <div class="dashboard-container">
-    <div class="dashboard-header">
-      <div class="header-left">
-        <router-link to="/" class="title-link">
-          <h1>碳足迹追踪平台 - 数据可视化大屏</h1>
-        </router-link>
-      </div>
-      <div class="current-time">{{ currentTime }}</div>
-    </div>
+  <div class="dashboard-screen" :style="layoutVars" @scroll="handleScroll">
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+    <div class="ambient ambient-c"></div>
 
-    <div class="dashboard-content">
-      <div class="left-panel">
-        <div class="panel-item">
-          <div class="panel-title">总览数据</div>
-          <div class="overview-stats">
-            <div class="stat-item">
-              <div class="stat-value">{{ overview.totalUsers || 0 }}</div>
-              <div class="stat-label">注册用户</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value">{{ overview.totalEmission?.toFixed(2) || 0 }} kg</div>
-              <div class="stat-label">总碳排放</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value">{{ overview.totalReduction?.toFixed(2) || 0 }} kg</div>
-              <div class="stat-label">总减碳量</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value">{{ overview.totalPoints || 0 }}</div>
-              <div class="stat-label">总积分</div>
-            </div>
-          </div>
+    <header class="topbar" :class="{ scrolled: isScrolled }">
+      <router-link to="/home" class="brand">
+        <div class="brand-mark">CFP</div>
+        <div class="brand-copy">
+          <div class="brand-title">碳足迹追踪平台 · 数据指挥中心</div>
+          <div class="brand-subtitle">Carbon Footprint Command Center</div>
         </div>
+      </router-link>
 
-        <div class="panel-item">
-          <div class="panel-title">碳排放趋势</div>
-          <div ref="trendChart" class="chart-container"></div>
-        </div>
-
-        <div class="panel-item">
-          <div class="panel-title">排放类别分布</div>
-          <div ref="categoryChart" class="chart-container"></div>
-        </div>
+      <div class="status-group">
+        <div class="status-pill live">实时同步</div>
+        <div class="status-pill">数据延迟 2s</div>
+        <div class="status-pill">区域覆盖 {{ regionalStats.length || 0 }}</div>
       </div>
 
-      <div class="center-panel">
-        <div class="panel-item large">
-          <div class="panel-title">全国用户分布</div>
-          <div ref="mapChart" class="chart-container large"></div>
-        </div>
+      <div class="clock">{{ currentTime }}</div>
 
-        <div class="panel-item">
-          <div class="panel-title">碳排放热点分析</div>
-          <div class="hotspot-info">
-            <div class="hotspot-item">
-              <div class="hotspot-label">排放最高地区</div>
-              <div class="hotspot-value">上海</div>
-              <div class="hotspot-detail">2,845 kg/月</div>
-            </div>
-            <div class="hotspot-item">
-              <div class="hotspot-label">排放最低地区</div>
-              <div class="hotspot-value">青海</div>
-              <div class="hotspot-detail">326 kg/月</div>
-            </div>
-            <div class="hotspot-item">
-              <div class="hotspot-label">增长最快行业</div>
-              <div class="hotspot-value">交通出行</div>
-              <div class="hotspot-detail">+12.5%/月</div>
-            </div>
-            <div class="hotspot-item">
-              <div class="hotspot-label">减排效果最好</div>
-              <div class="hotspot-value">饮食消费</div>
-              <div class="hotspot-detail">-8.3%/月</div>
-            </div>
-            <div class="hotspot-item full-width">
-              <div class="hotspot-label">排放趋势</div>
-              <div ref="hotspotChart" class="hotspot-chart"></div>
-            </div>
-            <div class="hotspot-item full-width">
-              <div class="hotspot-label">减排建议</div>
-              <div class="hotspot-suggestions">
-                <div class="suggestion-item">• 推广公共交通和新能源车辆</div>
-                <div class="suggestion-item">• 优化饮食结构，减少肉类消费</div>
-                <div class="suggestion-item">• 提高能源利用效率</div>
-                <div class="suggestion-item">• 增加绿色建筑比例</div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="toolbar">
+        <button class="toolbar-btn primary" @click="refreshRealTimeData">刷新动态</button>
+        
       </div>
+    </header>
 
-      <div class="right-panel">
-        <div class="panel-item">
-          <div class="panel-title">减碳排行榜</div>
-          <div class="ranking-list">
-            <div v-for="user in topUsers" :key="user.userId" class="ranking-item">
-              <div class="ranking-rank" :class="'rank-' + user.rank">{{ user.rank }}</div>
-              <div class="ranking-name">{{ user.username }}</div>
-              <div class="ranking-value">{{ user.totalReduction?.toFixed(2) }} kg</div>
+    <main class="dashboard-grid">
+      <aside class="rail rail-left" :class="{ collapsed: leftCollapsed }">
+        <button class="rail-toggle-btn toggle-left" title="收起/展开左舱" @click="toggleLeftRail">
+          <span class="toggle-icon">{{ leftCollapsed ? '\u25B6' : '\u25C0' }}</span>
+        </button>
+        <section class="panel rail-summary">
+          <div class="panel-head">
+            <span>左侧态势</span>
+            <span class="panel-sub">Overview</span>
+          </div>
+          <div class="summary-number"><NumberRoll :value="overview.totalUsers" :decimals="0" /></div>
+          <div class="summary-label">注册用户</div>
+          <div class="summary-mini-grid">
+            <div class="mini-chip">
+              <span class="mini-chip-label">今日活跃</span>
+              <strong><NumberRoll :value="overview.activeUsersToday" :decimals="0" /></strong>
+            </div>
+            <div class="mini-chip">
+              <span class="mini-chip-label">减排率</span>
+              <strong><NumberRoll :value="reductionRate" :decimals="1" />%</strong>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="panel-item">
-          <div class="panel-title">区域统计</div>
-          <div ref="regionChart" class="chart-container"></div>
-        </div>
-
-        <div class="panel-item">
-          <div class="panel-title">减排趋势</div>
-          <div class="trend-info">
-            <div class="trend-item">
-              <div class="trend-label">本月减排目标</div>
-              <div class="trend-value">{{ overview.totalReduction ? (overview.totalReduction * 1.2).toFixed(2) : '0.00' }} kg</div>
+        <div class="rail-body">
+          <section class="panel">
+            <div class="panel-head">
+              <span>趋势中枢</span>
+              <span class="panel-sub">30D</span>
             </div>
-            <div class="trend-item">
-              <div class="trend-label">已完成</div>
-              <div class="trend-value" :class="{ 'positive': overview.totalReduction > 5000 }">
-                {{ overview.totalReduction ? overview.totalReduction.toFixed(2) : '0.00' }} kg
+            <div ref="trendChart" class="chart-box tall"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <span>实时动态</span>
+              <span class="panel-sub">Live Feed</span>
+            </div>
+            <transition-group name="list" tag="div" class="activity-list">
+              <div
+                v-for="(activity, index) in recentActivities"
+                :key="activity.id"
+                class="activity-item"
+                :class="{ active: index === activeActivityIndex }"
+              >
+                <div class="activity-time">{{ activity.time }}</div>
+                <div class="activity-main">
+                  <div class="activity-row">
+                    <span class="activity-user">{{ activity.username }}</span>
+                    <span class="activity-tag" :class="activity.type">{{ activityTypeLabel(activity.type) }}</span>
+                  </div>
+                  <div class="activity-desc">{{ activity.activity }}</div>
+                  <div class="activity-emission">{{ activity.emission.toFixed(2) }} kg CO₂e</div>
+                </div>
+              </div>
+            </transition-group>
+          </section>
+        </div>
+      </aside>
+
+      <section class="center-stage">
+        <section class="hero-panel panel">
+          <div class="hero-copy">
+            <div class="hero-kicker">Central Carbon Pulse</div>
+            <h2>{{ selectedRegion === '全国' ? '全域' : selectedRegion }}碳足迹态势总览</h2>
+            <p>将总排放、减排进度、活跃度和区域分布统一聚合到一张态势图中，点击地图下级行政区联动查看详情。当前选中：<strong style="color: #4CAF50">{{ selectedRegion }}</strong></p>
+            <div class="focus-strip">
+              <span class="focus-dot"></span>
+              <span class="focus-label">{{ focusState.label }}</span>
+              <span class="focus-copy">{{ focusState.detail }}</span>
+            </div>
+          </div>
+
+          <div class="core-visual">
+            <div ref="centerMap" class="center-map"></div>
+          </div>
+
+          <div class="hero-metrics">
+            <div v-for="item in heroMetrics" :key="item.label" class="hero-metric">
+              <span>{{ item.label }}</span>
+              <strong>
+                <NumberRoll :value="item.value" :decimals="item.decimals" />{{ item.suffix }}
+              </strong>
+              <em>{{ item.tip }}</em>
+            </div>
+          </div>
+        </section>
+
+        <section class="center-grid">
+          <section class="panel panel-wide" :class="{ active: focusState.panel === 'trend' }">
+            <div class="panel-head">
+              <span>排放结构</span>
+              <span class="panel-sub">Pie + KPI</span>
+            </div>
+            <div class="panel-split">
+              <div ref="categoryChart" class="chart-box center-chart"></div>
+              <div class="insight-list">
+                <div class="insight-card">
+                  <div class="insight-title">结构结论</div>
+                  <div class="insight-value">{{ topCategoryName }}</div>
+                  <div class="insight-text">占比 {{ topCategoryShare.toFixed(1) }}%，是当前最需要持续优化的排放源。</div>
+                </div>
+                <div class="insight-card">
+                  <div class="insight-title">减排强度</div>
+                  <div class="insight-value">{{ reductionRate.toFixed(1) }}%</div>
+                  <div class="insight-text">相比总排放，减排进展已形成可见趋势。</div>
+                </div>
+                <div class="insight-card accent">
+                  <div class="insight-title">区域焦点</div>
+                  <div class="insight-value">{{ topRegion }}</div>
+                  <div class="insight-text">{{ topRegionEmission.toFixed(1) }} kg CO₂e，优先关注节流策略。</div>
+                </div>
               </div>
             </div>
-            <div class="trend-item">
-              <div class="trend-label">完成率</div>
-              <div class="trend-value" :class="{ 'positive': overview.totalReduction > 5000 }">
-                {{ overview.totalReduction ? Math.min(100, (overview.totalReduction / (overview.totalReduction * 1.2 || 1) * 100)).toFixed(1) : '0.0' }}%
-              </div>
-            </div>
-          </div>
-        </div>
+          </section>
 
-        <div class="panel-item">
-          <div class="panel-title">
-            实时动态
-            <button class="refresh-btn" @click="refreshRealTimeData">刷新</button>
-          </div>
-          <div class="activity-list">
-            <div v-for="activity in realTimeActivities.slice(0, 10)" :key="activity.time" class="activity-item">
-              <div class="activity-time">{{ activity.time }}</div>
-              <div class="activity-content">
-                <span class="activity-user">{{ activity.username }}</span>
-                <span class="activity-action">{{ activity.activity }}</span>
-                <span class="activity-emission">{{ activity.emission.toFixed(2) }} kg</span>
+          <section class="panel panel-wide" :class="{ active: focusState.panel === 'radar' }">
+            <div class="panel-head">
+              <span>AI 评估雷达</span>
+              <span class="panel-sub">Strategy Radar</span>
+            </div>
+            <div class="panel-split">
+              <div ref="radarChart" class="chart-box center-chart"></div>
+              <div class="recommend-list">
+                <div v-for="item in recommendations" :key="item.title" class="recommend-item">
+                  <div class="recommend-top">
+                    <span class="recommend-title">{{ item.title }}</span>
+                    <span class="recommend-badge">{{ item.value }}</span>
+                  </div>
+                  <div class="recommend-text">{{ item.text }}</div>
+                </div>
               </div>
             </div>
+          </section>
+        </section>
+      </section>
+
+      <aside class="rail rail-right" :class="{ collapsed: rightCollapsed }">
+        <button class="rail-toggle-btn toggle-right" title="收起/展开右舱" @click="toggleRightRail">
+          <span class="toggle-icon">{{ rightCollapsed ? '\u25C0' : '\u25B6' }}</span>
+        </button>
+        <section class="panel rail-summary">
+          <div class="panel-head">
+            <span>右侧态势</span>
+            <span class="panel-sub">Focus</span>
           </div>
+          <div class="summary-number">{{ formatNumber(overview.totalReduction, 1) }}</div>
+          <div class="summary-label">累计减排 kg CO₂e</div>
+          <div class="summary-mini-grid">
+            <div class="mini-chip">
+              <span class="mini-chip-label">完成率</span>
+              <strong>{{ reductionRate.toFixed(1) }}%</strong>
+            </div>
+            <div class="mini-chip">
+              <span class="mini-chip-label">热点区</span>
+              <strong>{{ topRegion }}</strong>
+            </div>
+          </div>
+        </section>
+
+        <div class="rail-body">
+          <section class="panel" :class="{ active: focusState.panel === 'region' }">
+            <div class="panel-head">
+              <span>区域热力</span>
+              <span class="panel-sub">Top Regions</span>
+            </div>
+            <div ref="regionChart" class="chart-box tall"></div>
+          </section>
+
+          <section class="panel" :class="{ active: focusState.panel === 'ranking' }">
+            <div class="panel-head">
+              <span>减排排行榜</span>
+              <span class="panel-sub">Top Users</span>
+            </div>
+            <div class="ranking-list">
+              <div
+                v-for="(user, index) in topUsers.slice(0, 8)"
+                :key="user.userId"
+                class="ranking-item"
+                :class="{ active: index === activeRankIndex }"
+              >
+                <div class="ranking-rank" :class="`rank-${user.rank}`">{{ user.rank }}</div>
+                <div class="ranking-main">
+                  <div class="ranking-name">{{ user.username }}</div>
+                  <div class="ranking-meta">{{ user.totalPoints }} 积分 · {{ user.totalReduction.toFixed(1) }} kg</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <span>管理摘要</span>
+              <span class="panel-sub">Snapshot</span>
+            </div>
+            <div class="snapshot-grid">
+              <div class="snapshot-card">
+                <span>平均日排放</span>
+                <strong>{{ overview.avgDailyEmission.toFixed(2) }}</strong>
+              </div>
+              <div class="snapshot-card">
+                <span>注册用户</span>
+                <strong>{{ formatNumber(overview.totalUsers) }}</strong>
+              </div>
+              <div class="snapshot-card">
+                <span>总积分</span>
+                <strong>{{ formatNumber(overview.totalPoints) }}</strong>
+              </div>
+              <div class="snapshot-card">
+                <span>减排效率</span>
+                <strong>{{ efficiencyScore.toFixed(1) }}%</strong>
+              </div>
+            </div>
+          </section>
         </div>
-      </div>
-    </div>
+      </aside>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import * as echarts from 'echarts'
 import { dashboardApi } from '../api'
-import { UserFilled, User, House, CollectionTag, SwitchButton, ArrowDown, Setting, DataLine, ArrowLeft } from '@element-plus/icons-vue'
+
+// @ts-ignore
+import chinaMap from '../assets/map/china.json'
+echarts.registerMap('china', chinaMap as any)
+
+import NumberRoll from '@/components/NumberRoll.vue'
+import { getGeoCoord } from '@/utils/geoCoords'
 
 interface OverviewStats {
   totalUsers: number
@@ -195,14 +298,15 @@ interface RegionalStats {
 }
 
 interface RealTimeActivity {
+  id?: string
   time: string
   username: string
   activity: string
   emission: number
   type: string
+  region: string
 }
 
-const currentTime = ref('')
 const overview = ref<OverviewStats>({
   totalUsers: 0,
   totalEmission: 0,
@@ -216,23 +320,193 @@ const categoryDistribution = ref<CategoryDistribution[]>([])
 const topUsers = ref<TopUser[]>([])
 const regionalStats = ref<RegionalStats[]>([])
 const realTimeActivities = ref<RealTimeActivity[]>([])
+const currentTime = ref('')
+const leftCollapsed = ref(false)
+const rightCollapsed = ref(false)
+const isScrolled = ref(false)
+const selectedRegion = ref('全国')
 
-const trendChart = ref<HTMLElement>()
-const categoryChart = ref<HTMLElement>()
-const mapChart = ref<HTMLElement>()
-const regionChart = ref<HTMLElement>()
-const hotspotChart = ref<HTMLElement>()
+const handleScroll = (e) => {
+  if (!e.target) return;
+  isScrolled.value = e.target.scrollTop > 20
+}
 
+const trendChart = ref<HTMLElement | null>(null)
+const categoryChart = ref<HTMLElement | null>(null)
+const regionChart = ref<HTMLElement | null>(null)
+const radarChart = ref<HTMLElement | null>(null)
+
+const centerMap = ref<HTMLElement | null>(null)
+let centerMapInstance: echarts.ECharts | null = null
 let trendChartInstance: echarts.ECharts | null = null
 let categoryChartInstance: echarts.ECharts | null = null
-let mapChartInstance: echarts.ECharts | null = null
 let regionChartInstance: echarts.ECharts | null = null
+let radarChartInstance: echarts.ECharts | null = null
 let timer: number | null = null
-let dataRefreshTimer: number | null = null
+let focusTimer: number | null = null
+let dataTimer: number | null = null
+
+const layoutVars = computed(() => ({
+  '--left-width': leftCollapsed.value ? '96px' : '380px',
+  '--right-width': rightCollapsed.value ? '96px' : '380px'
+}))
+
+const reductionRate = computed(() => {
+  if (!overview.value.totalEmission) {
+    return 0
+  }
+  return Math.min(100, (overview.value.totalReduction / overview.value.totalEmission) * 100)
+})
+
+const efficiencyScore = computed(() => {
+  return Math.min(100, reductionRate.value * 0.8 + (overview.value.activeUsersToday / 30))
+})
+
+const topRegion = computed(() => {
+  const sorted = [...regionalStats.value].sort((a, b) => b.totalEmission - a.totalEmission)
+  return sorted[0]?.region || '暂无'
+})
+
+const topRegionEmission = computed(() => {
+  const sorted = [...regionalStats.value].sort((a, b) => b.totalEmission - a.totalEmission)
+  return sorted[0]?.totalEmission || 0
+})
+
+const topCategoryName = computed(() => {
+  const sorted = [...categoryDistribution.value].sort((a, b) => b.value - a.value)
+  return sorted[0]?.category || '暂无'
+})
+
+const topCategoryShare = computed(() => {
+  const sorted = [...categoryDistribution.value].sort((a, b) => b.value - a.value)
+  return sorted[0]?.percentage || 0
+})
+
+const heroMetrics = computed(() => [
+  {
+    label: '今日活跃',
+    value: overview.value.activeUsersToday,
+    decimals: 0,
+    suffix: '',
+    tip: '在线互动用户'
+  },
+  {
+    label: '日均排放',
+    value: overview.value.avgDailyEmission,
+    decimals: 2,
+    suffix: ' kg',
+    tip: '最近均值'
+  },
+  {
+    label: '减排总量',
+    value: overview.value.totalReduction,
+    decimals: 1,
+    suffix: ' kg',
+    tip: '累计成果'
+  },
+  {
+    label: '完成率',
+    value: reductionRate.value,
+    decimals: 1,
+    suffix: '%',
+    tip: '目标推进'
+  }
+])
+
+const recentActivities = computed(() => realTimeActivities.value.slice(0, 5))
+
+const recommendations = computed(() => [
+  {
+    title: '交通优化',
+    value: '高优先级',
+    text: '优先推动公共交通、拼车和新能源出行，能最快降低结构性排放。'
+  },
+  {
+    title: '饮食结构',
+    value: '中优先级',
+    text: '减少高碳食材占比，提升低碳饮食的日常触达频率。'
+  },
+  {
+    title: '能源管理',
+    value: '持续跟踪',
+    text: '强化用电监测和设备效率评估，稳定压降用电排放。'
+  }
+])
+
+const focusPanels = [
+  {
+    panel: 'trend',
+    label: '趋势中枢',
+    detail: '30 天排放变化会持续轮播高亮，便于先看走势再看结构。'
+  },
+  {
+    panel: 'radar',
+    label: 'AI 评估雷达',
+    detail: '综合健康度会和侧栏摘要同步闪动，突出整体风险判断。'
+  },
+  {
+    panel: 'region',
+    label: '区域热力',
+    detail: '高负荷地区会自动进入视野，强化空间维度的发现能力。'
+  },
+  {
+    panel: 'ranking',
+    label: '减排排行榜',
+    detail: '领先用户会轮流被聚焦，用于强调行为示范效应。'
+  }
+] as const
+
+const focusIndex = ref(0)
+
+const focusState = computed(() => focusPanels[focusIndex.value % focusPanels.length])
+
+const activeActivityIndex = computed(() => {
+  const size = recentActivities.value.length || 1
+  return focusIndex.value % size
+})
+
+const activeRankIndex = computed(() => {
+  const size = topUsers.value.slice(0, 8).length || 1
+  return focusIndex.value % size
+})
+
+const coreParticles = computed(() => {
+  return Array.from({ length: 12 }, (_, index) => {
+    const radius = 120 + (index % 4) * 24
+    const angle = (index / 12) * Math.PI * 2
+    const x = Math.cos(angle) * radius
+    const y = Math.sin(angle) * radius
+    return {
+      id: index,
+      style: {
+        '--x': `${x}px`,
+        '--y': `${y}px`,
+        animationDelay: `${index * 0.22}s`,
+        width: `${4 + (index % 3)}px`,
+        height: `${4 + (index % 3)}px`
+      }
+    }
+  })
+})
+
+const activityTypeLabel = (type: string) => {
+  const map: Record<string, string> = {
+    transport: '交通',
+    diet: '饮食',
+    electricity: '用电'
+  }
+  return map[type] || '动态'
+}
+
+const formatNumber = (value: number, fractionDigits = 0) => {
+  return new Intl.NumberFormat('zh-CN', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits
+  }).format(value || 0)
+}
 
 const updateTime = () => {
-  const now = new Date()
-  currentTime.value = now.toLocaleString('zh-CN', {
+  currentTime.value = new Date().toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -242,1079 +516,2113 @@ const updateTime = () => {
   })
 }
 
-const fetchDashboardData = async () => {
-  try {
-    const response = await dashboardApi.getDashboardData()
-    overview.value = response.overview
-    emissionTrends.value = response.emissionTrends
-    categoryDistribution.value = response.categoryDistribution
-    topUsers.value = response.topUsers
-    regionalStats.value = response.regionalStats
-    realTimeActivities.value = response.realTimeActivities
-    
-    // 限制实时动态最多显示10条
-    if (realTimeActivities.value.length > 10) {
-      realTimeActivities.value = realTimeActivities.value.slice(0, 10)
-    }
-    
-    // 如果数据为空，使用案例数据
-    if (regionalStats.value.length === 0) {
-      regionalStats.value = getMockRegionalStats()
-    }
-    if (topUsers.value.length === 0) {
-      topUsers.value = getMockTopUsers()
-    }
-    if (realTimeActivities.value.length === 0) {
-      realTimeActivities.value = getMockRealTimeActivities().slice(0, 10)
-    }
-    if (emissionTrends.value.length === 0) {
-      emissionTrends.value = getMockEmissionTrends()
-    }
-    if (categoryDistribution.value.length === 0) {
-      categoryDistribution.value = getMockCategoryDistribution()
-    }
-    
-    updateCharts()
-  } catch (error: any) {
-    console.error('获取大屏数据失败:', error)
-    // 使用案例数据
-    overview.value = getMockOverview()
-    emissionTrends.value = getMockEmissionTrends()
-    categoryDistribution.value = getMockCategoryDistribution()
-    topUsers.value = getMockTopUsers()
-    regionalStats.value = getMockRegionalStats()
-    realTimeActivities.value = getMockRealTimeActivities().slice(0, 10)
-    updateCharts()
-  }
-}
-
-const getMockOverview = (): OverviewStats => {
-  return {
-    totalUsers: 12580,
-    totalEmission: 45678.5,
-    totalReduction: 12345.8,
-    totalPoints: 89650,
-    avgDailyEmission: 3.63,
-    activeUsersToday: 892
-  }
-}
+const getMockOverview = (): OverviewStats => ({
+  totalUsers: 12580,
+  totalEmission: 45678.5,
+  totalReduction: 12345.8,
+  totalPoints: 89650,
+  avgDailyEmission: 3.63,
+  activeUsersToday: 892
+})
 
 const getMockEmissionTrends = (): EmissionTrend[] => {
   const trends: EmissionTrend[] = []
   const now = new Date()
-  for (let i = 29; i >= 0; i--) {
+  
+  // Create a 30-day cyclical trend with downward direction
+  for (let i = 29; i >= 0; i -= 1) {
     const date = new Date(now)
     date.setDate(date.getDate() - i)
-    const baseEmission = 1500 + Math.random() * 500
+    // 假设双休日代表周末
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6
+    
+    // 生成波动和长期走向：随着天数靠近现在(i接近0)，基础值在降低（模拟减排效果有成效）
+    const downwardTrend = i * 18
+    const weekendDrop = isWeekend ? -350 : 150
+    const randomNoise = (Math.random() - 0.5) * 180
+    
+    const total = 1400 + downwardTrend + weekendDrop + randomNoise
+    
+    // 结构比例模拟（周末通勤大幅降低用电升高，工作日相反）
+    const transportShare = isWeekend ? (0.2 + Math.random() * 0.05) : (0.42 + Math.random() * 0.05)
+    // 餐饮较为平稳
+    const dietShare = 0.3 + Math.random() * 0.05
+    const electricityShare = 1 - transportShare - dietShare
+
+    const isoDateStr = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0]
+
     trends.push({
-      date: date.toISOString().split('T')[0],
-      emission: baseEmission,
-      transportEmission: baseEmission * 0.4 + Math.random() * 100,
-      dietEmission: baseEmission * 0.35 + Math.random() * 100,
-      electricityEmission: baseEmission * 0.25 + Math.random() * 100
+      date: isoDateStr,
+      emission: total,
+      transportEmission: total * transportShare,
+      dietEmission: total * dietShare,
+      electricityEmission: total * electricityShare
     })
   }
   return trends
 }
 
-const getMockCategoryDistribution = (): CategoryDistribution[] => {
-  return [
-    { category: '交通排放', value: 18271.4, percentage: 40 },
-    { category: '饮食排放', value: 15987.4, percentage: 35 },
-    { category: '用电排放', value: 11419.7, percentage: 25 }
-  ]
-}
+const getMockCategoryDistribution = (): CategoryDistribution[] => [
+  { category: '交通排放', value: 18271.4, percentage: 40 },
+  { category: '饮食排放', value: 15987.4, percentage: 35 },
+  { category: '用电排放', value: 11419.7, percentage: 25 }
+]
 
-const getMockTopUsers = (): TopUser[] => {
-  return [
-    { userId: 1, username: '环保达人', totalPoints: 12580, totalReduction: 1258.5, rank: 1 },
-    { userId: 2, username: '绿色先锋', totalPoints: 11250, totalReduction: 1125.0, rank: 2 },
-    { userId: 3, username: '低碳生活', totalPoints: 9870, totalReduction: 987.0, rank: 3 },
-    { userId: 4, username: '节能专家', totalPoints: 8640, totalReduction: 864.0, rank: 4 },
-    { userId: 5, username: '减排先锋', totalPoints: 7320, totalReduction: 732.0, rank: 5 },
-    { userId: 6, username: '绿色使者', totalPoints: 6580, totalReduction: 658.0, rank: 6 },
-    { userId: 7, username: '环保卫士', totalPoints: 5940, totalReduction: 594.0, rank: 7 },
-    { userId: 8, username: '低碳达人', totalPoints: 5210, totalReduction: 521.0, rank: 8 }
-  ]
-}
+const getMockTopUsers = (): TopUser[] => [
+  { userId: 1, username: '环保达人', totalPoints: 12580, totalReduction: 1258.5, rank: 1 },
+  { userId: 2, username: '绿色先锋', totalPoints: 11250, totalReduction: 1125.0, rank: 2 },
+  { userId: 3, username: '低碳生活', totalPoints: 9870, totalReduction: 987.0, rank: 3 },
+  { userId: 4, username: '节能专家', totalPoints: 8640, totalReduction: 864.0, rank: 4 },
+  { userId: 5, username: '减排先锋', totalPoints: 7320, totalReduction: 732.0, rank: 5 },
+  { userId: 6, username: '绿色使者', totalPoints: 6580, totalReduction: 658.0, rank: 6 },
+  { userId: 7, username: '环保卫士', totalPoints: 5940, totalReduction: 594.0, rank: 7 },
+  { userId: 8, username: '低碳达人', totalPoints: 5210, totalReduction: 521.0, rank: 8 }
+]
+
+const provinceList = [
+  '广东', '江苏', '山东', '浙江', '河南', '四川', '湖北', '福建', '湖南', '安徽',
+  '河北', '北京', '上海', '陕西', '江西', '重庆', '辽宁', '云南', '广西', '山西',
+  '黑龙江', '内蒙古', '贵州', '吉林', '天津', '新疆', '甘肃', '海南', '宁夏', '青海',
+  '西藏', '香港', '澳门', '台湾'
+];
 
 const getMockRegionalStats = (): RegionalStats[] => {
-  return [
-    { region: '广东', userCount: 2850, totalEmission: 10260.5, avgEmission: 3.6 },
-    { region: '江苏', userCount: 2140, totalEmission: 7704.0, avgEmission: 3.6 },
-    { region: '浙江', userCount: 1890, totalEmission: 6804.0, avgEmission: 3.6 },
-    { region: '山东', userCount: 1630, totalEmission: 5868.0, avgEmission: 3.6 },
-    { region: '河南', userCount: 1260, totalEmission: 4536.0, avgEmission: 3.6 },
-    { region: '四川', userCount: 1140, totalEmission: 4104.0, avgEmission: 3.6 },
-    { region: '湖北', userCount: 980, totalEmission: 3528.0, avgEmission: 3.6 },
-    { region: '福建', userCount: 850, totalEmission: 3060.0, avgEmission: 3.6 },
-    { region: '湖南', userCount: 720, totalEmission: 2592.0, avgEmission: 3.6 },
-    { region: '安徽', userCount: 680, totalEmission: 2448.0, avgEmission: 3.6 },
-    { region: '北京', userCount: 620, totalEmission: 2232.0, avgEmission: 3.6 },
-    { region: '上海', userCount: 580, totalEmission: 2088.0, avgEmission: 3.6 },
-    { region: '河北', userCount: 540, totalEmission: 1944.0, avgEmission: 3.6 },
-    { region: '江西', userCount: 490, totalEmission: 1764.0, avgEmission: 3.6 },
-    { region: '重庆', userCount: 450, totalEmission: 1620.0, avgEmission: 3.6 },
-    { region: '辽宁', userCount: 410, totalEmission: 1476.0, avgEmission: 3.6 },
-    { region: '陕西', userCount: 380, totalEmission: 1368.0, avgEmission: 3.6 },
-    { region: '云南', userCount: 340, totalEmission: 1224.0, avgEmission: 3.6 },
-    { region: '广西', userCount: 310, totalEmission: 1116.0, avgEmission: 3.6 },
-    { region: '山西', userCount: 280, totalEmission: 1008.0, avgEmission: 3.6 },
-    { region: '内蒙古', userCount: 250, totalEmission: 900.0, avgEmission: 3.6 },
-    { region: '吉林', userCount: 220, totalEmission: 792.0, avgEmission: 3.6 },
-    { region: '黑龙江', userCount: 190, totalEmission: 684.0, avgEmission: 3.6 },
-    { region: '贵州', userCount: 170, totalEmission: 612.0, avgEmission: 3.6 },
-    { region: '新疆', userCount: 150, totalEmission: 540.0, avgEmission: 3.6 },
-    { region: '甘肃', userCount: 130, totalEmission: 468.0, avgEmission: 3.6 },
-    { region: '海南', userCount: 110, totalEmission: 396.0, avgEmission: 3.6 },
-    { region: '宁夏', userCount: 90, totalEmission: 324.0, avgEmission: 3.6 },
-    { region: '青海', userCount: 70, totalEmission: 252.0, avgEmission: 3.6 },
-    { region: '西藏', userCount: 50, totalEmission: 180.0, avgEmission: 3.6 },
-    { region: '天津', userCount: 60, totalEmission: 216.0, avgEmission: 3.6 },
-    { region: '香港', userCount: 40, totalEmission: 144.0, avgEmission: 3.6 },
-    { region: '澳门', userCount: 20, totalEmission: 72.0, avgEmission: 3.6 },
-    { region: '台湾', userCount: 30, totalEmission: 108.0, avgEmission: 3.6 }
-  ]
+  return provinceList.map((region, i) => {
+    // 制造一些递减的模拟数据，避免数据显示0
+    const weight = Math.max(0.1, 1 - (i * 0.025)); // 权重从1.0渐减
+    const userCount = Math.floor(2850 * weight + Math.random() * 500);
+    const totalEmission = userCount * (3.0 + Math.random() * 1.5);
+    return {
+      region,
+      userCount,
+      totalEmission,
+      avgEmission: totalEmission / userCount
+    };
+  }).sort((a, b) => b.totalEmission - a.totalEmission);
 }
 
 const getMockRealTimeActivities = (): RealTimeActivity[] => {
   const activities: RealTimeActivity[] = []
   const actions = ['记录了交通排放', '记录了饮食排放', '记录了用电排放', '完成了减排目标', '获得了积分奖励']
   const usernames = ['环保达人', '绿色先锋', '低碳生活', '节能专家', '减排先锋', '绿色使者', '环保卫士', '低碳达人']
-  
+  const regions = ['北京', '上海', '广东', '浙江', '江苏', '四川', '湖北', '陕西', '山东']
   const now = new Date()
-  for (let i = 0; i < 10; i++) {
+
+  for (let i = 0; i < 10; i += 1) {
     const time = new Date(now)
     time.setMinutes(time.getMinutes() - i * 5)
     activities.push({
+      id: Math.random().toString(36).substr(2, 9),
       time: time.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
       username: usernames[Math.floor(Math.random() * usernames.length)],
       activity: actions[Math.floor(Math.random() * actions.length)],
       emission: Math.random() * 5 + 1,
-      type: ['transport', 'diet', 'electricity'][Math.floor(Math.random() * 3)]
+      type: ['transport', 'diet', 'electricity'][Math.floor(Math.random() * 3)],
+      region: regions[Math.floor(Math.random() * regions.length)]
     })
   }
+
   return activities
 }
 
-const initTrendChart = () => {
-  if (!trendChart.value) return
+let nationalDataBackup: any = null;
+
+const fetchDashboardData = async () => {
+  try {
+    const response = await dashboardApi.getDashboardData()
+    overview.value = response.overview || getMockOverview()
+
+    const rawTrends = Array.isArray(response.emissionTrends) && response.emissionTrends.length ? response.emissionTrends : getMockEmissionTrends()
+    // Enhance structural data if it is 0 from backend
+    emissionTrends.value = rawTrends.map((item: any) => {
+      const isMissingStructure = !item.transportEmission && !item.dietEmission && !item.electricityEmission;
+      if (isMissingStructure && item.emission > 0) {
+        const date = new Date(item.date);
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        const transportShare = isWeekend ? (0.2 + Math.random() * 0.05) : (0.42 + Math.random() * 0.05);
+        const dietShare = 0.3 + Math.random() * 0.05;
+        const electricityShare = 1 - transportShare - dietShare;
+        return {
+          ...item,
+          transportEmission: item.emission * transportShare,
+          dietEmission: item.emission * dietShare,
+          electricityEmission: item.emission * electricityShare
+        };
+      }
+      return item;
+    });
+
+    categoryDistribution.value = Array.isArray(response.categoryDistribution) && response.categoryDistribution.length ? response.categoryDistribution : getMockCategoryDistribution()
+    topUsers.value = Array.isArray(response.topUsers) && response.topUsers.length ? response.topUsers : getMockTopUsers()
+    
+    // 让模拟数据作为底座，覆盖后端返回的非零真实数据
+    const baseRegionalData = getMockRegionalStats()
+    if (Array.isArray(response.regionalStats) && response.regionalStats.length > 0) {
+      response.regionalStats.forEach((realRegion: any) => {
+        const match = baseRegionalData.find(m => m.region === realRegion.region || m.region + '省' === realRegion.region || m.region + '市' === realRegion.region)
+        if (match && realRegion.totalEmission > 0) {
+          match.userCount = realRegion.userCount || match.userCount
+          match.totalEmission = realRegion.totalEmission
+          match.avgEmission = realRegion.avgEmission || match.avgEmission
+        } else if (!match && realRegion.totalEmission > 0) {
+          baseRegionalData.push({
+            region: realRegion.region,
+            userCount: realRegion.userCount || 10,
+            totalEmission: realRegion.totalEmission,
+            avgEmission: realRegion.avgEmission || 0
+          })
+        }
+      })
+      baseRegionalData.sort((a, b) => b.totalEmission - a.totalEmission)
+    }
+    regionalStats.value = baseRegionalData
+    
+    realTimeActivities.value = Array.isArray(response.realTimeActivities) && response.realTimeActivities.length ? response.realTimeActivities.slice(0, 10) : getMockRealTimeActivities().slice(0, 10)
+  } catch (error) {
+    console.error('获取大屏数据失败:', error)
+    overview.value = getMockOverview()
+    emissionTrends.value = getMockEmissionTrends()
+    categoryDistribution.value = getMockCategoryDistribution()
+    topUsers.value = getMockTopUsers()
+    regionalStats.value = getMockRegionalStats()
+    realTimeActivities.value = getMockRealTimeActivities().slice(0, 10)
+  }
+
+  // 保存一份全国的基准备份，用于点击省份时做模拟数据比例缩放
+  nationalDataBackup = {
+    overview: { ...overview.value },
+    emissionTrends: emissionTrends.value.map(item => ({ ...item })),
+    categoryDistribution: categoryDistribution.value.map(item => ({ ...item })),
+    topUsers: topUsers.value.map(item => ({ ...item }))
+  }
+
+  await nextTick()
+  renderCharts()
+}
+
+const startFocusRotation = () => {
+  focusIndex.value = (focusIndex.value + 1) % focusPanels.length
+}
+
+let autoPlayMapTimer: number | null = null
+let currentAutoPlayIndex = -1
+let idleTimer: number | null = null
+
+const startMapAutoPlay = () => {
+  if (autoPlayMapTimer) stopMapAutoPlay()
+  autoPlayMapTimer = window.setInterval(() => {
+    if (!regionalStats.value.length || !centerMapInstance) return
+    
+    // Unselect previous
+    if (selectedRegion.value !== '全国') {
+      const prevName = centerMapInstance.getOption()?.series?.[0]?.data?.find((d: any) => d.name.includes(selectedRegion.value))?.name || selectedRegion.value
+      centerMapInstance.dispatchAction({ type: 'unselect', name: prevName })
+    }
+    
+    currentAutoPlayIndex = (currentAutoPlayIndex + 1) % regionalStats.value.length
+    const nextRegion = regionalStats.value[currentAutoPlayIndex].region
+    
+    const mapDataList: any[] = (centerMapInstance.getOption() as any)?.series?.[0]?.data || []
+    const nextMatch = mapDataList.find(d => d.name.includes(nextRegion))
+    const dispatchName = nextMatch ? nextMatch.name : nextRegion
+
+    // Auto select
+    centerMapInstance.dispatchAction({ type: 'select', name: dispatchName })
+    selectedRegion.value = nextRegion
+
+  }, 6000)
+}
+
+const stopMapAutoPlay = () => {
+  if (autoPlayMapTimer) {
+    clearInterval(autoPlayMapTimer)
+    autoPlayMapTimer = null
+  }
+}
+
+const resetUserIdle = () => {
+  stopMapAutoPlay()
+  if (idleTimer) clearTimeout(idleTimer)
+  idleTimer = window.setTimeout(() => {
+    startMapAutoPlay()
+  }, 10000) // 10 seconds of idle to resume auto-play
+}
+
+const createChart = (container: HTMLElement | null, existing: echarts.ECharts | null) => {
+  if (!container) {
+    return existing
+  }
+  return existing ?? echarts.init(container)
+}
+
+const renderCenterMap = () => {
+  const isInit = !centerMapInstance;
+  centerMapInstance = createChart(centerMap.value, centerMapInstance);
+  if (!centerMapInstance) return;
+
+  const mapData = regionalStats.value.map(item => {
+    let name = item.region;
+    if (['北京', '天津', '上海', '重庆'].includes(name)) name += '市';
+    else if (['内蒙古', '西藏'].includes(name)) name += '自治区';
+    else if (name === '新疆') name = '新疆维吾尔自治区';
+    else if (name === '宁夏') name = '宁夏回族自治区';
+    else if (name === '广西') name = '广西壮族自治区';
+    else if (name === '香港' || name === '澳门') name += '特别行政区';
+    else if (!name.endsWith('省') && !name.endsWith('市') && !name.endsWith('区') && !name.endsWith('自治区') && !name.endsWith('行政区')) name += '省';
+
+    // 伪随机生成当地的结构拆分（为了展示 Tooltip）
+    const hash = name.charCodeAt(0) + Math.floor(item.totalEmission);
+    const transportP = 25 + (hash % 15);
+    const electricityP = 35 + (hash % 20);
+    const dietP = 100 - transportP - electricityP;
+
+    return { 
+      name: name, 
+      value: item.totalEmission,
+      breakdown: {
+        transport: transportP,
+        electricity: electricityP,
+        diet: dietP
+      }
+    };
+  })
   
-  trendChartInstance = echarts.init(trendChart.value)
-  
-  const option = {
+  console.log('---- Map Data Update ----', isInit, mapData)
+
+  const maxVal = Math.max(...regionalStats.value.map(s => s.totalEmission), 100);
+
+  // Preserve the current zoom and center offset from the instance if it exists
+  let currentZoom = undefined;
+  let currentCenter = undefined;
+  if (!isInit && centerMapInstance) {
+    const currentOption: any = centerMapInstance.getOption();
+    if (currentOption && currentOption.geo && currentOption.geo.length > 0) {
+      currentZoom = currentOption.geo[0].zoom;
+      currentCenter = currentOption.geo[0].center;
+    } else if (currentOption && currentOption.series && currentOption.series.length > 0) {
+      currentZoom = currentOption.series[0].zoom;
+      currentCenter = currentOption.series[0].center;
+    }
+  }
+
+  centerMapInstance.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: 'rgba(7, 18, 30, 0.92)',
+      borderColor: 'rgba(90, 210, 166, 0.45)',
+      textStyle: { color: '#effff8' },
+      formatter: (params: any) => {
+        // Handle effectScatter vs map data slightly differently
+        const data = params.data || {};
+        let displayVal = '0';
+        
+        let t = 25, e = 35, d = 40;
+        if (params.seriesType === 'effectScatter') {
+           displayVal = isNaN(data.value[2]) ? '0' : Number(data.value[2]).toFixed(2);
+           return `<div style="font-family: Arial, sans-serif; padding: 4px;">
+             <div style="font-size: 14px; font-weight: bold; margin-bottom: 6px;">
+               ${data.name} <span style="font-weight: normal; color: rgba(255,255,255,0.7); margin-left: 8px;">活动涟漪</span>
+             </div>
+             <div>单次排放: <span style="color: #ffeb3b;">${displayVal} kg CO₂e</span></div>
+           </div>`;
+        } else {
+           displayVal = isNaN(params.value) ? '0' : Number(params.value).toFixed(2);
+           if (data.breakdown) {
+             t = data.breakdown.transport;
+             e = data.breakdown.electricity;
+             d = data.breakdown.diet;
+           }
+           return `
+             <div style="font-family: Arial, sans-serif; min-width: 190px; padding: 4px;">
+               <div style="font-size: 15px; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 8px;">
+                 ${params.name} 
+                 <span style="font-size: 12px; font-weight: normal; color: #57f287; float: right; margin-top:2px;">
+                   ${displayVal} kg CO₂e
+                 </span>
+               </div>
+               <div style="display: flex; align-items: center; gap: 14px; margin-top: 8px;">
+                 <div style="width: 54px; height: 54px; border-radius: 50%; background: conic-gradient(#57f287 0% ${t}%, #7dd3fc ${t}% ${t+e}%, #f8b26a ${t+e}% 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
+                   <div style="width: 32px; height: 32px; background: rgba(7, 18, 30, 0.92); border-radius: 50%;"></div>
+                 </div>
+                 <div style="flex: 1; font-size: 12px; line-height: 1.9;">
+                   <div style="display: flex; justify-content: space-between;"><span style="color:#57f287">● 交通</span><span style="font-weight:600">${t}%</span></div>
+                   <div style="display: flex; justify-content: space-between;"><span style="color:#7dd3fc">● 用电</span><span style="font-weight:600">${e}%</span></div>
+                   <div style="display: flex; justify-content: space-between;"><span style="color:#f8b26a">● 饮食</span><span style="font-weight:600">${d}%</span></div>
+                 </div>
+               </div>
+             </div>
+           `;
+        }
+      }
+    },
+    visualMap: {
+      min: 0,
+      max: isNaN(maxVal) ? 100 : maxVal,
+      text: ['高', '低'],
+      realtime: false,
+      calculable: true,
+      inRange: {
+        color: ['rgba(87, 242, 135, 0.1)', 'rgba(87, 242, 135, 0.5)', '#57f287']
+      },
+      textStyle: { color: '#effff8' },
+      bottom: 20,
+      left: 20
+    },
+    geo: {
+      map: 'china',
+      roam: true,
+      zoom: currentZoom !== undefined ? currentZoom : (isInit ? 1.25 : undefined),
+      center: currentCenter,
+      label: {
+        show: true,
+        color: 'rgba(255, 255, 255, 0.85)',
+        fontSize: 11,
+        fontWeight: 400
+      },
+      emphasis: {
+        label: {
+          show: true,
+          color: '#fff',
+          fontSize: 14,
+          fontWeight: 'bold',
+          textBorderColor: 'rgba(0,0,0,0.8)',
+          textBorderWidth: 2
+        },
+        itemStyle: {
+          areaColor: '#7dd3fc',
+          borderColor: '#fff',
+          borderWidth: 2,
+          shadowColor: 'rgba(125, 211, 252, 0.4)',
+          shadowBlur: 10
+        }
+      },
+      select: {
+        label: {
+          show: true,
+          color: '#000',
+          fontSize: 14,
+          fontWeight: 'bold'
+        },
+        itemStyle: {
+          areaColor: '#57f287',
+          borderColor: '#fff',
+          borderWidth: 2,
+          shadowColor: 'rgba(87, 242, 135, 0.6)',
+          shadowBlur: 14
+        }
+      },
+      itemStyle: {
+        areaColor: 'rgba(87, 242, 135, 0.1)',
+        borderColor: 'rgba(255, 255, 255, 0.25)',
+        borderWidth: 1
+      }
+    },
+    series: [
+      {
+        name: '区域碳分布',
+        type: 'map',
+        geoIndex: 0,
+        data: mapData
+      }
+    ]
+  }, true); // Use true for `notMerge` to ensure clean overwriting
+
+  centerMapInstance.off('click')
+  centerMapInstance.on('click', (params: any) => {
+    stopMapAutoPlay();
+    if (selectedRegion.value === params.name) {
+      selectedRegion.value = '全国'
+      centerMapInstance?.dispatchAction({ type: 'unselect', geoIndex: 0, name: params.name })
+    } else {
+      centerMapInstance?.dispatchAction({ type: 'select', geoIndex: 0, name: params.name })
+      selectedRegion.value = params.name
+    }
+  })
+
+  updateMapScatter()
+}
+
+const updateMapScatter = () => {
+  if (!centerMapInstance) return;
+  const scatterData = recentActivities.value
+    .map(activity => {
+      const coord = getGeoCoord(activity.region || '');
+      if (coord) {
+        return {
+          name: activity.region,
+          value: [...coord, activity.emission],
+          itemStyle: {
+            color: activity.type === 'transport' ? '#57f287' :
+                   activity.type === 'electricity' ? '#7dd3fc' : '#f5da4d'
+          }
+        }
+      }
+      return null;
+    })
+    .filter(Boolean);
+
+  centerMapInstance.setOption({
+    series: [
+      { name: '区域碳分布' }, // Must keep index matching
+      {
+        name: '活动涟漪',
+        type: 'effectScatter',
+        coordinateSystem: 'geo',
+        geoIndex: 0,
+        data: scatterData,
+        symbolSize: 8,
+        showEffectOn: 'render',
+        rippleEffect: {
+          brushType: 'stroke',
+          scale: 4
+        },
+        itemStyle: {
+          shadowBlur: 10,
+          shadowColor: '#fff'
+        },
+        zlevel: 1
+      }
+    ]
+  });
+}
+
+const renderTrendChart = () => {
+  trendChartInstance = createChart(trendChart.value, trendChartInstance)
+  if (!trendChartInstance) {
+    return
+  }
+
+  trendChartInstance.setOption({
+    backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      borderColor: '#4CAF50',
-      textStyle: { color: '#2e7d32' }
+      backgroundColor: 'rgba(7, 18, 30, 0.92)',
+      borderColor: 'rgba(90, 210, 166, 0.45)',
+      textStyle: { color: '#effff8' },
+      formatter: (params: any[]) => {
+        const dateStr = params[0].name;
+        let html = `<div style="font-family: Arial, sans-serif; min-width: 140px; padding: 4px;">
+          <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 8px;">
+            ${dateStr} (趋势分析)
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">`;
+
+        const totalNode = params.find(p => p.seriesName === '总排放')
+        if (totalNode) {
+          html += `<div style="display: flex; justify-content: space-between;">
+            <span style="color: #57f287; font-weight: bold;">● 总排量</span>
+            <span style="font-weight: 600;">${Number(totalNode.value).toFixed(1)} kg</span>
+          </div><div style="height: 4px; border-bottom: 1px dashed rgba(255,255,255,0.1); margin-bottom: 2px;"></div>`
+        }
+
+        params.forEach(p => {
+          if (p.seriesName !== '总排放') {
+            html += `<div style="display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.85);">
+              <span>${p.marker} ${p.seriesName}</span>
+              <span style="font-family: monospace;">${Number(p.value).toFixed(1)} kg</span>
+            </div>`
+          }
+        })
+        
+        html += `</div></div>`;
+        return html;
+      }
     },
     legend: {
-      data: ['总排放', '交通', '饮食', '用电'],
-      textStyle: { color: '#2e7d32' }
+      top: 6,
+      textStyle: { color: 'rgba(226, 255, 245, 0.8)' }
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
+      left: 12,
+      right: 16,
+      top: 44,
+      bottom: 16,
       containLabel: true
     },
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: emissionTrends.value.map(t => t.date),
-      axisLabel: { color: '#2e7d32' },
-      axisLine: { lineStyle: { color: '#81c784' } }
+      data: emissionTrends.value.map(item => item.date.slice(5)),
+      axisLabel: { color: 'rgba(228, 248, 239, 0.65)' },
+      axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.14)' } },
+      axisTick: { show: false }
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#2e7d32' },
-      axisLine: { lineStyle: { color: '#81c784' } },
-      splitLine: { lineStyle: { color: 'rgba(76, 175, 80, 0.1)' } }
+      axisLabel: { color: 'rgba(228, 248, 239, 0.65)' },
+      splitLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.08)' } }
     },
     series: [
       {
         name: '总排放',
         type: 'line',
         smooth: true,
-        data: emissionTrends.value.map(t => t.emission),
-        itemStyle: { color: '#2e7d32' }
+        symbol: 'circle',
+        symbolSize: 6,
+        itemStyle: {
+          color: '#57f287',
+          borderColor: '#ffffff',
+          borderWidth: 2
+        },
+        lineStyle: { width: 3, color: '#57f287' },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(87, 242, 135, 0.38)' },
+            { offset: 1, color: 'rgba(87, 242, 135, 0.02)' }
+          ])
+        },
+        data: emissionTrends.value.map(item => item.emission)
       },
       {
         name: '交通',
         type: 'line',
         smooth: true,
-        data: emissionTrends.value.map(t => t.transportEmission),
-        itemStyle: { color: '#4CAF50' }
+        symbol: 'circle',
+        symbolSize: 6,
+        itemStyle: {
+          color: '#7dd3fc',
+          borderColor: '#ffffff',
+          borderWidth: 2
+        },
+        lineStyle: { width: 2, color: '#7dd3fc' },
+        data: emissionTrends.value.map(item => item.transportEmission)
       },
       {
         name: '饮食',
         type: 'line',
         smooth: true,
-        data: emissionTrends.value.map(t => t.dietEmission),
-        itemStyle: { color: '#81c784' }
+        symbol: 'circle',
+        symbolSize: 6,
+        itemStyle: {
+          color: '#f8b26a',
+          borderColor: '#ffffff',
+          borderWidth: 2
+        },
+        lineStyle: { width: 2, color: '#f8b26a' },
+        data: emissionTrends.value.map(item => item.dietEmission)
       },
       {
         name: '用电',
         type: 'line',
         smooth: true,
-        data: emissionTrends.value.map(t => t.electricityEmission),
-        itemStyle: { color: '#a5d6a7' }
+        symbol: 'circle',
+        symbolSize: 6,
+        itemStyle: {
+          color: '#c4b5fd',
+          borderColor: '#ffffff',
+          borderWidth: 2
+        },
+        lineStyle: { width: 2, color: '#c4b5fd' },
+        data: emissionTrends.value.map(item => item.electricityEmission)
       }
     ]
-  }
-  
-  trendChartInstance.setOption(option)
+  })
 }
 
-const initCategoryChart = () => {
-  if (!categoryChart.value) return
-  
-  categoryChartInstance = echarts.init(categoryChart.value)
-  
-  const option = {
+const renderCategoryChart = () => {
+  categoryChartInstance = createChart(categoryChart.value, categoryChartInstance)
+  if (!categoryChartInstance) {
+    return
+  }
+
+  categoryChartInstance.setOption({
+    backgroundColor: 'transparent',
     tooltip: {
       trigger: 'item',
-      formatter: '{b}: {c} kg ({d}%)',
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      borderColor: '#4CAF50',
-      textStyle: { color: '#2e7d32' }
+      backgroundColor: 'rgba(7, 18, 30, 0.92)',
+      borderColor: 'rgba(90, 210, 166, 0.45)',
+      textStyle: { color: '#effff8' },
+      formatter: '{b}<br/>{c} kg CO₂e ({d}%)'
     },
     legend: {
-      show: false
+      top: 8,
+      left: 'center',
+      textStyle: { color: 'rgba(228, 248, 239, 0.75)' }
     },
     series: [
       {
         type: 'pie',
-        radius: '45%',
-        center: ['50%', '50%'],
-        data: categoryDistribution.value.map(c => ({
-          name: c.category,
-          value: c.value
-        })),
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(76, 175, 80, 0.5)'
-          }
-        },
+        radius: ['42%', '70%'],
+        center: ['50%', '56%'],
+        avoidLabelOverlap: true,
         itemStyle: {
-          color: (params: any) => {
-            const colors = ['#4CAF50', '#81c784', '#a5d6a7']
-            return colors[params.dataIndex % colors.length]
-          }
+          borderColor: 'rgba(7, 18, 30, 0.95)',
+          borderWidth: 2
         },
         label: {
-          show: true,
-          position: 'outside',
-          formatter: '{b}\n{d}%',
-          color: '#2e7d32',
-          fontSize: 13,
-          fontWeight: 'bold'
+          color: '#eafff6',
+          formatter: '{b}\n{d}%'
         },
         labelLine: {
-          show: true,
-          length: 15,
-          length2: 20,
-          lineStyle: {
-            color: '#2e7d32',
-            width: 1.5
+          lineStyle: { color: 'rgba(228, 248, 239, 0.4)' }
+        },
+        data: categoryDistribution.value.map((item, index) => ({
+          name: item.category,
+          value: item.value,
+          itemStyle: {
+            color: ['#57f287', '#7dd3fc', '#f8b26a'][index % 3]
           }
-        }
+        }))
       }
     ]
-  }
-  
-  categoryChartInstance.setOption(option)
+  })
 }
 
-const initMapChart = () => {
-  if (!mapChart.value) return
-  
-  mapChartInstance = echarts.init(mapChart.value)
-  
-  // 使用柱状图模拟地图效果
-  const sortedRegions = [...regionalStats.value].sort((a, b) => b.userCount - a.userCount).slice(0, 10)
-  
-  const option = {
+const renderRegionChart = () => {
+  regionChartInstance = createChart(regionChart.value, regionChartInstance)
+  if (!regionChartInstance) {
+    return
+  }
+
+  const sortedRegions = [...regionalStats.value].sort((a, b) => b.totalEmission - a.totalEmission).slice(0, 8)
+
+  regionChartInstance.setOption({
+    backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      axisPointer: {
-        type: 'shadow'
-      },
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      borderColor: '#4CAF50',
-      textStyle: { color: '#2e7d32' }
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(7, 18, 30, 0.92)',
+      borderColor: 'rgba(90, 210, 166, 0.45)',
+      textStyle: { color: '#effff8' }
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
+      left: 14,
+      right: 20,
+      top: 8,
+      bottom: 8,
       containLabel: true
     },
     xAxis: {
       type: 'value',
-      axisLabel: { 
-        color: '#2e7d32',
-        formatter: '{value}'
-      },
-      axisLine: { lineStyle: { color: '#81c784' } },
-      splitLine: { lineStyle: { color: 'rgba(76, 175, 80, 0.1)' } }
+      axisLabel: { color: 'rgba(228, 248, 239, 0.65)' },
+      splitLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.08)' } }
     },
     yAxis: {
       type: 'category',
-      data: sortedRegions.map(r => r.region),
-      axisLabel: { 
-        color: '#2e7d32'
-      },
-      axisLine: { lineStyle: { color: '#81c784' } }
+      inverse: true,
+      data: sortedRegions.map(item => item.region),
+      axisLabel: { color: 'rgba(228, 248, 239, 0.75)' },
+      axisTick: { show: false },
+      axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.14)' } }
     },
     series: [
       {
-        name: '用户数量',
         type: 'bar',
-        data: sortedRegions.map(r => r.userCount),
+        data: sortedRegions.map(item => item.totalEmission),
+        barWidth: 14,
         itemStyle: {
+          borderRadius: [0, 999, 999, 0],
           color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: '#4CAF50' },
-            { offset: 0.5, color: '#81c784' },
-            { offset: 1, color: '#a5d6a7' }
-          ]),
-          borderRadius: [0, 4, 4, 0]
+            { offset: 0, color: '#57f287' },
+            { offset: 1, color: '#7dd3fc' }
+          ])
         },
         label: {
           show: true,
           position: 'right',
-          color: '#2e7d32',
+          color: '#eafff6',
           formatter: '{c}'
-        },
-        animationDuration: 1000,
-        animationEasing: 'cubicOut'
-      }
-    ]
-  }
-  
-  mapChartInstance.setOption(option)
-}
-
-const initRegionChart = () => {
-  if (!regionChart.value) return
-  
-  regionChartInstance = echarts.init(regionChart.value)
-  
-  const option = {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow'
-      },
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      borderColor: '#4CAF50',
-      textStyle: { color: '#2e7d32' }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'value',
-      axisLabel: { 
-        color: '#2e7d32' 
-      },
-      axisLine: { lineStyle: { color: '#81c784' } },
-      splitLine: { lineStyle: { color: 'rgba(76, 175, 80, 0.1)' } }
-    },
-    yAxis: {
-      type: 'category',
-      data: regionalStats.value.slice(0, 5).map(r => r.region),
-      axisLabel: { 
-        color: '#2e7d32' 
-      },
-      axisLine: { lineStyle: { color: '#81c784' } }
-    },
-    series: [
-      {
-        name: '用户数',
-        type: 'bar',
-        data: regionalStats.value.slice(0, 5).map(r => r.userCount),
-        itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: '#4CAF50' },
-            { offset: 1, color: '#81c784' }
-          ])
         }
       }
     ]
-  }
-  
-  regionChartInstance.setOption(option)
+  })
 }
 
-const initHotspotChart = () => {
-  if (!hotspotChart.value) return
-  
-  const hotspotChartInstance = echarts.init(hotspotChart.value)
-  
-  const option = {
+const renderRadarChart = () => {
+  radarChartInstance = createChart(radarChart.value, radarChartInstance)
+  if (!radarChartInstance) {
+    return
+  }
+
+  const totalCategoryValue = categoryDistribution.value.reduce((sum, item) => sum + item.value, 0) || 1
+  const categoryMap = new Map(categoryDistribution.value.map(item => [item.category, item]))
+  const transportPercent = (categoryMap.get('交通排放')?.value || 0) / totalCategoryValue * 100
+  const dietPercent = (categoryMap.get('饮食排放')?.value || 0) / totalCategoryValue * 100
+  const electricityPercent = (categoryMap.get('用电排放')?.value || 0) / totalCategoryValue * 100
+
+  radarChartInstance.setOption({
+    backgroundColor: 'transparent',
     tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      borderColor: '#4CAF50',
-      textStyle: { color: '#2e7d32' }
+      backgroundColor: 'rgba(7, 18, 30, 0.92)',
+      borderColor: 'rgba(90, 210, 166, 0.45)',
+      textStyle: { color: '#effff8' }
     },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月'],
-      axisLabel: { 
-        color: '#2e7d32' 
-      },
-      axisLine: { lineStyle: { color: '#81c784' } }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { 
-        color: '#2e7d32',
-        formatter: '{value}',
-        fontSize: 10,
-        interval: 'auto'
-      },
-      axisLine: { lineStyle: { color: '#81c784' } },
-      splitLine: { lineStyle: { color: 'rgba(76, 175, 80, 0.1)' } },
-      min: 1000,
-      max: 3000,
-      interval: 500
-    },
-    series: [
-      {
-        data: [1200, 1900, 1500, 2100, 1800, 2500],
-        type: 'line',
-        smooth: true,
-        lineStyle: {
-          color: '#4CAF50',
-          width: 3
-        },
+    radar: {
+      center: ['50%', '54%'],
+      radius: '62%',
+      splitNumber: 4,
+      axisName: { color: 'rgba(228, 248, 239, 0.8)' },
+      splitArea: {
         areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(76, 175, 80, 0.3)' },
-            { offset: 1, color: 'rgba(76, 175, 80, 0.1)' }
-          ])
+          color: ['rgba(87, 242, 135, 0.04)', 'rgba(125, 211, 252, 0.04)']
         }
+      },
+      splitLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.12)' } },
+      axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.14)' } },
+      indicator: [
+        { name: '交通压力', max: 100 },
+        { name: '饮食压力', max: 100 },
+        { name: '用电压力', max: 100 },
+        { name: '活跃度', max: 100 },
+        { name: '减排率', max: 100 },
+        { name: '积分活跃', max: 100 }
+      ]
+    },
+    series: [
+      {
+        type: 'radar',
+        symbol: 'none',
+        lineStyle: { width: 2.5, color: '#57f287' },
+        areaStyle: {
+          color: 'rgba(87, 242, 135, 0.22)'
+        },
+        data: [
+          {
+            value: [
+              Math.min(100, transportPercent),
+              Math.min(100, dietPercent),
+              Math.min(100, electricityPercent),
+              Math.min(100, overview.value.activeUsersToday / 12),
+              Math.min(100, reductionRate.value * 1.8),
+              Math.min(100, overview.value.totalPoints / 1200)
+            ],
+            name: '平台健康度'
+          }
+        ]
       }
     ]
+  })
+}
+
+const renderCharts = () => {
+  renderCenterMap()
+  renderTrendChart()
+  renderCategoryChart()
+  renderRegionChart()
+  renderRadarChart()
+}
+
+watch(selectedRegion, (newVal) => {
+  if (nationalDataBackup) {
+    if (newVal === '全国') {
+      // 恢复全国数据
+      overview.value = { ...nationalDataBackup.overview }
+      emissionTrends.value = nationalDataBackup.emissionTrends.map((item: any) => ({ ...item }))
+      categoryDistribution.value = nationalDataBackup.categoryDistribution.map((item: any) => ({ ...item }))
+      topUsers.value = nationalDataBackup.topUsers.map((item: any) => ({ ...item }))
+    } else {
+      // 模拟各省的区划数据
+      // 找一下该省在 regionalStats 的原本排放比例作为基础 scale
+      const rData = regionalStats.value.find(r => r.region === newVal)
+      // 如果找到了，计算大致比例，否则给个默认小比例（如 0.05）
+      let scale = 0.05
+      if (rData && nationalDataBackup.overview.totalEmission) {
+        scale = rData.totalEmission / nationalDataBackup.overview.totalEmission
+      }
+      scale = Math.max(0.01, Math.min(scale, 0.4)) // 限制在 1% ~ 40% 之间，让数据显得合理不为0
+
+      // 使用 random() 增加一点波动感
+      const randomScale = () => scale * (0.8 + Math.random() * 0.4)
+
+      overview.value = {
+        totalUsers: Math.floor(nationalDataBackup.overview.totalUsers * scale),
+        totalEmission: nationalDataBackup.overview.totalEmission * randomScale(),
+        totalReduction: nationalDataBackup.overview.totalReduction * randomScale(),
+        totalPoints: Math.floor(nationalDataBackup.overview.totalPoints * scale),
+        avgDailyEmission: nationalDataBackup.overview.avgDailyEmission * (0.9 + Math.random() * 0.2), // 人均差不多
+        activeUsersToday: Math.floor(nationalDataBackup.overview.activeUsersToday * scale * (0.5 + Math.random()))
+      }
+
+      emissionTrends.value = nationalDataBackup.emissionTrends.map((item: any) => ({
+        date: item.date,
+        emission: item.emission * scale,
+        transportEmission: item.transportEmission * scale,
+        dietEmission: item.dietEmission * scale,
+        electricityEmission: item.electricityEmission * scale
+      }))
+
+      categoryDistribution.value = nationalDataBackup.categoryDistribution.map((item: any) => ({
+        category: item.category,
+        value: item.value * scale,
+        percentage: item.percentage // 暂且不变
+      }))
+
+      topUsers.value = nationalDataBackup.topUsers.map((item: any) => ({
+        ...item,
+        totalPoints: Math.floor(item.totalPoints * scale),
+        totalReduction: item.totalReduction * scale
+      }))
+    }
   }
-  
-  hotspotChartInstance.setOption(option)
+
+  nextTick(() => {
+    renderTrendChart()
+    renderCategoryChart()
+    renderRegionChart()
+    renderRadarChart()
+  })
+})
+
+const toggleLeftRail = () => {
+  leftCollapsed.value = !leftCollapsed.value
+  nextTick(() => renderCharts())
 }
 
-const updateCharts = () => {
-  initTrendChart()
-  initCategoryChart()
-  initMapChart()
-  initRegionChart()
-  initHotspotChart()
+const toggleRightRail = () => {
+  rightCollapsed.value = !rightCollapsed.value
+  nextTick(() => renderCharts())
 }
 
-// 生成单条实时动态记录
 const generateSingleActivity = (): RealTimeActivity => {
   const actions = ['记录了交通排放', '记录了饮食排放', '记录了用电排放', '完成了减排目标', '获得了积分奖励']
   const usernames = ['环保达人', '绿色先锋', '低碳生活', '节能专家', '减排先锋', '绿色使者', '环保卫士', '低碳达人']
-  
+  const regions = ['北京', '上海', '广东', '浙江', '江苏', '四川', '湖北', '陕西', '山东']
+
   return {
+    id: Math.random().toString(36).substr(2, 9),
     time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
     username: usernames[Math.floor(Math.random() * usernames.length)],
     activity: actions[Math.floor(Math.random() * actions.length)],
     emission: Math.random() * 5 + 1,
-    type: ['transport', 'diet', 'electricity'][Math.floor(Math.random() * 3)]
+    type: ['transport', 'diet', 'electricity'][Math.floor(Math.random() * 3)],
+    region: regions[Math.floor(Math.random() * regions.length)]
   }
 }
 
 const refreshRealTimeData = () => {
-  // 生成单条新记录
   const newActivity = generateSingleActivity()
-  // 使用splice方法在数组开头添加新元素
-  realTimeActivities.value.splice(0, 0, newActivity)
-  // 严格限制最多10条，删除多余的
-  while (realTimeActivities.value.length > 10) {
-    realTimeActivities.value.pop()
+  realTimeActivities.value = [newActivity, ...realTimeActivities.value].slice(0, 10)
+
+  // 更新总指标
+  if (overview.value.totalEmission !== undefined) {
+    overview.value.totalEmission = Math.max(0, overview.value.totalEmission + (Math.random() * 20 - 5))
+  }
+  if (overview.value.totalReduction !== undefined) {
+    overview.value.totalReduction = Math.max(0, overview.value.totalReduction + (Math.random() * 5 - 1))
+  }
+  if (overview.value.activeUsersToday !== undefined) {
+    overview.value.activeUsersToday = Math.max(0, overview.value.activeUsersToday + Math.floor(Math.random() * 8) - 2)
   }
   
-  // 模拟数据动态变化
-  if (overview.value.totalEmission) {
-    overview.value.totalEmission += Math.random() * 10 - 5
+  // 随机更新排放分布饼图
+  if (categoryDistribution.value.length > 0) {
+    const rIdx = Math.floor(Math.random() * categoryDistribution.value.length)
+    categoryDistribution.value[rIdx].amount += Math.random() * 5
   }
-  if (overview.value.totalReduction) {
-    overview.value.totalReduction += Math.random() * 2 - 1
-  }
-  if (overview.value.activeUsersToday) {
-    overview.value.activeUsersToday += Math.floor(Math.random() * 3) - 1
-  }
-}
 
-const startDataRefresh = () => {
-  // 手动刷新模式，不启动自动定时器
-  console.log('实时动态已切换到手动刷新模式')
+  // 随机更新省份排行的前几名（让柱状图和地图有肉眼可见变化）
+  if (regionalStats.value.length > 0) {
+    for (let i = 0; i < 3; i++) {
+        const randId = Math.floor(Math.random() * Math.min(8, regionalStats.value.length))
+        regionalStats.value[randId].totalEmission += Math.random() * 15
+        regionalStats.value[randId].userCount += Math.floor(Math.random() * 12)
+    }
+    // 排序保证省份图始终是从高到低
+    regionalStats.value.sort((a, b) => b.totalEmission - a.totalEmission)
+  }
+  
+  // 随机更新近期趋势折线（拿最新的一天追加一点数据）
+  if (emissionTrends.value.length > 0) {
+    const lastIdx = emissionTrends.value.length - 1
+    const jitter = Math.random() * 10 - 2 // [-2, 8]
+    emissionTrends.value[lastIdx].emission += jitter
+    emissionTrends.value[lastIdx].transportEmission += jitter * 0.4
+    emissionTrends.value[lastIdx].dietEmission += jitter * 0.4
+    emissionTrends.value[lastIdx].electricityEmission += jitter * 0.2
+    // reduction could also bounce
+    emissionTrends.value[lastIdx].reduction += Math.random() * 4 - 1
+  }
+
+  nextTick(() => {
+    renderCharts()
+    updateMapScatter()
+  })
 }
 
 const handleResize = () => {
+  centerMapInstance?.resize()
   trendChartInstance?.resize()
   categoryChartInstance?.resize()
-  mapChartInstance?.resize()
   regionChartInstance?.resize()
-  // 热点图表也需要调整大小
-  const hotspotChartElement = document.querySelector('.hotspot-chart')
-  if (hotspotChartElement) {
-    const chart = echarts.getInstanceByDom(hotspotChartElement)
-    chart?.resize()
-  }
+  radarChartInstance?.resize()
 }
 
 onMounted(() => {
   updateTime()
   timer = window.setInterval(updateTime, 1000)
-  
+  focusTimer = window.setInterval(startFocusRotation, 4200)
+  dataTimer = window.setInterval(refreshRealTimeData, 3000)
   fetchDashboardData()
-  startDataRefresh()
-  
   window.addEventListener('resize', handleResize)
+  window.addEventListener('mousemove', resetUserIdle)
+  window.addEventListener('click', resetUserIdle)
+  resetUserIdle() // Start the timer initially
 })
 
 onUnmounted(() => {
   if (timer) {
     clearInterval(timer)
   }
-  
-  if (dataRefreshTimer) {
-    clearInterval(dataRefreshTimer)
+  if (focusTimer) {
+    clearInterval(focusTimer)
   }
-  
+  if (dataTimer) {
+    clearInterval(dataTimer)
+  }
+  stopMapAutoPlay()
+  if (idleTimer) clearTimeout(idleTimer)
+  window.removeEventListener('resize', handleResize)
+  window.removeEventListener('mousemove', resetUserIdle)
+  window.removeEventListener('click', resetUserIdle)
+
   trendChartInstance?.dispose()
   categoryChartInstance?.dispose()
-  mapChartInstance?.dispose()
   regionChartInstance?.dispose()
-  
+  radarChartInstance?.dispose()
+
   window.removeEventListener('resize', handleResize)
 })
 </script>
 
 <style scoped>
-/* 强制100%缩放 */
-:deep(html) {
-  zoom: 100%;
-  text-size-adjust: 100%;
-  -webkit-text-size-adjust: 100%;
-}
-
-.dashboard-container {
+.dashboard-screen {
+  --bg-0: #04111c;
+  --bg-1: #071a28;
+  --panel: rgba(7, 18, 30, 0.72);
+  --panel-strong: rgba(10, 23, 36, 0.9);
+  --line: rgba(141, 255, 198, 0.16);
+  --line-strong: rgba(141, 255, 198, 0.28);
+  --accent: #57f287;
+  --accent-2: #7dd3fc;
+  --accent-3: #f8b26a;
+  --text: #eafff6;
+  --muted: rgba(228, 248, 239, 0.68);
   width: 100%;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f8fff9 0%, #e8f5e8 50%, #d4edda 100%);
-  color: #2e7d32;
-  overflow-y: auto;
+  height: 100vh;
+  position: relative;
   overflow-x: hidden;
-  /* 固定字体大小，不受浏览器缩放影响 */
-  font-size: 16px;
-}
-
-.dashboard-header {
-  height: 80px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 30px;
-  background: rgba(76, 175, 80, 0.1);
-  border-bottom: 2px solid rgba(76, 175, 80, 0.3);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.title-link {
-  text-decoration: none;
-  color: inherit;
-  display: inline-block;
-  transition: all 0.3s ease;
-}
-
-.title-link:hover h1 {
-  background: linear-gradient(90deg, #4CAF50, #81C784);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  transform: translateY(-2px);
-}
-
-.dashboard-header h1 {
-  font-size: 28px;
-  font-weight: bold;
-  background: linear-gradient(90deg, #2e7d32, #4CAF50);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
-  transition: all 0.3s ease;
-}
-
-.current-time {
-  font-size: 18px;
-  color: #2e7d32;
-  font-weight: 500;
-}
-
-.dashboard-content {
-  min-height: calc(100vh - 80px);
-  display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
-  padding: 20px;
-  gap: 20px;
-}
-
-.left-panel,
-.right-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-width: 280px;
-}
-
-.center-panel {
-  display: flex;
-  flex-direction: column;
-  min-width: 400px;
-}
-
-.panel-item {
-  background: white;
-  border: 1px solid rgba(76, 175, 80, 0.2);
-  border-radius: 10px;
-  padding: 20px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-}
-
-.panel-item:hover {
-  box-shadow: 0 6px 12px rgba(76, 175, 80, 0.15);
-  transform: translateY(-2px);
-}
-
-.panel-item.large {
-  flex: 1;
-}
-
-.panel-title {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid rgba(76, 175, 80, 0.3);
-  color: #2e7d32;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.refresh-btn {
-  background: linear-gradient(135deg, #4CAF50, #81c784);
-  color: white;
-  border: none;
-  padding: 5px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.3s ease;
-}
-
-.refresh-btn:hover {
-  background: linear-gradient(135deg, #45a049, #66bb6a);
-  transform: scale(1.05);
-}
-
-.chart-container {
-  flex: 1;
-  min-height: 200px;
-}
-
-.chart-container.large {
-  min-height: 400px;
-}
-
-.overview-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  flex: 1;
-}
-
-.stat-item {
-  background: rgba(76, 175, 80, 0.05);
-  border-radius: 8px;
-  padding: 15px;
-  text-align: center;
-  border: 1px solid rgba(76, 175, 80, 0.1);
-  animation: fadeIn 0.6s ease-out;
-  transition: all 0.3s ease;
-}
-
-.stat-item:hover {
-  background: rgba(76, 175, 80, 0.1);
-  box-shadow: 0 2px 4px rgba(76, 175, 80, 0.1);
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: bold;
-  color: #2e7d32;
-  margin-bottom: 5px;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: #66bb6a;
-}
-
-.ranking-list {
-  flex: 1;
   overflow-y: auto;
+  box-sizing: border-box;
+  padding: 0 18px 18px;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 15% 12%, rgba(87, 242, 135, 0.18), transparent 22%),
+    radial-gradient(circle at 82% 18%, rgba(125, 211, 252, 0.14), transparent 20%),
+    radial-gradient(circle at 50% 110%, rgba(248, 178, 106, 0.12), transparent 24%),
+    linear-gradient(135deg, #031019 0%, #051521 40%, #071a28 100%);
 }
 
-.ranking-item {
-  display: flex;
+.ambient {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(24px);
+  pointer-events: none;
+  opacity: 0.9;
+  animation: drift 12s ease-in-out infinite;
+}
+
+.ambient-a {
+  width: 240px;
+  height: 240px;
+  left: -60px;
+  top: 80px;
+  background: rgba(87, 242, 135, 0.12);
+}
+
+.ambient-b {
+  width: 300px;
+  height: 300px;
+  right: -90px;
+  top: 120px;
+  background: rgba(125, 211, 252, 0.12);
+  animation-delay: -3s;
+}
+
+.ambient-c {
+  width: 320px;
+  height: 320px;
+  left: 28%;
+  bottom: -130px;
+  background: rgba(248, 178, 106, 0.08);
+  animation-delay: -5s;
+}
+
+
+.topbar {
+  position: sticky;
+  top: 12px;
+  z-index: 100;
+  display: grid;
+  grid-template-columns: minmax(280px, 1.2fr) auto auto 1fr;
   align-items: center;
-  padding: 12px;
-  margin-bottom: 10px;
-  background: rgba(76, 175, 80, 0.05);
-  border-radius: 8px;
-  border: 1px solid rgba(76, 175, 80, 0.1);
-  animation: fadeIn 0.5s ease-out;
-  transition: all 0.3s ease;
+  gap: 24px;
+  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  padding: 12px 24px;
+  margin-top: 12px;
+  margin-bottom: 24px;
+  border-radius: 16px;
+  border: 1px solid transparent;
 }
 
-.ranking-item:hover {
-  background: rgba(76, 175, 80, 0.15);
-  transform: translateX(5px);
-  box-shadow: 0 2px 4px rgba(76, 175, 80, 0.1);
-}
-
-.ranking-rank {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+.topbar.scrolled {
+  background: rgba(10, 15, 26, 0.85); /* Dark solidish glass */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  transform: translateY(-50%);
+  width: 24px;
+  height: 64px;
+  background: rgba(87, 242, 135, 0.15);
+  border: 1px solid rgba(87, 242, 135, 0.3);
+  border-radius: 6px;
+  color: #57f287;
+  cursor: pointer;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  margin-right: 12px;
-  background: rgba(76, 175, 80, 0.2);
-  color: #2e7d32;
-  font-size: 14px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(12px);
 }
 
-.ranking-rank.rank-1 {
-  background: linear-gradient(135deg, #ffd700, #ffed4e);
-  color: #000;
+.rail:hover .rail-toggle-btn {
+  opacity: 1;
+  visibility: visible;
 }
 
-.ranking-rank.rank-2 {
-  background: linear-gradient(135deg, #c0c0c0, #e8e8e8);
-  color: #000;
+.rail-toggle-btn:hover {
+  background: rgba(87, 242, 135, 0.3);
+  box-shadow: 0 0 16px rgba(87, 242, 135, 0.4);
 }
 
-.ranking-rank.rank-3 {
-  background: linear-gradient(135deg, #cd7f32, #daa06d);
-  color: #000;
+.toggle-left {
+  right: -12px; /* Hang over the edge */
 }
 
-.ranking-name {
-  flex: 1;
-  font-size: 14px;
-  color: #2e7d32;
+.toggle-right {
+  left: -12px; /* Hang over the edge */
+}
+
+
+/* --- Advanced Premium Animations --- */
+
+/* 1. Staggered Entrance (Slide & Fade) */
+@keyframes slideUpFade {
+  0% { opacity: 0; transform: translateY(30px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 2. Glass Shine Sweep (Runs once on load) */
+@keyframes glassShine {
+  0% { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(200%) skewX(-15deg); }
+}
+
+/* 3. Deep Breathing Shadow (For Hero/Active panels) */
+@keyframes deepBreathe {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(87, 242, 135, 0.05), 0 16px 48px rgba(0,0,0,0.3), 0 0 20px rgba(87, 242, 135, 0.02); }
+  50% { box-shadow: inset 0 0 0 1px rgba(87, 242, 135, 0.15), 0 24px 64px rgba(0,0,0,0.5), 0 0 40px rgba(87, 242, 135, 0.08); }
+}
+
+/* 4. Ambient Micro-Float (Extremely subtle to prevent reading issues) */
+@keyframes microFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Base Panel Styles Refined */
+.rail .panel, .center-stage .panel {
+  animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards, 
+             microFloat 12s ease-in-out infinite !important; /* Infinite slow drift */
+  overflow: hidden; /* For glass shine */
+}
+
+/* Glass Shine pseudo-element on panel */
+.rail .panel::after, .center-stage .panel::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 40%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  pointer-events: none;
+  animation: glassShine 2.5s ease-out forwards;
+}
+
+/* Stagger logic for children */
+.rail-left .panel:nth-child(1) { animation-delay: 0.1s, 0s !important; }
+.rail-left .panel:nth-child(1)::after { animation-delay: 0.1s; }
+.rail-left .panel:nth-child(2) { animation-delay: 0.2s, -2s !important; }
+.rail-left .panel:nth-child(2)::after { animation-delay: 0.2s; }
+.hero-panel { animation-delay: 0.3s, -4s !important; animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards, deepBreathe 6s ease-in-out infinite !important; }
+.hero-panel::after { animation-delay: 0.3s; width: 20%; background: linear-gradient(90deg, transparent, rgba(87,242,135,0.03), transparent); }
+.panel-wide:nth-child(1) { animation-delay: 0.4s, -1s !important; }
+.panel-wide:nth-child(1)::after { animation-delay: 0.4s; }
+.panel-wide:nth-child(2) { animation-delay: 0.5s, -3s !important; }
+.panel-wide:nth-child(2)::after { animation-delay: 0.5s; }
+.rail-right .panel { animation-delay: 0.6s, -5s !important; }
+.rail-right .panel::after { animation-delay: 0.6s; }
+
+/* Advanced Hover Impact */
+.rail .panel:hover, .center-stage .panel:hover {
+  transform: translateY(-4px) scale(1.005) !important;
+  box-shadow: inset 0 0 0 1px rgba(87, 242, 135, 0.2), 0 32px 80px rgba(0, 0, 0, 0.6), 0 0 30px rgba(87, 242, 135, 0.05);
+  border-color: transparent; /* let inner shadow do the work */
+  z-index: 10;
+  animation-play-state: paused, paused !important; /* Stop floating & breathing while reading */
+}
+
+/* Text Shimmer Sweep for main numbers */
+@keyframes textShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.summary-number, .core-value {
+  background: linear-gradient(90deg, #f1fff7 0%, #57f287 30%, #f1fff7 50%, #7dd3fc 80%, #f1fff7 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: textShimmer 6s linear infinite;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.brand-mark {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  border: 1px solid rgba(87, 242, 135, 0.45);
+  background: linear-gradient(135deg, rgba(87, 242, 135, 0.18), rgba(125, 211, 252, 0.1));
+  box-shadow: inset 0 0 24px rgba(87, 242, 135, 0.22);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.brand-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.brand-subtitle {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.status-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.status-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.status-pill.live {
+  color: #eafff6;
+  border-color: rgba(87, 242, 135, 0.34);
+  background: rgba(87, 242, 135, 0.12);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.clock {
+  justify-self: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(87, 242, 135, 0.22);
+  background: rgba(87, 242, 135, 0.08);
+  color: #eafff6;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.toolbar-btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.toolbar-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(87, 242, 135, 0.42);
+  background: rgba(87, 242, 135, 0.11);
+}
+
+.toolbar-btn.primary {
+  border-color: rgba(87, 242, 135, 0.4);
+  background: linear-gradient(135deg, rgba(87, 242, 135, 0.2), rgba(125, 211, 252, 0.12));
+}
+
+.dashboard-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: var(--left-width) minmax(0, 1fr) var(--right-width);
+  gap: 24px;
+  min-height: calc(100vh - 106px);
+  transition: grid-template-columns 0.28s ease;
+}
+
+.rail,
+.center-stage {
+  min-width: 0;
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.rail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.panel.active {
+  border-color: rgba(87, 242, 135, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(87, 242, 135, 0.1), 0 24px 72px rgba(0, 0, 0, 0.4), 0 0 36px rgba(87, 242, 135, 0.15);
+  min-width: 0;
+  transform: translateY(-2px);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.rail .panel,
+.hero-panel,
+.panel {
+  position: relative;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  background: rgba(10, 15, 26, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 16px 48px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 0 0 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.panel-head::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 22px;
+  width: 4px;
+  height: 14px;
+  background: #57f287;
+  border-radius: 4px;
+  box-shadow: 0 0 12px rgba(87, 242, 135, 0.4);
+}
+
+.panel-head > span:first-child {
+  padding-left: 12px;
+}
+
+.panel-sub {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rail-summary {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.summary-number {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  background: linear-gradient(90deg, #f1fff7, #57f287 60%, #7dd3fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.summary-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+
+.summary-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mini-chip {
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mini-chip-label {
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
   font-weight: 500;
 }
 
-.ranking-value {
-  font-size: 14px;
-  color: #2e7d32;
-  font-weight: 600;
+.mini-chip strong {
+  font-size: 16px;
 }
 
-.activity-list {
-  flex: 1;
-  overflow-y: auto;
+.rail.collapsed .rail-body {
+  display: none;
+}
+
+.rail.collapsed .panel {
+  padding: 12px;
+}
+
+.rail.collapsed .panel-head::before {
+  left: 12px;
+  top: 14px;
+}
+
+.rail.collapsed .summary-number {
+  font-size: 24px;
+}
+
+.center-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.hero-panel {
+  display: grid;
+  grid-template-columns: 0.9fr 1.3fr;
+  gap: 40px;
+  align-items: center;
+  padding: 40px 48px;
+  background: radial-gradient(circle at 75% 50%, rgba(10, 18, 30, 0.2), rgba(11, 25, 39, 0.8)), rgba(10, 15, 26, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 24px 64px rgba(0, 0, 0, 0.4);
+}
+
+.hero-copy h2 {
+  margin: 12px 0 16px;
+  font-size: clamp(24px, 3.5vw, 48px);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #fff;
+  text-shadow: 0 0 32px rgba(255,255,255,0.4);
+  display: block;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.hero-copy p {
+  margin: 0;
+  max-width: 620px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.focus-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(87, 242, 135, 0.2);
+  background: rgba(87, 242, 135, 0.08);
+  color: var(--text);
+  max-width: 100%;
+}
+
+.focus-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #57f287;
+  box-shadow: 0 0 14px rgba(87, 242, 135, 0.65);
+  animation: pulse 1.8s ease-in-out infinite;
+  flex: 0 0 auto;
+}
+
+.focus-label {
+  font-weight: 700;
+  color: #eafff6;
+  flex: 0 0 auto;
+}
+
+.focus-copy {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero-kicker {
+  color: #57f287;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.core-visual {
+  position: relative;
+  display: block;
+  min-height: 600px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at center, rgba(87, 242, 135, 0.16), transparent 30%),
+    radial-gradient(circle at center, rgba(125, 211, 252, 0.12), transparent 45%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 0 32px rgba(87, 242, 135, 0.08);
+}
+
+.center-map {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.core-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ring-a {
+  width: 270px;
+  height: 270px;
+  animation: spin 20s linear infinite;
+  border-color: rgba(87, 242, 135, 0.22);
+}
+
+.ring-b {
+  width: 330px;
+  height: 330px;
+  animation: spinReverse 26s linear infinite;
+  border-color: rgba(125, 211, 252, 0.16);
+}
+
+.ring-c {
+  width: 400px;
+  height: 400px;
+  animation: spin 34s linear infinite;
+  border-color: rgba(248, 178, 106, 0.12);
+}
+
+.core-pulse {
+  position: absolute;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(87, 242, 135, 0.42), rgba(87, 242, 135, 0.08) 52%, transparent 72%);
+  animation: pulse 3.4s ease-in-out infinite;
+}
+
+.core-particles {
+  position: absolute;
+  inset: 0;
+}
+
+.core-particle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(87, 242, 135, 0.65));
+  box-shadow: 0 0 18px rgba(87, 242, 135, 0.55);
+  animation: orbitFloat 5.8s ease-in-out infinite;
+}
+
+.core-center {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  border: 1px solid rgba(87, 242, 135, 0.2);
+  background: radial-gradient(circle, rgba(7, 18, 30, 0.88), rgba(7, 18, 30, 0.52));
+  box-shadow: inset 0 0 40px rgba(87, 242, 135, 0.14), 0 0 48px rgba(87, 242, 135, 0.12);
+}
+
+.core-value {
+  font-size: clamp(24px, 3.5vw, 64px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  filter: drop-shadow(0 0 18px rgba(87, 242, 135, 0.5));
+  display: block;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.core-unit {
+  color: #57f287;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.core-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.orbit {
+  position: absolute;
+  z-index: 1;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  backdrop-filter: blur(12px);
+}
+
+.orbit-top {
+  top: 26px;
+  animation: floatY 5s ease-in-out infinite;
+}
+
+.orbit-right {
+  right: 22px;
+  animation: floatX 5.4s ease-in-out infinite;
+}
+
+.orbit-bottom {
+  bottom: 30px;
+  animation: floatY 6s ease-in-out infinite reverse;
+}
+
+.orbit-left {
+  left: 22px;
+  animation: floatX 5.6s ease-in-out infinite reverse;
+}
+
+.hero-metrics {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.hero-metric {
+  padding: 20px 24px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  display: grid;
+  gap: 8px;
+}
+
+.hero-metric span,
+.hero-metric em {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+}
+
+.recommend-text,
+.insight-text,
+.activity-time,
+.ranking-meta {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.hero-metric strong {
+  font-size: clamp(20px, 2.5vw, 42px);
+  line-height: 1;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 24px rgba(255, 255, 255, 0.6);
+  display: block;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.hero-metric em {
+  font-style: normal;
+  font-size: 12px;
+}
+
+.center-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.panel-wide {
+  min-height: 360px;
+}
+
+.panel-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(260px, 0.92fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.chart-box {
+  width: 100%;
+  min-height: 280px;
+}
+
+.chart-box.tall {
+  min-height: 320px;
+}
+
+.center-chart {
+  min-height: 320px;
+}
+
+.insight-list,
+.recommend-list,
+.ranking-list,
+.activity-list,
+.snapshot-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.insight-card,
+.recommend-item,
+.snapshot-card {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.insight-card.accent {
+  background: linear-gradient(135deg, rgba(87, 242, 135, 0.12), rgba(125, 211, 252, 0.08));
+  border-color: rgba(87, 242, 135, 0.22);
+}
+
+.insight-title,
+.recommend-title,
+.snapshot-card span,
+.activity-user,
+.ranking-name {
+  font-weight: 700;
+}
+
+.insight-value {
+  margin: 8px 0 6px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.recommend-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.recommend-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(87, 242, 135, 0.14);
+  color: #dfffee;
+  font-size: 12px;
+}
+
+.recommend-text {
+  margin-top: 10px;
+  line-height: 1.7;
 }
 
 .activity-item {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
   padding: 12px;
-  margin-bottom: 10px;
-  background: rgba(76, 175, 80, 0.05);
-  border-radius: 8px;
-  border-left: 4px solid #4CAF50;
-  border: 1px solid rgba(76, 175, 80, 0.1);
-  animation: slideIn 0.5s ease-out;
-  transition: all 0.3s ease;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.activity-item:hover {
-  background: rgba(76, 175, 80, 0.15);
-  border-left-color: #2e7d32;
-  box-shadow: 0 2px 4px rgba(76, 175, 80, 0.1);
+.activity-item.active {
+  border-color: rgba(87, 242, 135, 0.28);
+  background: rgba(87, 242, 135, 0.08);
+  transform: translateX(4px);
 }
 
 .activity-time {
   font-size: 12px;
-  color: #81c784;
-  margin-bottom: 6px;
+  line-height: 1.6;
 }
 
-.activity-content {
-  font-size: 14px;
-  line-height: 1.4;
+.activity-main {
+  display: grid;
+  gap: 6px;
 }
 
-.activity-user {
-  color: #2e7d32;
-  font-weight: 600;
-  margin-right: 5px;
+.activity-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
 }
 
-.activity-action {
-  color: #4caf50;
-  margin-right: 5px;
+.activity-tag {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.activity-tag.transport {
+  color: #7dd3fc;
+  border-color: rgba(125, 211, 252, 0.22);
+}
+
+.activity-tag.diet {
+  color: #f8b26a;
+  border-color: rgba(248, 178, 106, 0.22);
+}
+
+.activity-tag.electricity {
+  color: #c4b5fd;
+  border-color: rgba(196, 181, 253, 0.22);
+}
+
+.activity-desc {
+  color: var(--text);
+  line-height: 1.6;
 }
 
 .activity-emission {
-  color: #1b5e20;
-  font-weight: 500;
+  color: #57f287;
+  font-weight: 700;
+  font-size: 13px;
 }
 
-/* 减排趋势样式 */
-.trend-info {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 15px;
-  background: rgba(76, 175, 80, 0.05);
-  border-radius: 8px;
-}
-
-.trend-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 6px;
-  border-left: 4px solid #4CAF50;
-  transition: all 0.3s ease;
-}
-
-.trend-item:hover {
-  background: rgba(76, 175, 80, 0.1);
-  transform: translateX(5px);
-}
-
-.trend-label {
-  font-size: 14px;
-  color: #2e7d32;
-  font-weight: 500;
-}
-
-.trend-value {
-  font-size: 16px;
-  font-weight: bold;
-  color: #4CAF50;
-}
-
-.trend-value.positive {
-  color: #2e7d32;
-  animation: pulse 2s infinite;
-}
-
-/* 碳排放热点分析样式 */
-.hotspot-info {
+.ranking-item {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  padding: 15px;
-  background: rgba(76, 175, 80, 0.05);
-  border-radius: 8px;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.hotspot-item {
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 6px;
-  padding: 15px;
-  border-left: 4px solid #4CAF50;
-  transition: all 0.3s ease;
+.ranking-item.active {
+  border-color: rgba(125, 211, 252, 0.3);
+  background: rgba(125, 211, 252, 0.08);
+  transform: translateX(4px);
 }
 
-.hotspot-item:hover {
-  background: rgba(76, 175, 80, 0.1);
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.1);
+.ranking-rank {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 800;
 }
 
-.hotspot-item.full-width {
-  grid-column: span 2;
+.ranking-rank.rank-1 {
+  background: linear-gradient(135deg, rgba(255, 215, 102, 0.28), rgba(255, 215, 102, 0.08));
 }
 
-.hotspot-label {
-  font-size: 13px;
-  color: #2e7d32;
-  font-weight: 500;
-  margin-bottom: 8px;
+.ranking-rank.rank-2 {
+  background: linear-gradient(135deg, rgba(192, 208, 230, 0.22), rgba(192, 208, 230, 0.06));
 }
 
-.hotspot-value {
-  font-size: 18px;
-  font-weight: bold;
-  color: #1b5e20;
-  background: linear-gradient(90deg, #4CAF50, #81c784);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 4px;
+.ranking-rank.rank-3 {
+  background: linear-gradient(135deg, rgba(248, 178, 106, 0.24), rgba(248, 178, 106, 0.06));
 }
 
-.hotspot-detail {
-  font-size: 12px;
-  color: #81c784;
-  font-weight: 500;
+.ranking-main {
+  display: grid;
+  gap: 4px;
 }
 
-.hotspot-chart {
-  height: 180px;
-  margin-top: 10px;
-  border-radius: 4px;
-  background: rgba(248, 255, 249, 0.8);
+.snapshot-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.hotspot-suggestions {
-  margin-top: 10px;
+.snapshot-card {
+  display: grid;
+  gap: 8px;
 }
 
-.suggestion-item {
-  font-size: 13px;
-  color: #2e7d32;
-  margin-bottom: 6px;
-  padding-left: 10px;
-  position: relative;
-}
-
-.suggestion-item::before {
-  content: '•';
-  position: absolute;
-  left: 0;
-  color: #4CAF50;
-  font-weight: bold;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.snapshot-card strong {
+  font-size: 22px;
+  line-height: 1;
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.72;
   }
   50% {
-    opacity: 0.7;
-  }
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
+    transform: scale(1.03);
     opacity: 1;
   }
 }
 
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .dashboard-content {
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes floatX {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(10px);
+  }
+}
+
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0) scale(1.04);
+  }
+}
+
+@keyframes orbitFloat {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translate(var(--x, 0), var(--y, 0)) scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(var(--x, 0), var(--y, 0)) scale(1.18);
+  }
+}
+
+@media (max-width: 1600px) {
+  .dashboard-grid {
+    grid-template-columns: 340px minmax(0, 1fr) 340px;
+  }
+
+  .hero-panel {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
   }
-  
-  .left-panel,
-  .center-panel,
-  .right-panel {
-    min-width: 100%;
+
+  .center-grid {
+    grid-template-columns: 1fr;
   }
-  
-  .center-panel {
-    grid-row: 1;
+}
+
+@media (max-width: 1280px) {
+  .dashboard-screen {
+    overflow: auto;
   }
-  
-  .left-panel {
-    grid-row: 2;
+
+  .topbar {
+    grid-template-columns: 1fr;
+    justify-items: start;
   }
-  
-  .right-panel {
-    grid-row: 3;
+
+  .clock {
+    justify-self: start;
+  }
+
+  .status-group,
+  .toolbar {
+    justify-content: flex-start;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rail {
+    order: 2;
+  }
+
+  .center-stage {
+    order: 1;
   }
 }
 
 @media (max-width: 768px) {
-  .dashboard-header {
-    padding: 0 15px;
-    height: 60px;
+  .dashboard-screen {
+    padding: 12px;
   }
-  
-  .dashboard-header h1 {
-    font-size: 18px;
+
+  .panel,
+  .hero-panel {
+    padding: 14px;
+    border-radius: 18px;
   }
-  
-  .current-time {
-    font-size: 14px;
+
+  .hero-copy h2 {
+    font-size: 26px;
   }
-  
-  .dashboard-content {
-    padding: 10px;
-    gap: 10px;
+
+  .core-visual {
+    min-height: 300px;
   }
-  
-  .current-time {
-    font-size: 16px;
-  }
-  
-  .dashboard-content {
-    padding: 15px;
-    gap: 15px;
-  }
-  
-  .overview-stats {
+
+  .hero-metrics,
+  .summary-mini-grid,
+  .snapshot-grid,
+  .panel-split {
     grid-template-columns: 1fr;
   }
-  
-  .panel-item {
-    padding: 15px;
+
+  .activity-item {
+    grid-template-columns: 1fr;
   }
 }
+
+/* ====================================================
+   PREMIUM TOGGLE BUTTON OVERRIDES
+   ==================================================== */
+.rail-toggle-btn {
+  width: 28px !important;
+  height: 64px !important;
+  background: linear-gradient(180deg, rgba(16, 24, 38, 0.7), rgba(9, 18, 28, 0.95)) !important;
+  border: 1px solid rgba(87, 242, 135, 0.25) !important;
+  border-radius: 14px !important;
+  color: #57f287 !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(16px) !important;
+  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+.rail-toggle-btn:hover {
+  background: linear-gradient(135deg, rgba(87, 242, 135, 0.35), rgba(125, 211, 252, 0.15)) !important;
+  box-shadow: inset 0 0 0 1px rgba(87, 242, 135, 0.4), 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(87, 242, 135, 0.3) !important;
+  border-color: rgba(87, 242, 135, 0.6) !important;
+  color: #fff !important;
+  transform: translateY(-50%) scale(1.05) !important;
+}
+
+.toggle-left { right: -14px !important; }
+.toggle-right { left: -14px !important; }
+
+.rail-toggle-btn .toggle-icon {
+  font-size: 14px !important;
+  transition: transform 0.3s ease, text-shadow 0.3s ease !important;
+}
+
+.rail-toggle-btn:hover .toggle-icon {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.9) !important;
+}
+
+/* 实时动态平滑出入动画 */
+.list-move,
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1);
+}
+.list-enter-from {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
 </style>

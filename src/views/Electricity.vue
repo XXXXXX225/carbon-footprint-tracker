@@ -23,36 +23,7 @@
     </el-header>
     <el-container>
       <el-aside width="200px" class="dashboard-aside">
-        <el-menu :default-active="activeMenu" class="dashboard-menu" @select="handleMenuSelect">
-          <el-menu-item index="/dashboard">
-            <el-icon><House /></el-icon>
-            <span>仪表盘</span>
-          </el-menu-item>
-          <el-menu-item index="/transport">
-            <el-icon><Van /></el-icon>
-            <span>交通排放</span>
-          </el-menu-item>
-          <el-menu-item index="/diet">
-            <el-icon><KnifeFork /></el-icon>
-            <span>饮食排放</span>
-          </el-menu-item>
-          <el-menu-item index="/electricity">
-            <el-icon><Lightning /></el-icon>
-            <span>用电排放</span>
-          </el-menu-item>
-          <el-menu-item index="/report">
-            <el-icon><DataLine /></el-icon>
-            <span>报表展示</span>
-          </el-menu-item>
-          <el-menu-item index="/recommendations">
-            <el-icon><Star /></el-icon>
-            <span>减排建议</span>
-          </el-menu-item>
-          <el-menu-item index="/points">
-            <el-icon><CollectionTag /></el-icon>
-            <span>减碳积分</span>
-          </el-menu-item>
-        </el-menu>
+        <RoleSidebar />
       </el-aside>
       <el-main class="electricity-main">
         <h2>用电排放计算</h2>
@@ -91,7 +62,7 @@
               <span class="unit">天</span>
             </el-form-item>
             <el-form-item label="开始日期" prop="startDate" v-if="electricityForm.deviceType">
-              <el-date-picker v-model="electricityForm.startDate" type="date" placeholder="选择开始日期" />
+              <el-date-picker v-model="electricityForm.startDate" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" placeholder="选择开始日期" />
             </el-form-item>
             <el-form-item label="备注" prop="description">
               <el-input v-model="electricityForm.description" placeholder="请输入备注信息" type="textarea" :rows="2" />
@@ -160,11 +131,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { onMounted, ref, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
-import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, CollectionTag } from '@element-plus/icons-vue'
+import { carbonApi } from '../api'
+import RoleSidebar from '../components/RoleSidebar.vue'
+import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, CollectionTag, TrendCharts } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const carbonStore = useCarbonStore()
@@ -187,6 +161,18 @@ const electricityForm = reactive({
   description: ''
 })
 
+interface ElectricityRecordItem {
+  id: string
+  date: string
+  deviceType: string
+  power: number
+  usageTime: number
+  usageDays: number
+  electricity: number
+  emission: number
+  description: string
+}
+
 const electricityRules = reactive<FormRules>({
   deviceType: [
     { required: true, message: '请选择用电设备', trigger: 'blur' }
@@ -208,30 +194,7 @@ const electricityRules = reactive<FormRules>({
   ]
 })
 
-const electricityRecords = ref([
-  {
-    id: '1',
-    date: '2026-01-30',
-    deviceType: 'air_conditioner',
-    power: 1500,
-    usageTime: 8,
-    usageDays: 1,
-    electricity: 12.0,
-    emission: 6.996,
-    description: '客厅空调'
-  },
-  {
-    id: '2',
-    date: '2026-01-30',
-    deviceType: 'refrigerator',
-    power: 200,
-    usageTime: 24,
-    usageDays: 1,
-    electricity: 4.8,
-    emission: 2.798,
-    description: '冰箱'
-  }
-])
+const electricityRecords = ref<ElectricityRecordItem[]>([])
 
 const handleMenuSelect = (key: string) => {
   router.push(key)
@@ -266,39 +229,26 @@ const resetForm = () => {
   totalElectricity.value = 0
 }
 
-const saveRecord = () => {
-  const record = {
-    type: 'electricity' as const,
-    value: emissionResult.value,
-    date: electricityForm.startDate,
-    description: electricityForm.description
+const deleteRecord = async (id: string) => {
+  try {
+    await carbonApi.deleteElectricityRecord(Number(id))
+    await loadElectricityRecords()
+    ElMessage.success('用电记录已删除')
+  } catch (error) {
+    console.error('删除用电记录失败:', error)
+    ElMessage.error('删除用电记录失败，请稍后重试')
   }
-  
-  carbonStore.addRecord(record)
-  
-  // 添加到本地记录
-  electricityRecords.value.unshift({
-    id: Date.now().toString(),
-    date: electricityForm.startDate,
-    deviceType: electricityForm.deviceType,
-    power: electricityForm.power,
-    usageTime: electricityForm.usageTime,
-    usageDays: electricityForm.usageDays,
-    electricity: totalElectricity.value,
-    emission: emissionResult.value,
-    description: electricityForm.description
-  })
-  
-  // 重置表单
-  resetForm()
 }
 
-const deleteRecord = (id: string) => {
-  electricityRecords.value = electricityRecords.value.filter(record => record.id !== id)
-}
-
-const clearHistory = () => {
-  electricityRecords.value = []
+const clearHistory = async () => {
+  try {
+    await carbonApi.clearElectricityRecords()
+    await loadElectricityRecords()
+    ElMessage.success('用电记录已清空')
+  } catch (error) {
+    console.error('清空用电记录失败:', error)
+    ElMessage.error('清空用电记录失败，请稍后重试')
+  }
 }
 
 const getDeviceTypeName = (type: string) => {
@@ -315,6 +265,59 @@ const getDeviceTypeName = (type: string) => {
   }
   return typeMap[type as keyof typeof typeMap] || type
 }
+
+const loadElectricityRecords = async () => {
+  try {
+    const records = await carbonApi.getElectricityRecords()
+    electricityRecords.value = records
+      .map(record => ({
+        id: String(record.id),
+        date: record.emissionDate,
+        deviceType: record.deviceType,
+        power: record.power,
+        usageTime: record.usageTime,
+        usageDays: record.usageDays,
+        electricity: record.electricityAmount,
+        emission: record.emissionAmount,
+        description: record.description || ''
+      }))
+      .sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime())
+  } catch (error) {
+    console.error('加载用电历史记录失败:', error)
+    ElMessage.warning('用电历史记录加载失败，已显示当前页面数据')
+  }
+}
+
+const saveRecord = async () => {
+  try {
+    await carbonApi.addElectricityRecord({
+      deviceType: electricityForm.deviceType,
+      power: electricityForm.power,
+      usageTime: electricityForm.usageTime,
+      usageDays: electricityForm.usageDays,
+      emissionDate: electricityForm.startDate,
+      description: electricityForm.description
+    })
+
+    carbonStore.addRecord({
+      type: 'electricity',
+      value: emissionResult.value,
+      date: electricityForm.startDate,
+      description: electricityForm.description
+    })
+
+    await loadElectricityRecords()
+    ElMessage.success('用电记录已保存')
+    resetForm()
+  } catch (error) {
+    console.error('保存用电记录失败:', error)
+    ElMessage.error('保存用电记录失败，请稍后重试')
+  }
+}
+
+onMounted(() => {
+  loadElectricityRecords()
+})
 </script>
 
 <style scoped>

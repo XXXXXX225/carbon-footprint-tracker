@@ -41,3 +41,10 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     config-url: /v3/api-docs/swagger-config
+
+ai:
+  provider: ${AI_PROVIDER:local}
+  base-url: ${AI_BASE_URL:}
+  api-key: ${AI_API_KEY:95b7418745ee47da966f17f9bf5a4d48.BI9EnuPdpt0khKtx}
+  model: ${AI_MODEL:local-rule-engine}
+  timeout-seconds: ${AI_TIMEOUT_SECONDS:45}

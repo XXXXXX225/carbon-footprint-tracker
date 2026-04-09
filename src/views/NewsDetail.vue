@@ -21,21 +21,11 @@
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="dashboard">
-                      <el-icon><House /></el-icon>
-                      仪表盘
-                    </el-dropdown-item>
-                    <el-dropdown-item command="profile">
-                      <el-icon><User /></el-icon>
-                      个人中心
-                    </el-dropdown-item>
-                    <el-dropdown-item command="points">
-                      <el-icon><CollectionTag /></el-icon>
-                      减碳积分
-                    </el-dropdown-item>
-                    <el-dropdown-item v-if="user.role === 'ADMIN'" command="admin">
-                      <el-icon><Setting /></el-icon>
-                      管理员
+                    <el-dropdown-item v-for="item in topNavItems" :key="item.command" :command="item.command">
+                      <el-icon>
+                        <component :is="iconMap[item.command]" />
+                      </el-icon>
+                      {{ item.label }}
                     </el-dropdown-item>
                     <el-dropdown-item divided command="logout">
                       <el-icon><SwitchButton /></el-icon>
@@ -157,8 +147,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useCarbonStore } from '../store'
-import { UserFilled, User, House, CollectionTag, SwitchButton, ArrowDown, Setting, ArrowLeft, ChatDotRound, Share, Link } from '@element-plus/icons-vue'
+import { UserFilled, User, House, CollectionTag, SwitchButton, ArrowDown, Setting, ArrowLeft, ChatDotRound, Share, Link, DataLine } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { getTopNavItems } from '../utils/access'
 
 const router = useRouter()
 const route = useRoute()
@@ -166,6 +157,15 @@ const carbonStore = useCarbonStore()
 
 // 用户信息
 const user = computed(() => carbonStore.user)
+const topNavItems = computed(() => getTopNavItems(user.value.role))
+
+const iconMap: Record<string, any> = {
+  dashboard: House,
+  'dashboard-screen': DataLine,
+  profile: User,
+  points: CollectionTag,
+  admin: Setting
+}
 
 // 处理用户下拉菜单命令
 const handleUserCommand = (command: string) => {

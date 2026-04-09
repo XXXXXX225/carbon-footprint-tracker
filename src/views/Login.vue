@@ -230,6 +230,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { authApi } from '../api'
 import { useCarbonStore } from '../store'
+import { getLandingRoute } from '../utils/access'
 
 const router = useRouter()
 const carbonStore = useCarbonStore()
@@ -278,7 +279,7 @@ const handleLogin = async () => {
     localStorage.setItem('user', JSON.stringify(user))
     carbonStore.setUser(user)
     ElMessage.success('登录成功')
-    router.push('/dashboard')
+    router.push(getLandingRoute(response.role))
   } catch (error: any) {
     ElMessage.error(error.message || '登录失败')
   } finally {
@@ -314,7 +315,7 @@ const handleRegister = async () => {
     localStorage.setItem('user', JSON.stringify(user))
     carbonStore.setUser(user)
     ElMessage.success('注册成功')
-    router.push('/dashboard')
+    router.push(getLandingRoute(response.role))
   } catch (error: any) {
     ElMessage.error(error.message || '注册失败')
   } finally {

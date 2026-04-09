@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -53,6 +54,7 @@ public class EmissionService {
          * @return 交通排放记录
          */
         @CacheEvict(value = {"userTransportEmissions", "userEmissionsSummary"}, key = "#userId")
+        @Transactional
         public TransportEmission recordTransportEmission(Long userId, TransportEmissionDTO dto) {
                 double emissionAmount = emissionCalculator.calculateTransportEmission(dto.getTransportType(),
                                 dto.getDistance());
@@ -89,6 +91,7 @@ public class EmissionService {
          * @return 饮食排放记录
          */
         @CacheEvict(value = {"userDietEmissions", "userEmissionsSummary"}, key = "#userId")
+        @Transactional
         public DietEmission recordDietEmission(Long userId, DietEmissionDTO dto) {
                 double emissionAmount = emissionCalculator.calculateDietEmission(dto.getFoodType(), dto.getAmount());
 
@@ -106,7 +109,7 @@ public class EmissionService {
 
                 // 计算减碳量并颁发积分
                 // 基准排放量：使用最环保的食物（蔬菜）的排放量
-                double baselineEmission = emissionCalculator.calculateDietEmission(7, dto.getAmount()); // 7对应蔬菜
+                double baselineEmission = emissionCalculator.calculateDietEmission(4, dto.getAmount()); // 4对应蔬菜
                 double emissionReduced = Math.max(0, emissionAmount - baselineEmission);
 
                 if (emissionReduced > 0) {
@@ -124,6 +127,7 @@ public class EmissionService {
          * @return 用电排放记录
          */
         @CacheEvict(value = {"userElectricityEmissions", "userEmissionsSummary"}, key = "#userId")
+        @Transactional
         public ElectricityEmission recordElectricityEmission(Long userId, ElectricityEmissionDTO dto) {
                 double electricityAmount = emissionCalculator.calculateElectricityAmount(dto.getPower(),
                                 dto.getUsageTime(),
@@ -186,6 +190,48 @@ public class EmissionService {
         @Cacheable(value = "userElectricityEmissions", key = "#userId")
         public List<ElectricityEmission> getElectricityEmissions(Long userId) {
                 return electricityEmissionRepository.findByUserId(userId);
+        }
+
+        @CacheEvict(value = {"userTransportEmissions", "userTransportSummary", "userEmissionsSummary"}, allEntries = true)
+        @Transactional
+        public void deleteTransportEmission(Long userId, Long emissionId) {
+                TransportEmission emission = transportEmissionRepository.findByIdAndUserId(emissionId, userId)
+                        .orElseThrow(() -> new IllegalArgumentException("交通记录不存在"));
+                transportEmissionRepository.delete(emission);
+        }
+
+        @CacheEvict(value = {"userTransportEmissions", "userTransportSummary", "userEmissionsSummary"}, allEntries = true)
+        @Transactional
+        public void clearTransportEmissions(Long userId) {
+                transportEmissionRepository.deleteByUserId(userId);
+        }
+
+        @CacheEvict(value = {"userDietEmissions", "userDietSummary", "userEmissionsSummary"}, allEntries = true)
+        @Transactional
+        public void deleteDietEmission(Long userId, Long emissionId) {
+                DietEmission emission = dietEmissionRepository.findByIdAndUserId(emissionId, userId)
+                        .orElseThrow(() -> new IllegalArgumentException("饮食记录不存在"));
+                dietEmissionRepository.delete(emission);
+        }
+
+        @CacheEvict(value = {"userDietEmissions", "userDietSummary", "userEmissionsSummary"}, allEntries = true)
+        @Transactional
+        public void clearDietEmissions(Long userId) {
+                dietEmissionRepository.deleteByUserId(userId);
+        }
+
+        @CacheEvict(value = {"userElectricityEmissions", "userElectricitySummary", "userEmissionsSummary"}, allEntries = true)
+        @Transactional
+        public void deleteElectricityEmission(Long userId, Long emissionId) {
+                ElectricityEmission emission = electricityEmissionRepository.findByIdAndUserId(emissionId, userId)
+                        .orElseThrow(() -> new IllegalArgumentException("用电记录不存在"));
+                electricityEmissionRepository.delete(emission);
+        }
+
+        @CacheEvict(value = {"userElectricityEmissions", "userElectricitySummary", "userEmissionsSummary"}, allEntries = true)
+        @Transactional
+        public void clearElectricityEmissions(Long userId) {
+                electricityEmissionRepository.deleteByUserId(userId);
         }
 
         /**

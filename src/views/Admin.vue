@@ -1,5 +1,11 @@
 <template>
   <div v-if="isAdmin" class="admin-container">
+    <div class="admin-page-header">
+      <button type="button" class="logo-link" @click="goHome">
+        <h1>碳足迹追踪平台</h1>
+      </button>
+    </div>
+
     <el-row :gutter="20">
       <el-col :span="6">
         <el-card class="stat-card">
@@ -400,6 +406,10 @@ const handleResize = () => {
   trendChart?.resize()
 }
 
+const goHome = () => {
+  window.location.href = '/home'
+}
+
 // 编辑用户
 const handleEdit = (user: UserInfo) => {
   editForm.value = {
@@ -464,6 +474,39 @@ onUnmounted(() => {
 <style scoped>
 .admin-container {
   padding: 20px;
+}
+
+.admin-page-header {
+  margin-bottom: 20px;
+  padding: 0 4px;
+}
+
+.logo-link {
+  display: inline-block;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  appearance: none;
+  text-decoration: none;
+  color: #2E7D32;
+  transition: all 0.3s ease;
+  position: relative;
+  cursor: pointer;
+  font: inherit;
+}
+
+.logo-link:hover {
+  color: #1B5E20;
+  transform: translateY(-2px);
+}
+
+.logo-link h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  color: inherit;
 }
 
 .stat-card {
