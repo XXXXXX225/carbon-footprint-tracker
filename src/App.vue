@@ -18,6 +18,9 @@ const carbonStore = useCarbonStore()
 // 应用启动时加载用户信息
 onMounted(() => {
   carbonStore.loadUserFromLocalStorage()
+  if (carbonStore.user && carbonStore.user.id) {
+    carbonStore.fetchAllRecords()
+  }
 })
 </script>
 

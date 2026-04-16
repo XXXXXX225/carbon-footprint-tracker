@@ -144,118 +144,111 @@
             </el-row>
           </section>
 
-          <section class="page-section">
-            <div class="page-section-header">
+          <section class="page-section saas-enhanced-section">
+            <div class="page-section-header saas-section-header">
               <div>
-                <p class="page-kicker">数据视图</p>
-                <h3 class="page-title" style="font-size: 22px; margin-bottom: 0;">排放趋势与对比</h3>
+                <p class="page-kicker modern-kicker">数据视图 <el-tag size="small" type="success" round effect="dark" style="margin-left:8px;">实时分析</el-tag></p>
+                <h3 class="page-title modern-title">排放趋势与对比</h3>
               </div>
             </div>
 
-            <!-- 数据可视化图表 -->
-            <el-row :gutter="20">
-              <!-- 目标完成度仪表盘 -->
-              <el-col :xs="24" :md="8">
-                <el-card class="chart-card">
+            <!-- 数据可视化全能视窗 -->
+            <el-row :gutter="24">
+              <!-- 左侧沉浸式数据追踪 (包含折线与柱状图对比) -->
+              <el-col :xs="24" :lg="15">
+                <el-card class="chart-card saas-main-card">
                   <template #header>
-                    <div class="card-header">
-                      <span>月度碳排放目标</span>
-                    </div>
-                  </template>
-                  <CarbonChart 
-                    type="gauge"
-                    :data="gaugeData"
-                    :height="300"
-                    @drillDown="handleChartDrillDown"
-                  />
-                </el-card>
-              </el-col>
-              
-              <!-- 碳足迹分类占比 -->
-              <el-col :xs="24" :md="8">
-                <el-card class="chart-card">
-                  <template #header>
-                    <div class="card-header">
-                      <span>碳足迹分类占比</span>
-                    </div>
-                  </template>
-                  <CarbonChart 
-                    type="pie"
-                    :data="pieData"
-                    :height="300"
-                    @drillDown="handleChartDrillDown"
-                  />
-                </el-card>
-              </el-col>
-              
-              <!-- 历史排放趋势 -->
-              <el-col :xs="24" :md="8">
-                <el-card class="chart-card">
-                  <template #header>
-                    <div class="card-header">
-                      <span>历史排放趋势</span>
+                    <div class="card-header flexible-header">
+                      <span class="card-title"><el-icon class="title-icon"><TrendCharts /></el-icon> 历史排放趋势与对比</span>
                     </div>
                   </template>
                   <CarbonChart 
                     type="line"
                     :data="lineData"
-                    :height="300"
+                    :height="320"
                     @drillDown="handleChartDrillDown"
+                  />
+                  
+                  <el-divider border-style="dashed" style="margin: 20px 0;" />
+                  
+                  <div class="card-header flexible-header" style="margin-bottom: 12px;">
+                    <span class="card-title"><el-icon class="title-icon"><Histogram /></el-icon> 跨周期排放对比</span>
+                  </div>
+                  <CarbonChart 
+                    type="bar" 
+                    :data="barData" 
+                    :height="260" 
+                    @drillDown="handleChartDrillDown" 
                   />
                 </el-card>
               </el-col>
-            </el-row>
-            
-            <!-- 对比分析图表 -->
-            <el-row :gutter="20" style="margin-top: 20px;">
-              <el-col :xs="24">
-                <el-card class="chart-card">
+
+              <!-- 右侧组合面板: 目标达成与结构拆解 -->
+              <el-col :xs="24" :lg="9">
+                <el-card class="chart-card saas-side-card">
                   <template #header>
-                    <div class="card-header">
-                      <span>不同时期排放量对比</span>
+                    <div class="card-header flexible-header">
+                      <span class="card-title"><el-icon class="title-icon"><Aim /></el-icon> 目标完成量与排放结构</span>
+                      <el-button type="primary" link size="small" @click="openGoalDialog" style="font-weight:bold;">设置</el-button>
                     </div>
                   </template>
+                  
+                  <!-- 顶部进度仪 -->
+                  <div class="goal-modern-content tracker-box">
+                    <div class="ring-tracker">
+                      <el-progress 
+                        type="dashboard" 
+                        :percentage="progress" 
+                        :color="[ {color: '#f56c6c', percentage: 20}, {color: '#e6a23c', percentage: 50}, {color: '#85ce61', percentage: 80}, {color: '#4CAF50', percentage: 100} ]"
+                        :width="190"
+                        :stroke-width="16"
+                      >
+                        <template #default="{ percentage }">
+                          <div class="progress-inner">
+                            <span class="progress-val">{{ percentage }}<span class="pct">%</span></span>
+                            <span class="progress-sub">目标完成度</span>
+                          </div>
+                        </template>
+                      </el-progress>
+                    </div>
+
+                    <div class="goal-metrics mt-4">
+                      <div class="metric-box">
+                        <div class="metric-lbl">本月满额剩余</div>
+                        <div class="metric-val gold">{{ remainingDays }} <span class="unit">天</span></div>
+                      </div>
+                      <div class="divider-col"></div>
+                      <div class="metric-box">
+                        <div class="metric-lbl">当前减排目标</div>
+                        <div class="metric-val green">{{ reductionGoal }} <span class="unit">%</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <el-divider border-style="dashed" style="margin: 24px 0 12px 0;" />
+
+                  <!-- 下部饼图 -->
+                  <div class="card-header flexible-header" style="margin-bottom: 8px;">
+                    <span class="card-title" style="font-size: 15px;"><el-icon class="title-icon" style="font-size: 16px;"><PieChart /></el-icon> 碳足迹分类占比</span>
+                  </div>
                   <CarbonChart 
-                    type="bar"
-                    :data="barData"
-                    :height="400"
+                    type="pie"
+                    :data="pieData"
+                    :height="260"
                     @drillDown="handleChartDrillDown"
                   />
+                  <div class="pie-insight">
+                    <p style="margin: 0; color: #6b7280; font-size: 13px; text-align: center; padding-top: 10px;">
+                       提示: 点击分类图表可钻取详细记录
+                    </p>
+                  </div>
+
                 </el-card>
               </el-col>
             </el-row>
           </section>
 
-          <section class="page-section">
-            <div class="page-section-header">
-              <div>
-                <p class="page-kicker">减排目标</p>
-                <h3 class="page-title" style="font-size: 22px; margin-bottom: 0;">目标进度</h3>
-              </div>
-            </div>
-
-            <el-card class="goal-card">
-              <template #header>
-                <div class="card-header">
-                  <span>减排目标</span>
-                  <el-button type="primary" size="small" @click="openGoalDialog">设置目标</el-button>
-                </div>
-              </template>
-              <div class="goal-content">
-                <div class="goal-progress">
-                  <el-progress 
-                    :percentage="progress" 
-                    :color="['#4CAF50', '#FFC107', '#F44336']" 
-                    :format="formatProgress"
-                  />
-                </div>
-                <div class="goal-info">
-                  <span>当前目标：减少 {{ reductionGoal }}% 的碳排放</span>
-                  <span>距离目标还有 {{ remainingDays }} 天</span>
-                </div>
-              </div>
-            </el-card>
-          </section>
+          
         </div>
       </el-main>
     </el-container>
@@ -309,7 +302,7 @@ import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
 import CarbonChart from '../components/CarbonChart.vue'
 import RoleSidebar from '../components/RoleSidebar.vue'
-import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, ArrowUp, Download, Document, CollectionTag, TrendCharts } from '@element-plus/icons-vue'
+import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, ArrowUp, Download, Document, CollectionTag, TrendCharts, Aim, PieChart, Histogram } from '@element-plus/icons-vue'
 import { ExportService, type ExportData } from '../utils/export'
 import { ElMessage } from 'element-plus'
 
@@ -347,8 +340,26 @@ const footprint = computed(() => carbonStore.footprint)
 const totalFootprint = computed(() => carbonStore.totalFootprint)
 const reductionGoal = computed(() => carbonStore.reductionGoal)
 
-const progress = ref(65)
-const remainingDays = ref(45)
+const progress = computed(() => {
+  const currentMonthRecords = carbonStore.monthlyRecords || []
+  const monthlyTotal = currentMonthRecords.reduce((sum, r) => sum + r.value, 0)
+  
+  // 假设每月基础碳排放限额 450kg，再结合减排目标计算出当月可用额度
+  const monthlyBaseline = 450
+  const targetEmission = monthlyBaseline * (1 - reductionGoal.value / 100)
+  
+  if (targetEmission <= 0) return 0
+  
+  // 依据剩余可用额度计算完成度：(剩余额度 / 目标额度) * 100
+  let percentage = ((targetEmission - monthlyTotal) / targetEmission) * 100
+  return Math.max(0, Math.min(100, Math.round(percentage)))
+})
+
+const remainingDays = computed(() => {
+  const today = new Date()
+  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+  return endOfMonth.getDate() - today.getDate()
+})
 const totalChange = ref(-5.2)
 const transportChange = ref(3.1)
 const dietChange = ref(-1.8)
@@ -672,6 +683,128 @@ const elMessage = {
 </script>
 
 <style scoped>
+/* =========== SaaS Enhanced Data View Custom CSS =========== */
+.saas-enhanced-section {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  margin-top: 20px;
+}
+.saas-section-header {
+  margin-bottom: 24px;
+}
+.modern-kicker {
+  font-size: 13px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+}
+.modern-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.5px;
+}
+.saas-main-card, .saas-side-card {
+  border-radius: 14px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.3s ease;
+  height: 100%;
+}
+.saas-main-card:hover, .saas-side-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
+  border-color: #e2e8f0;
+}
+.flexible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.title-icon {
+  color: #4CAF50;
+  font-size: 18px;
+}
+.tracker-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.ring-tracker {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0 10px 0;
+}
+.progress-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.progress-val {
+  font-size: 38px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1;
+}
+.pct {
+  font-size: 18px;
+  color: #6b7280;
+  margin-left: 2px;
+}
+.progress-sub {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-top: 8px;
+  font-weight: 500;
+}
+.goal-metrics {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+.metric-box {
+  text-align: center;
+  flex: 1;
+}
+.metric-lbl {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.metric-val {
+  font-size: 20px;
+  font-weight: 800;
+}
+.metric-val.gold { color: #f59e0b; }
+.metric-val.green { color: #10b981; }
+.unit { font-size: 12px; font-weight: 600; opacity: 0.8; }
+.divider-col {
+  width: 1px;
+  height: 36px;
+  background: #e2e8f0;
+  margin: 0 16px;
+}
+
+
 .dashboard-container {
   min-height: 100vh;
   background: transparent !important;

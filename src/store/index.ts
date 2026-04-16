@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { carbonApi } from '../api'
 
 interface CarbonFootprint {
   transport: number
@@ -51,6 +52,55 @@ export const useCarbonStore = defineStore('carbon', {
     },
     calculateTotal() {
       this.footprint.total = this.footprint.transport + this.footprint.diet + this.footprint.electricity
+    },
+    async fetchAllRecords() {
+      try {
+        const [transport, diet, electricity] = await Promise.all([
+          carbonApi.getTransportRecords(),
+          carbonApi.getDietRecords(),
+          carbonApi.getElectricityRecords()
+        ])
+
+        const formattedTransport = transport.map(r => ({
+          id: String(r.id),
+          type: 'transport' as const,
+          value: r.emissionAmount,
+          date: r.emissionDate,
+          description: r.description || '交通出行记录'
+        }))
+
+        const formattedDiet = diet.map(r => ({
+          id: String(r.id),
+          type: 'diet' as const,
+          value: r.emissionAmount,
+          date: r.emissionDate,
+          description: r.description || '饮食消费记录'
+        }))
+
+        const formattedElectricity = electricity.map(r => ({
+          id: String(r.id),
+          type: 'electricity' as const,
+          value: r.emissionAmount,
+          date: r.emissionDate,
+          description: r.description || '家庭用电记录'
+        }))
+
+        this.records = [...formattedTransport, ...formattedDiet, ...formattedElectricity].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+        let tSum = 0, dSum = 0, eSum = 0
+        formattedTransport.forEach(r => tSum += r.value)
+        formattedDiet.forEach(r => dSum += r.value)
+        formattedElectricity.forEach(r => eSum += r.value)
+
+        this.footprint.transport = tSum
+        this.footprint.diet = dSum
+        this.footprint.electricity = eSum
+        this.calculateTotal()
+
+        this.saveToLocalStorage()
+      } catch (error) {
+        console.error('Failed to fetch real records:', error)
+      }
     },
     addRecord(record: Omit<EmissionRecord, 'id'>) {
       const newRecord: EmissionRecord = {

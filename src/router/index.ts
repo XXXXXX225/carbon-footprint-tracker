@@ -25,21 +25,9 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
   },
   {
-    path: '/transport',
-    name: 'Transport',
-    component: () => import('../views/Transport.vue'),
-    meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
-  },
-  {
-    path: '/diet',
-    name: 'Diet',
-    component: () => import('../views/Diet.vue'),
-    meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
-  },
-  {
-    path: '/electricity',
-    name: 'Electricity',
-    component: () => import('../views/Electricity.vue'),
+    path: '/emissions',
+    name: 'Emissions',
+    component: () => import('../views/Emissions.vue'),
     meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
   },
   {

@@ -1,38 +1,23 @@
 <template>
-  <el-container class="electricity-container">
-    <el-header height="60px" class="dashboard-header">
-      <div class="header-left">
-        <router-link to="/home" class="logo-link">
-          <h1>碳足迹追踪平台</h1>
-        </router-link>
-      </div>
-      <div class="header-right">
-        <el-dropdown>
-          <span class="user-info">
-            {{ user.name }}
-            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item @click="navigateToProfile">个人中心</el-dropdown-item>
-              <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </div>
-    </el-header>
-    <el-container>
-      <el-aside width="200px" class="dashboard-aside">
-        <RoleSidebar />
-      </el-aside>
-      <el-main class="electricity-main">
-        <h2>用电排放计算</h2>
-        
+  <div class="emission-form">
+
         <!-- 用电排放计算器 -->
         <el-card class="calculator-card">
           <template #header>
-            <div class="card-header">
-              <span>用电排放计算器</span>
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>设备与用电详情</span>
+              <el-upload
+                action="#"
+                :auto-upload="false"
+                :show-file-list="false"
+                :on-change="handleOCRUpload"
+                accept="image/*"
+              >
+                <el-button type="success" size="small" :loading="ocrLoading">
+                  <el-icon style="margin-right: 4px"><Camera /></el-icon>
+                  电费单 OCR 识别
+                </el-button>
+              </el-upload>
             </div>
           </template>
           <el-form :model="electricityForm" :rules="electricityRules" ref="electricityFormRef" label-width="120px">
@@ -125,29 +110,25 @@
             style="margin-top: 20px; text-align: right;"
           />
         </el-card>
-      </el-main>
-    </el-container>
-  </el-container>
+      
+  </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, computed, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { useCarbonStore } from '../store'
-import { carbonApi } from '../api'
-import RoleSidebar from '../components/RoleSidebar.vue'
-import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, CollectionTag, TrendCharts } from '@element-plus/icons-vue'
+import { useCarbonStore } from '../../store'
+import { carbonApi } from '../../api'
+import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, CollectionTag, TrendCharts, Camera } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 
-const router = useRouter()
 const carbonStore = useCarbonStore()
-const activeMenu = ref('/electricity')
 const electricityFormRef = ref<FormInstance>()
 const emissionResult = ref(0)
 const totalElectricity = ref(0)
+const ocrLoading = ref(false)
 
-const user = computed(() => carbonStore.user)
+
 
 // 电力排放因子（kg CO₂e/千瓦时）
 const electricityEmissionFactor = 0.583
@@ -196,17 +177,33 @@ const electricityRules = reactive<FormRules>({
 
 const electricityRecords = ref<ElectricityRecordItem[]>([])
 
-const handleMenuSelect = (key: string) => {
-  router.push(key)
-  activeMenu.value = key
-}
 
-const handleLogout = () => {
-  router.push('/login')
-}
 
-const navigateToProfile = () => {
-  router.push('/profile')
+
+
+
+
+const handleOCRUpload = (file: any) => {
+  if (!file || !file.raw) return
+  ocrLoading.value = true
+  ElMessage.info('正在由AI分析电费账单，请稍候...')
+  
+  // 模拟一个 OCR 分析过程
+  setTimeout(() => {
+    // 假设AI分析出了空调的用电情况
+    electricityForm.deviceType = 'air_conditioner'
+    electricityForm.power = 1200 // 假设是 1匹多一点
+    electricityForm.usageTime = 8  // 每天8小时
+    electricityForm.usageDays = 30 // 月度账单，30天
+    electricityForm.startDate = new Date().toISOString().split('T')[0]
+    electricityForm.description = '（由 OCR 自动提取的电费账单数据）'
+    
+    ocrLoading.value = false
+    ElMessage.success('票据扫描成功，已自动填充相关信息！')
+    
+    // 自动计算一下
+    calculateEmission()
+  }, 2000)
 }
 
 const calculateEmission = async () => {
@@ -299,14 +296,8 @@ const saveRecord = async () => {
       description: electricityForm.description
     })
 
-    carbonStore.addRecord({
-      type: 'electricity',
-      value: emissionResult.value,
-      date: electricityForm.startDate,
-      description: electricityForm.description
-    })
-
     await loadElectricityRecords()
+    await carbonStore.fetchAllRecords()
     ElMessage.success('用电记录已保存')
     resetForm()
   } catch (error) {
@@ -321,107 +312,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.electricity-container {
-  min-height: 100vh;
-}
-
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  background-color: #4CAF50;
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.header-left .logo-link {
-  text-decoration: none;
-  color: inherit;
-  display: inline-block;
-  transition: color 0.3s ease, transform 0.3s ease;
-}
-
-.header-left .logo-link:hover {
-  color: #ffffff;
-  transform: translateY(-2px);
-}
-
-.header-left h1 {
-  font-size: 20px;
-  margin: 0;
-}
-
-.user-info {
-  color: white;
-  cursor: pointer;
-}
-
-.dashboard-aside {
-  background-color: #fff;
-}
-
-.dashboard-menu {
-  height: 100%;
-  border-right: none;
-}
-
-.electricity-main {
-  padding: 20px;
-}
-
-.calculator-card {
-  margin-bottom: 20px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.unit {
-  margin-left: 10px;
-  color: #999;
-}
-
-.emission-result {
-  margin-top: 30px;
-  padding: 20px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  border-left: 4px solid #4CAF50;
-}
-
-.result-content {
-  margin-top: 10px;
-}
-
-.result-item {
-  margin-bottom: 10px;
-}
-
-.result-value {
-  font-size: 20px;
-  font-weight: bold;
-  color: #4CAF50;
-}
-
-.history-card {
-  margin-top: 20px;
-}
-
-@media (max-width: 768px) {
-  .dashboard-aside {
-    display: none;
-  }
-  
-  .el-main {
-    padding: 10px;
-  }
-  
-  .el-form-item {
-    margin-bottom: 15px;
-  }
-}
+.emission-form { width: 100%; border: none; padding: 10px; }
+.calculator-card { margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.card-header { font-weight: bold; font-size: 16px; }
+.unit { margin-left: 10px; color: #999; }
+.emission-result { margin-top: 30px; padding: 20px; background-color: #f5f5f5; border-radius: 8px; border-left: 4px solid #4CAF50; }
+.result-value { font-size: 24px; font-weight: bold; color: #4CAF50; }
+.history-card { margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 </style>

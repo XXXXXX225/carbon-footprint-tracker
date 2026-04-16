@@ -124,9 +124,12 @@
         <!-- 历史记录表格 -->
         <el-card class="history-card" style="margin-top: 20px;">
           <template #header>
-            <div class="card-header">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
               <span>历史排放记录</span>
-              <el-button type="primary" size="small" @click="exportReport">导出报表</el-button>
+              <div>
+                <el-button type="success" size="small" @click="exportPoster">生成分享海报</el-button>
+                <el-button type="primary" size="small" @click="exportReport">导出PDF报表</el-button>
+              </div>
             </div>
           </template>
           <el-table :data="filteredRecords" style="width: 100%">
@@ -147,6 +150,12 @@
             style="margin-top: 20px; text-align: right;"
           />
         </el-card>
+        <!-- 海报预览弹窗 -->
+        <el-dialog v-model="posterDialogVisible" title="长按或右键保存海报，分享至微信" width="400px" center>
+          <div style="text-align: center;">
+            <img :src="posterImage" style="max-width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" alt="减碳海报" />
+          </div>
+        </el-dialog>
       </el-main>
     </el-container>
   </el-container>
@@ -169,6 +178,8 @@ const pieChartRef = ref<HTMLElement>()
 const lineChartRef = ref<HTMLElement>()
 const pieChart = ref<echarts.ECharts>()
 const lineChart = ref<echarts.ECharts>()
+const posterDialogVisible = ref(false)
+const posterImage = ref('')
 
 const user = computed(() => carbonStore.user)
 const records = computed(() => carbonStore.records)
@@ -257,6 +268,32 @@ const exportReport = async () => {
   } catch (error) {
     console.error('导出报表失败:', error)
     ElMessage.error('导出报表失败')
+  }
+}
+
+const exportPoster = async () => {
+  try {
+    ElMessage.info('正在渲染海报...')
+    
+    const exportData: ExportData[] = filteredRecords.value.map(record => ({
+      date: record.date,
+      category: getEmissionTypeName(record.type),
+      type: getEmissionTypeName(record.type),
+      amount: record.value,
+      description: record.description || '-'
+    }))
+    
+    // 生成 base64 图片
+    const base64Img = await ExportService.exportToPoster(exportData, '我的减碳战报')
+    
+    if (base64Img) {
+      posterImage.value = base64Img
+      posterDialogVisible.value = true
+      ElMessage.success('海报生成成功！长按或右键即可保存分享')
+    }
+  } catch (error) {
+    console.error('生成海报失败:', error)
+    ElMessage.error('生成海报失败')
   }
 }
 

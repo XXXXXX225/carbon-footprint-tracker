@@ -76,6 +76,44 @@
       </el-col>
     </el-row>
 
+    <!-- 方案C: 监控与排行榜 -->
+    <el-row :gutter="20" class="monitor-row" style="margin-top: 20px;">
+      <el-col :span="12">
+        <el-card class="warning-card">
+          <template #header>
+            <div class="card-header" style="color: #f56c6c;">
+              <span><el-icon><Warning /></el-icon> 异常高排放用户警告 (本周)</span>
+            </div>
+          </template>
+          <el-table :data="abnormalUsers" style="width: 100%" size="small">
+            <el-table-column prop="username" label="用户名" width="120" />
+            <el-table-column prop="emission" label="异常排放量" />
+            <el-table-column prop="reason" label="预警阈值原因" />
+            <el-table-column label="操作" width="80">
+              <template #default>
+                <el-button type="warning" link size="small">发送站内信</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card class="leaderboard-card">
+          <template #header>
+            <div class="card-header" style="color: #e6a23c;">
+              <span><el-icon><Trophy /></el-icon> 平台减排榜单 TOP 5</span>
+            </div>
+          </template>
+          <el-table :data="leaderboardUsers" style="width: 100%" size="small">
+            <el-table-column type="index" label="排名" width="60" align="center" />
+            <el-table-column prop="username" label="用户名" width="120" />
+            <el-table-column prop="totalReduction" label="累计减排量" />
+            <el-table-column prop="points" label="获得总积分" width="100" />
+          </el-table>
+        </el-card>
+      </el-col>
+    </el-row>
+
     <el-card class="user-list-card">
       <template #header>
         <div class="card-header">
@@ -201,10 +239,23 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
-import { User, Calendar, TrendCharts, DataLine, Search } from '@element-plus/icons-vue'
+import { User, Calendar, TrendCharts, DataLine, Search, Warning, Trophy } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { adminApi } from '../api'
+
+const abnormalUsers = ref([
+  { username: 'test_user1', emission: '1240.2 kg', reason: '用电量连续3天超标' },
+  { username: 'enterprise8', emission: '9820.0 kg', reason: '交通排放激增200%' }
+])
+
+const leaderboardUsers = ref([
+  { username: 'green_master', totalReduction: '452.1 kg', points: 4520 },
+  { username: 'leo_chen', totalReduction: '380.5 kg', points: 3804 },
+  { username: 'anna99', totalReduction: '345.2 kg', points: 3452 },
+  { username: 'eco_hero', totalReduction: '290.0 kg', points: 2900 },
+  { username: 'bike_lover', totalReduction: '210.8 kg', points: 2108 }
+])
 import { useCarbonStore } from '../store'
 import { useRouter } from 'vue-router'
 

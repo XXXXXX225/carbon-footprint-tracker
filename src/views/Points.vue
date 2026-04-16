@@ -68,6 +68,32 @@
           </el-col>
         </el-row>
         
+        <!-- 绿色兑换商城 -->
+        <el-card class="mall-card" style="margin-top: 20px;">
+          <template #header>
+            <div class="card-header mall-header">
+              <span><el-icon><ShoppingCart /></el-icon> 绿色兑换商城</span>
+              <el-tag type="success" effect="dark" round>您当前拥有 {{ totalPoints }} 积分</el-tag>
+            </div>
+          </template>
+          <div class="mall-content">
+            <el-row :gutter="20">
+              <el-col :xs="24" :sm="12" :md="8" v-for="(item, index) in storeItems" :key="index">
+                <div class="mall-item">
+                  <div class="mall-icon">{{ item.icon }}</div>
+                  <div class="mall-info">
+                    <h4>{{ item.name }}</h4>
+                    <p class="mall-cost">{{ item.cost }} 积分</p>
+                    <el-button type="success" plain size="small" @click="exchangeItem(item)">
+                      立即兑换
+                    </el-button>
+                  </div>
+                </div>
+              </el-col>
+            </el-row>
+          </div>
+        </el-card>
+
         <!-- 积分规则说明 -->
         <el-card class="rules-card" style="margin-top: 20px;">
           <template #header>
@@ -182,7 +208,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
 import RoleSidebar from '../components/RoleSidebar.vue'
-import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, Download, Calendar, TrendCharts, CollectionTag } from '@element-plus/icons-vue'
+import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, Download, Calendar, TrendCharts, CollectionTag, ShoppingCart } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const carbonStore = useCarbonStore()
@@ -195,6 +222,36 @@ onMounted(() => {
 })
 
 const user = computed(() => carbonStore.user)
+
+// 积分商城数据
+const storeItems = ref([
+  { id: 1, name: '数字梭梭树 (1棵)', icon: '🌳', cost: 500 },
+  { id: 2, name: '环保帆布袋包邮', icon: '🛍️', cost: 1200 },
+  { id: 3, name: '地铁/公交 5元抵扣券', icon: '🎫', cost: 800 }
+])
+
+const exchangeItem = (item: any) => {
+  if (totalPoints.value < item.cost) {
+    ElMessage.warning(`积分不足！还需要 ${item.cost - totalPoints.value} 积分。`)
+    return
+  }
+  ElMessageBox.confirm(`确认消耗 ${item.cost} 积分兑换【${item.name}】吗？`, '积分兑换', {
+    confirmButtonText: '确定兑换',
+    cancelButtonText: '暂不兑换',
+    type: 'success'
+  }).then(() => {
+    totalPoints.value -= item.cost
+    ElMessage.success(`恭喜您成功兑换【${item.name}】！`)
+    // 若有真实后端可在此处加上扣积分API调用记录
+    pointsHistory.value.unshift({
+      date: new Date().toISOString().split('T')[0],
+      reason: `兑换商城商品: ${item.name}`,
+      emissionReduced: 0,
+      pointsChange: -item.cost,
+      totalPoints: totalPoints.value
+    })
+  }).catch(() => {})
+}
 
 // 积分相关数据
 const totalPoints = ref(1250)
@@ -509,5 +566,63 @@ const handleCurrentChange = (current: number) => {
 @keyframes pulse {
   0%, 100% { transform: scale(1); text-shadow: 0 0 0 rgba(255, 152, 0, 0); }
   50% { transform: scale(1.08); text-shadow: 0 0 12px rgba(255, 152, 0, 0.4); }
+}
+.mall-card {
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f9fff6 0%, #fff 100%);
+  border: 1px solid #dcdfe6;
+}
+
+.mall-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mall-header span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: bold;
+}
+
+.mall-item {
+  display: flex;
+  background: #fff;
+  border-radius: 12px;
+  padding: 15px;
+  gap: 15px;
+  border: 1px solid #e4e7ed;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  transition: all 0.3s;
+}
+
+.mall-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  border-color: #67c23a;
+}
+
+.mall-icon {
+  font-size: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: #f0f9eb;
+  border-radius: 50%;
+}
+
+.mall-info h4 {
+  margin: 0;
+  font-size: 15px;
+  color: #303133;
+}
+
+.mall-cost {
+  color: #e6a23c;
+  font-weight: bold;
+  margin: 8px 0;
+  font-size: 14px;
 }
 </style>

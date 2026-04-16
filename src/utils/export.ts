@@ -249,4 +249,91 @@ export class ExportService {
 
     saveAs(blob, `${title}_${new Date().toISOString().split('T')[0]}.csv`)
   }
+
+  static async exportToPoster(data: ExportData[], title: string = '我的减碳战报') {
+    const container = document.createElement('div')
+    container.style.position = 'fixed'
+    container.style.left = '-9999px'
+    container.style.top = '0'
+    container.style.width = '414px' // mobile width
+    container.style.minHeight = '736px'
+    container.style.padding = '30px'
+    container.style.background = 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)'
+    container.style.fontFamily = 'Arial, sans-serif'
+    container.style.borderRadius = '16px'
+    container.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'
+    container.style.display = 'flex'
+    container.style.flexDirection = 'column'
+    container.style.alignItems = 'center'
+    container.style.color = '#2e7d32'
+
+    // Header
+    const titleEl = document.createElement('h1')
+    titleEl.textContent = title
+    titleEl.style.fontSize = '28px'
+    titleEl.style.margin = '20px 0 10px'
+    titleEl.style.fontWeight = '900'
+    container.appendChild(titleEl)
+
+    const subtitleEl = document.createElement('p')
+    subtitleEl.textContent = '小步改变，绿色地球'
+    subtitleEl.style.fontSize = '14px'
+    subtitleEl.style.margin = '0 0 30px'
+    subtitleEl.style.color = '#388e3c'
+    container.appendChild(subtitleEl)
+
+    // Data Summary
+    const totalEmission = data.reduce((sum, row) => sum + row.amount, 0)
+
+    const card = document.createElement('div')
+    card.style.background = 'white'
+    card.style.borderRadius = '12px'
+    card.style.padding = '20px'
+    card.style.width = '100%'
+    card.style.boxSizing = 'border-box'
+    card.style.textAlign = 'center'
+    card.style.boxShadow = '0 4px 8px rgba(0,0,0,0.05)'
+
+    const labelEl = document.createElement('p')
+    labelEl.textContent = '累计碳排放 (kg CO₂e)'
+    labelEl.style.margin = '0 0 10px'
+    labelEl.style.fontSize = '14px'
+    labelEl.style.color = '#666'
+
+    const valueEl = document.createElement('div')
+    valueEl.textContent = totalEmission.toFixed(2)
+    valueEl.style.fontSize = '40px'
+    valueEl.style.fontWeight = 'bold'
+    valueEl.style.color = '#4CAF50'
+    valueEl.style.margin = '0 0 10px'
+
+    card.appendChild(labelEl)
+    card.appendChild(valueEl)
+    container.appendChild(card)
+
+    // Footer
+    const footer = document.createElement('div')
+    footer.style.marginTop = 'auto'
+    footer.style.paddingTop = '40px'
+    footer.style.fontSize = '12px'
+    footer.style.color = '#4caf50'
+    footer.style.textAlign = 'center'
+    footer.innerHTML = `<strong>碳足迹追踪平台</strong><br>生成时间: ${new Date().toLocaleDateString('zh-CN')}`
+    container.appendChild(footer)
+
+    document.body.appendChild(container)
+
+    try {
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: null
+      })
+
+      // 返回 base64 图片数据，而不是直接下载
+      return canvas.toDataURL('image/png')
+    } finally {
+      document.body.removeChild(container)
+    }
+  }
 }

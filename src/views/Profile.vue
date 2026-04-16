@@ -28,6 +28,36 @@
       <el-main class="dashboard-main">
         <h2>个人中心</h2>
         
+        <!-- 环保成就墙 -->
+        <el-card class="badge-wall-card" style="margin-top: 20px;">
+          <template #header>
+            <div class="card-header">
+              <span><el-icon><Trophy /></el-icon> 环保成就墙</span>
+              <el-tag type="success" effect="dark" round>已解锁 {{ unlockedBadgesCount }}/{{ badges.length }}</el-tag>
+            </div>
+          </template>
+          <div class="badges-grid">
+            <div 
+              v-for="badge in badges" 
+              :key="badge.id" 
+              class="badge-item" 
+              :class="{ 'is-locked': !badge.unlocked }"
+            >
+              <div class="badge-icon-wrapper" :style="{ background: badge.unlocked ? badge.color : '#f0f2f5' }">
+                <el-icon class="badge-icon" :style="{ color: badge.unlocked ? '#fff' : '#a8abb2' }">
+                  <component :is="badge.icon" />
+                </el-icon>
+              </div>
+              <p class="badge-title">{{ badge.title }}</p>
+              <p class="badge-desc">{{ badge.description }}</p>
+              <div v-if="!badge.unlocked && badge.progress !== undefined" class="badge-progress">
+                <el-progress :percentage="badge.progress" :show-text="false" :stroke-width="4" status="success" />
+                <span class="progress-text">{{ badge.current }}/{{ badge.total }}</span>
+              </div>
+            </div>
+          </div>
+        </el-card>
+
         <!-- 个人信息卡片 -->
         <el-card class="profile-card" style="margin-top: 20px;">
           <template #header>
@@ -105,7 +135,7 @@ import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
 import RoleSidebar from '../components/RoleSidebar.vue'
-import { House, Van, KnifeFork, Lightning, DataLine, Star, User, ArrowDown, CollectionTag, TrendCharts } from '@element-plus/icons-vue'
+import { House, Van, KnifeFork, Lightning, DataLine, Star, User, ArrowDown, CollectionTag, TrendCharts, Trophy, Medal, Promotion, Bicycle } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { userApi } from '../api'
 
@@ -114,6 +144,47 @@ const carbonStore = useCarbonStore()
 const activeMenu = ref('/profile')
 const isEditMode = ref(false)
 const passwordDialogVisible = ref(false)
+
+// 成就徽章逻辑
+const records = computed(() => carbonStore.records)
+const totalEmission = computed(() => records.value.reduce((sum, r) => sum + r.value, 0))
+const transportRecords = computed(() => records.value.filter(r => r.type === 'transport'))
+const dietRecords = computed(() => records.value.filter(r => r.type === 'diet'))
+
+const badges = computed(() => {
+  // 1. 初次登门
+  const b1 = {
+    id: 'b1', title: '初次登门', description: '记录第一笔碳足迹数据', 
+    icon: 'Promotion', color: '#409EFF',
+    unlocked: records.value.length >= 1,
+    current: records.value.length, total: 1, progress: Math.min(100, (records.value.length / 1) * 100)
+  }
+  // 2. 减排先行者
+  const b2 = {
+    id: 'b2', title: '减排先行者', description: '累计记录超过 10 次', 
+    icon: 'Medal', color: '#E6A23C',
+    unlocked: records.value.length >= 10,
+    current: records.value.length, total: 10, progress: Math.min(100, (records.value.length / 10) * 100)
+  }
+  // 3. 森林卫士
+  const b3 = {
+    id: 'b3', title: '森林卫士', description: '累计减排/碳足迹达到 20kg', 
+    icon: 'Star', color: '#67C23A',
+    unlocked: totalEmission.value >= 20,
+    current: totalEmission.value.toFixed(1), total: 20, progress: Math.min(100, (totalEmission.value / 20) * 100)
+  }
+  // 4. 绿色出行达人
+  const b4 = {
+    id: 'b4', title: '绿色出行', description: '记录 5 次以上的交通数据', 
+    icon: 'Bicycle', color: '#F56C6C',
+    unlocked: transportRecords.value.length >= 5,
+    current: transportRecords.value.length, total: 5, progress: Math.min(100, (transportRecords.value.length / 5) * 100)
+  }
+  
+  return [b1, b2, b3, b4]
+})
+
+const unlockedBadgesCount = computed(() => badges.value.filter(b => b.unlocked).length)
 
 // 加载用户信息
 onMounted(() => {
@@ -304,6 +375,68 @@ onMounted(() => {
 
 <style scoped>
 .dashboard-container {
+
+/* 成就墙样式 */
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+  padding: 10px 0;
+}
+.badge-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 16px;
+  background: #fdfdfd;
+  border-radius: 12px;
+  border: 1px solid #ebeef5;
+  transition: all 0.3s;
+}
+.badge-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.badge-item.is-locked {
+  filter: grayscale(100%);
+  opacity: 0.6;
+}
+.badge-icon-wrapper {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.badge-icon {
+  font-size: 32px;
+}
+.badge-title {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+  font-weight: bold;
+  color: #303133;
+}
+.badge-desc {
+  margin: 0;
+  font-size: 12px;
+  color: #909399;
+  min-height: 36px;
+}
+.badge-progress {
+  width: 100%;
+  margin-top: 10px;
+  position: relative;
+}
+.progress-text {
+  font-size: 11px;
+  color: #a8abb2;
+  display: block;
+  margin-top: 4px;
+}
   min-height: 100vh;
 }
 

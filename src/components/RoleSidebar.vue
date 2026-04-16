@@ -17,9 +17,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   House,
-  Van,
-  KnifeFork,
-  Lightning,
+  Compass,
   DataLine,
   TrendCharts,
   Star,
@@ -38,9 +36,7 @@ const sections = computed(() => getSidebarSections(carbonStore.user.role))
 
 const iconMap: Record<string, any> = {
   '/dashboard': House,
-  '/transport': Van,
-  '/diet': KnifeFork,
-  '/electricity': Lightning,
+  '/emissions': Compass,
   '/report': DataLine,
   '/ai-analysis': TrendCharts,
   '/recommendations': Star,
@@ -68,12 +64,24 @@ const handleSelect = (path: string) => {
 }
 
 .role-menu-group-title {
-  padding: 6px 12px 0;
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  padding: 0 12px;
+  margin: 12px 0 8px 8px;
+  color: #606266;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+}
+
+.role-menu-group-title::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 14px;
+  background: linear-gradient(180deg, #67c23a 0%, #a0cfff 100%); /* 环保绿到天空蓝的渐变 */
+  border-radius: 4px;
+  margin-right: 8px;
 }
 
 .role-sidebar :deep(.el-menu-item) {

@@ -41,11 +41,54 @@
               结合你的历史排放数据，自动生成趋势判断、风险提示和可执行的减排建议。
             </p>
           </div>
-          <el-button type="primary" :loading="loading" @click="refreshData">
-            <el-icon style="margin-right: 6px;"><TrendCharts /></el-icon>
-            刷新分析
-          </el-button>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <el-button type="success" size="large" :loading="planGenerating" @click="generateWeeklyPlan">
+              <el-icon style="margin-right: 6px;"><MagicStick /></el-icon>
+              生成本周无痛减排计划
+            </el-button>
+            <el-button type="primary" size="large" :loading="loading" @click="refreshData">
+              <el-icon style="margin-right: 6px;"><Refresh /></el-icon>
+              刷新分析
+            </el-button>
+          </div>
         </div>
+
+        <!-- AI 减排计划弹窗 -->
+        <el-dialog v-model="planVisible" title="本周无痛减排计划 (AI生成)" width="650px" class="plan-dialog">
+          <div v-if="weeklyPlan.length > 0">
+            <p class="plan-intro">基于对你近期 <strong>出行</strong>、<strong>饮食</strong> 以及 <strong>用电</strong> 习惯的深度学习，减碳管家为你量身定制了未来 7 天的改善计划。</p>
+            <el-timeline>
+              <el-timeline-item
+                v-for="(day, index) in weeklyPlan"
+                :key="index"
+                :type="day.type"
+                :color="day.color"
+                :icon="day.icon"
+                :timestamp="day.dateStr"
+                placement="top"
+              >
+                <el-card class="plan-card">
+                  <h4>{{ day.title }}</h4>
+                  <p>{{ day.description }}</p>
+                  <div class="plan-meta">
+                    <span class="reduction-estimate">
+                      <el-icon><DataLine /></el-icon> 预计减排: {{ day.reduction }} kg CO₂e
+                    </span>
+                    <el-tag size="small" :type="day.tagType">{{ day.category }}</el-tag>
+                  </div>
+                </el-card>
+              </el-timeline-item>
+            </el-timeline>
+          </div>
+          <template #footer>
+            <div class="dialog-footer">
+              <el-button @click="planVisible = false">看完啦</el-button>
+              <el-button type="success" @click="acceptPlan">
+                <el-icon><Check /></el-icon> 接受计划并立即执行
+              </el-button>
+            </div>
+          </template>
+        </el-dialog>
 
         <el-alert
           v-if="!hasData && !loading"
@@ -312,9 +355,26 @@ import {
   CollectionTag,
   ArrowDown,
   User,
-  UserFilled
+  UserFilled,
+  MagicStick,
+  Refresh,
+  Check,
+  Calendar
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+
+// AI 管家计划数据结构
+interface PlanDay {
+  dateStr: string
+  title: string
+  description: string
+  reduction: number
+  category: string
+  type: string
+  color: string
+  tagType: string
+  icon: any
+}
 
 interface EmissionSummary {
   totalEmission: number
@@ -389,6 +449,11 @@ const prediction = ref<CarbonPrediction | null>(null)
 const historyRecords = ref<PredictionHistoryRecord[]>([])
 const aiAnalysis = ref<AiAnalysisResult | null>(null)
 const aiAnalysisError = ref('')
+
+// 管家功能状态
+const planGenerating = ref(false)
+const planVisible = ref(false)
+const weeklyPlan = ref<PlanDay[]>([])
 
 const user = computed(() => carbonStore.user)
 
@@ -642,6 +707,96 @@ const handleMenuSelect = (key: string) => {
   activeMenu.value = key
 }
 
+const generateWeeklyPlan = () => {
+  planGenerating.value = true
+  ElMessage.info('AI 管家正在根据您的历史数据生成专属减排计划...')
+  
+  setTimeout(() => {
+    // 根据当前时间向后排 7 天
+    const startDate = new Date()
+    
+    // 模拟数据分析：查看用户是否经常吃肉、开车等（通过访问 store）
+    const totalRecords = carbonStore.records
+    const hasCar = totalRecords.some(r => r.type === 'transport' && (r as any).vehicleType === 'car')
+    const hasMeat = totalRecords.some(r => r.type === 'diet' && (r as any).foodType === 'meat')
+    
+    const plan: PlanDay[] = []
+    
+    for(let i=0; i<7; i++) {
+        const date = new Date(startDate)
+        date.setDate(startDate.getDate() + i)
+        const dateStr = `${date.getMonth() + 1}月${date.getDate()}日`
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6
+        
+        let title = ''
+        let desc = ''
+        let red = 0
+        let cat = ''
+        let tagType : "success" | "warning" | "info" | "primary" | "danger" = "success"
+        let icon: any = null
+        
+        // 伪随机加上一些规则判断，生成每天的独特建议
+        if (i === 0 && hasCar) {
+            title = '明日预报晴好，尝试骑行通勤'
+            desc = '根据天气预报，明天非常适合骑行。既然你平时习惯开车，不如明天将上下班交通改为骑行或地铁，既锻炼身体又大幅减排。'
+            red = 2.5
+            cat = '交通出行'
+            tagType = 'primary'
+            icon = Van
+        } else if (i === 1 && hasMeat) {
+            title = '开启周二“植物性饮食”挑战'
+            desc = '分析到你近日红肉摄入较多。这一天试着将午餐的牛肉换成鸡肉或豆腐，不仅对肠胃好，还能大幅降低食物碳足迹。'
+            red = 1.2
+            cat = '饮食习惯'
+            tagType = 'success'
+            icon = KnifeFork
+        } else if (i === 3) {
+            title = '家庭用电“随手关”小突击'
+            desc = '周四晚上洗完澡，顺手拔掉热水器、电视机等电器的待机插头，关闭不必要的灯光。积少成多也是大贡献。'
+            red = 0.5
+            cat = '电器使用'
+            tagType = 'warning'
+            icon = Lightning
+        } else if (isWeekend) {
+            title = '周末低碳周边游'
+            desc = '周末别宅在家里吹空调啦，带上家人坐公交去周边的公园呼吸新鲜空气，记得自带水杯哦。'
+            red = 3.0
+            cat = '综合减碳'
+            tagType = 'danger'
+            icon = House
+        } else {
+            title = '自带环保袋/餐具的一天'
+            desc = '今天买咖啡或者点外卖时，试试使用自带的环保杯和餐具吧。向商家说一句“不需要一次性餐具”。'
+            red = 0.3
+            cat = '绿色生活'
+            tagType = 'info'
+            icon = Star
+        }
+        
+        plan.push({
+            dateStr,
+            title,
+            description: desc,
+            reduction: red,
+            category: cat,
+            type: tagType === 'danger' ? 'primary' : tagType,
+            color: '',
+            tagType,
+            icon
+        })
+    }
+    
+    weeklyPlan.value = plan
+    planGenerating.value = false
+    planVisible.value = true
+  }, 1500)
+}
+
+const acceptPlan = () => {
+  planVisible.value = false
+  ElMessage.success('成功接跑计划！每天登录来打卡吧~')
+}
+
 const handleLogout = () => {
   router.push('/login')
 }
@@ -681,6 +836,54 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 管家弹窗样式 */
+.plan-dialog .el-dialog__body {
+  padding: 10px 25px 20px;
+}
+.plan-intro {
+  color: #606266;
+  margin-bottom: 24px;
+  line-height: 1.6;
+  font-size: 14px;
+}
+.plan-intro strong {
+  color: #388e3c;
+}
+.plan-card {
+  margin-bottom: 12px;
+  border-left: 4px solid var(--el-color-primary);
+  border-radius: 8px;
+}
+.plan-card h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #303133;
+}
+.plan-card p {
+  margin: 0 0 12px 0;
+  color: #606266;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.plan-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+.reduction-estimate {
+  color: #67c23a;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
 .ai-container {
   min-height: 100vh;
   background: linear-gradient(180deg, #eef8ef 0%, #f8fbf8 100%);

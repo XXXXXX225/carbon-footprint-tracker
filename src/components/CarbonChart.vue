@@ -83,8 +83,8 @@ const updateChart = () => {
           {
             name: props.title || '目标完成度',
             type: 'gauge',
-            center: ['50%', '70%'],
-            radius: '90%',
+            center: ['50%', '75%'],
+            radius: '80%',
             startAngle: 180,
             endAngle: 0,
             min: 0,
@@ -101,10 +101,9 @@ const updateChart = () => {
               }
             },
             pointer: {
-              icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
-              length: '12%',
-              width: 20,
-              offsetCenter: [0, '0%'],
+              length: '60%',
+              width: 6,
+              offsetCenter: [0, '-5%'],
               itemStyle: {
                 color: 'auto'
               }
@@ -126,15 +125,13 @@ const updateChart = () => {
             axisLabel: {
               color: '#464646',
               fontSize: 16,
-              distance: -60,
+              distance: -40,
+              padding: [120, 0, 0, 0],
               formatter: function (value: number) {
-                if (value === 0) {
+                if (value === 0 || value === 100) {
                   return value + '%';
-                } else if (value === 100) {
-                  return '  ' + value + '%';
-                } else {
-                  return '';
                 }
+                return '';
               }
             },
             title: {

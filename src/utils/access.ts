@@ -21,9 +21,7 @@ export interface TopNavItemConfig {
 
 const userMenuItems: MenuItemConfig[] = [
     { path: '/dashboard', label: '仪表盘', scope: 'user' },
-    { path: '/transport', label: '交通排放', scope: 'user' },
-    { path: '/diet', label: '饮食排放', scope: 'user' },
-    { path: '/electricity', label: '用电排放', scope: 'user' },
+    { path: '/emissions', label: '碳排放计算', scope: 'user' },
     { path: '/report', label: '报表展示', scope: 'user' },
     { path: '/ai-analysis', label: 'AI分析预测', scope: 'user' },
     { path: '/recommendations', label: '减排建议', scope: 'user' },
@@ -49,7 +47,7 @@ const topNavItems: TopNavItemConfig[] = [
 const routeScopes: Array<{ scope: Exclude<RouteScope, 'public'>; paths: string[] }> = [
     {
         scope: 'user',
-        paths: ['/dashboard', '/transport', '/diet', '/electricity', '/report', '/ai-analysis', '/recommendations', '/points', '/profile']
+        paths: ['/dashboard', '/emissions', '/report', '/ai-analysis', '/recommendations', '/points', '/profile']
     },
     {
         scope: 'operator',
@@ -73,7 +71,7 @@ export function getLandingRoute(role?: string | null): string {
     const normalizedRole = normalizeRole(role)
 
     if (normalizedRole === 'ADMIN') {
-        return '/admin'
+        return '/dashboard'
     }
 
     if (normalizedRole === 'ENTERPRISE') {

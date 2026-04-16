@@ -27,6 +27,19 @@
       </div>
     </header>
 
+    <!-- 在顶部新增滚动跑马灯 -->
+    <div class="marquee-container">
+      <div class="marquee-content">
+        <span class="marquee-item" v-for="(msg, i) in marqueeMessages" :key="i">
+          <el-icon style="margin-right: 4px;"><Lightning /></el-icon> {{ msg }}
+        </span>
+        <!-- 重复一遍用来实现无缝滚动 -->
+        <span class="marquee-item" v-for="(msg, i) in marqueeMessages" :key="'dup-'+i">
+          <el-icon style="margin-right: 4px;"><Lightning /></el-icon> {{ msg }}
+        </span>
+      </div>
+    </div>
+
     <main class="dashboard-grid">
       <aside class="rail rail-left" :class="{ collapsed: leftCollapsed }">
         <button class="rail-toggle-btn toggle-left" title="收起/展开左舱" @click="toggleLeftRail">
@@ -258,6 +271,16 @@ echarts.registerMap('china', chinaMap as any)
 
 import NumberRoll from '@/components/NumberRoll.vue'
 import { getGeoCoord } from '@/utils/geoCoords'
+import { Lightning } from '@element-plus/icons-vue'
+
+// 跑马灯数据
+const marqueeMessages = ref([
+  '北京节点 张先生 刚才通过公交出行减排了 5.2 kg CO₂e',
+  '上海节点 某企业 刚刚完成了 1000度 绿电置换',
+  '广州节点 王女士 点击生成了环保海报并分享，获得成就徽章',
+  '成都节点 餐饮行业 平均蔬菜消费比例提升了 12%',
+  '平台公告：碳中和知识竞赛将于下周开启，敬请期待！'
+])
 
 interface OverviewStats {
   totalUsers: number
@@ -1486,6 +1509,45 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.marquee-container {
+  width: 100%;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  margin: 12px 0 0 0;
+}
+
+.marquee-content {
+  display: flex;
+  white-space: nowrap;
+  animation: scrollMarquee 40s linear infinite;
+}
+
+.marquee-content:hover {
+  animation-play-state: paused;
+}
+
+.marquee-item {
+  display: inline-flex;
+  align-items: center;
+  color: #00ffcc;
+  font-size: 14px;
+  margin-right: 80px;
+  letter-spacing: 1px;
+}
+
+@keyframes scrollMarquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); } /* Half translation because content is duplicated */
+}
+
 .dashboard-screen {
   --bg-0: #04111c;
   --bg-1: #071a28;

@@ -1,38 +1,11 @@
 <template>
-  <el-container class="diet-container">
-    <el-header height="60px" class="dashboard-header">
-      <div class="header-left">
-        <router-link to="/home" class="logo-link">
-          <h1>碳足迹追踪平台</h1>
-        </router-link>
-      </div>
-      <div class="header-right">
-        <el-dropdown>
-          <span class="user-info">
-            {{ user.name }}
-            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item @click="navigateToProfile">个人中心</el-dropdown-item>
-              <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </div>
-    </el-header>
-    <el-container>
-      <el-aside width="200px" class="dashboard-aside">
-        <RoleSidebar />
-      </el-aside>
-      <el-main class="diet-main">
-        <h2>饮食排放计算</h2>
-        
+  <div class="emission-form">
+
         <!-- 饮食排放计算器 -->
         <el-card class="calculator-card">
           <template #header>
             <div class="card-header">
-              <span>饮食排放计算器</span>
+              <span>今日食物摄入详情</span>
             </div>
           </template>
           <el-form :model="dietForm" :rules="dietRules" ref="dietFormRef" label-width="120px">
@@ -140,28 +113,23 @@
             style="margin-top: 20px; text-align: right;"
           />
         </el-card>
-      </el-main>
-    </el-container>
-  </el-container>
+      
+  </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, computed, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { useCarbonStore } from '../store'
-import { carbonApi } from '../api'
-import RoleSidebar from '../components/RoleSidebar.vue'
+import { useCarbonStore } from '../../store'
+import { carbonApi } from '../../api'
 import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, CollectionTag, TrendCharts } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 
-const router = useRouter()
 const carbonStore = useCarbonStore()
-const activeMenu = ref('/diet')
 const dietFormRef = ref<FormInstance>()
 const emissionResult = ref(0)
 
-const user = computed(() => carbonStore.user)
+
 
 // 食物排放因子（kg CO₂e/千克）
 const foodEmissionFactors = {
@@ -313,18 +281,11 @@ const dietRules = reactive<FormRules>({
 
 const dietRecords = ref<DietRecordItem[]>([])
 
-const handleMenuSelect = (key: string) => {
-  router.push(key)
-  activeMenu.value = key
-}
 
-const handleLogout = () => {
-  router.push('/login')
-}
 
-const navigateToProfile = () => {
-  router.push('/profile')
-}
+
+
+
 
 const getSpecificFoods = (foodType: string) => {
   return specificFoods[foodType as keyof typeof specificFoods] || []
@@ -419,14 +380,10 @@ const saveRecord = async () => {
       description: dietForm.description
     })
 
-    carbonStore.addRecord({
-      type: 'diet',
-      value: emissionResult.value,
-      date: dietForm.date,
-      description: dietForm.description
-    })
-
+    // 全量刷新真实的后端数据，不再向本地 mock array 里 push 数据
     await loadDietRecords()
+    await carbonStore.fetchAllRecords()
+    
     ElMessage.success('饮食记录已保存')
     resetForm()
   } catch (error) {
@@ -485,107 +442,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.diet-container {
-  min-height: 100vh;
-}
-
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  background-color: #4CAF50;
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.header-left .logo-link {
-  text-decoration: none;
-  color: inherit;
-  display: inline-block;
-  transition: color 0.3s ease, transform 0.3s ease;
-}
-
-.header-left .logo-link:hover {
-  color: #ffffff;
-  transform: translateY(-2px);
-}
-
-.header-left h1 {
-  font-size: 20px;
-  margin: 0;
-}
-
-.user-info {
-  color: white;
-  cursor: pointer;
-}
-
-.dashboard-aside {
-  background-color: #fff;
-}
-
-.dashboard-menu {
-  height: 100%;
-  border-right: none;
-}
-
-.diet-main {
-  padding: 20px;
-}
-
-.calculator-card {
-  margin-bottom: 20px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.unit {
-  margin-left: 10px;
-  color: #999;
-}
-
-.emission-result {
-  margin-top: 30px;
-  padding: 20px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  border-left: 4px solid #4CAF50;
-}
-
-.result-content {
-  margin-top: 10px;
-}
-
-.result-item {
-  margin-bottom: 10px;
-}
-
-.result-value {
-  font-size: 24px;
-  font-weight: bold;
-  color: #4CAF50;
-}
-
-.history-card {
-  margin-top: 20px;
-}
-
-@media (max-width: 768px) {
-  .dashboard-aside {
-    display: none;
-  }
-  
-  .el-main {
-    padding: 10px;
-  }
-  
-  .el-form-item {
-    margin-bottom: 15px;
-  }
-}
+.emission-form { width: 100%; border: none; padding: 10px; }
+.calculator-card { margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.card-header { font-weight: bold; font-size: 16px; }
+.unit { margin-left: 10px; color: #999; }
+.emission-result { margin-top: 30px; padding: 20px; background-color: #f5f5f5; border-radius: 8px; border-left: 4px solid #4CAF50; }
+.result-value { font-size: 24px; font-weight: bold; color: #4CAF50; }
+.history-card { margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 </style>
