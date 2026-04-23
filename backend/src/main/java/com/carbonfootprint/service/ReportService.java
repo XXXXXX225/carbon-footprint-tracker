@@ -35,14 +35,24 @@ public class ReportService {
         LocalDate startDate = getPeriodStartDate(period, date);
         LocalDate endDate = getPeriodEndDate(period, date);
         
-        // 查找是否已存在该时间段的汇总
-        return summaryRepository.findByUserIdAndPeriodAndPeriodStartDateAndPeriodEndDate(
+        // 总是动态计算最新数据并更新到数据库
+        FootprintSummary summary = summaryRepository.findByUserIdAndPeriodAndPeriodStartDateAndPeriodEndDate(
                 userId, period, startDate, endDate
-        ).orElseGet(() -> calculateAndSaveSummary(userId, period, startDate, endDate));
+        ).orElse(new FootprintSummary());
+
+        summary.setUserId(userId);
+        summary.setPeriod(period);
+        summary.setPeriodStartDate(startDate);
+        summary.setPeriodEndDate(endDate);
+        summary.setTransportEmission(calculateTransportEmission(userId, startDate, endDate));
+        summary.setDietEmission(calculateDietEmission(userId, startDate, endDate));
+        summary.setElectricityEmission(calculateElectricityEmission(userId, startDate, endDate));
+        summary.setTotalEmission(summary.getTransportEmission() + summary.getDietEmission() + summary.getElectricityEmission());
+
+        return summaryRepository.save(summary);
     }
-    
+
     /**
-     * 计算并保存碳足迹汇总
      * @param userId 用户ID
      * @param period 时间段类型
      * @param startDate 开始日期

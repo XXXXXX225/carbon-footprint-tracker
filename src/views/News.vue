@@ -387,9 +387,10 @@ body {
 
 /* 英雄区域样式 */
 .hero-section {
-  background: linear-gradient(270deg, #2E7D32, #1B5E20, #388E3C, #2E7D32);
-  background-size: 400% 400%;
-  color: white;
+    background: linear-gradient(135deg, rgba(232, 245, 233, 0.4) 0%, rgba(241, 248, 233, 0.6) 50%, rgba(232, 245, 233, 0.4) 100%);
+    background-size: 200% 200%;
+    color: #4B5563;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
   padding: 4rem 0 3rem;
   position: relative;
   overflow: hidden;
@@ -415,7 +416,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.15)"/></svg>') repeat;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="1" fill="rgba(16, 185, 129, 0.2)"/></svg>') repeat;
   opacity: 0.5;
   animation: float 20s infinite linear;
   pointer-events: none;
@@ -429,7 +430,7 @@ body {
   left: 5%;
   width: 300px;
   height: 300px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
   border-radius: 50%;
   animation: pulse 8s ease-in-out infinite;
   pointer-events: none;
@@ -465,8 +466,8 @@ body {
 .particle {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+  background: rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.2);
   animation: floatAround 8s ease-in-out infinite;
 }
 
@@ -572,23 +573,24 @@ body {
 }
 
 .hero-content h2 {
-  font-size: 3rem;
-  margin-bottom: 1.5rem;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -1px;
-  opacity: 0;
-  animation: fadeInUp 1s ease forwards;
-}
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #064E3B;
+    line-height: 1.15;
+    margin-bottom: 1.5rem;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #10B981, #0ea5e9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
 
 .hero-content p {
-  font-size: 1.3rem;
-  margin-bottom: 2.5rem;
-  max-width: 800px;
-  font-weight: 300;
-  opacity: 0;
-  animation: fadeInUp 1s ease 0.3s forwards;
-}
+    font-size: 1.15rem;
+    color: #4B5563;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 0 auto;
+  }
 
 /* 资讯列表样式 */
 .news-section {
@@ -612,13 +614,16 @@ body {
   background-color: white;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.05);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(16, 185, 129, 0.1);
   transition: all 0.3s ease;
   position: relative;
   opacity: 0;
   transform: translateY(30px);
-  transition: all 0.6s ease;
-  cursor: pointer;
+  transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
 }
 
 .news-card.visible {
@@ -627,8 +632,9 @@ body {
 }
 
 .news-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+    transform: translateY(-10px);
+    box-shadow: 0 15px 40px rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .news-image {
@@ -880,11 +886,23 @@ body {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .hero-content h2 {
-    font-size: 2.5rem;
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #064E3B;
+    line-height: 1.15;
+    margin-bottom: 1.5rem;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #10B981, #0ea5e9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .hero-content p {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+    color: #4B5563;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 0 auto;
   }
 
   .news-grid {
@@ -922,43 +940,59 @@ body {
 }
 
 /* 按钮样式 */
+
+
 .btn {
-  display: inline-block;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  position: relative;
-  overflow: hidden;
+    display: inline-block;
+    padding: 14px 28px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+    font-size: 1.05rem;
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 1px;
 }
 
+.btn::before {
+    content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: all 0.6s ease;
+}
+.btn:hover::before { left: 100%; }
+
 .btn-primary {
-  background: linear-gradient(135deg, #2E7D32, #4CAF50);
-  color: white;
-  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
+    background: linear-gradient(135deg, #0ea5e9, #10B981);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(46, 125, 50, 0.4);
+    background: linear-gradient(135deg, #0284c7, #059669);
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 20px 30px -10px rgba(16, 185, 129, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+    color: #ffffff;
 }
 
 .btn-secondary {
-  background: white;
-  color: #2E7D32;
-  border: 2px solid #2E7D32;
-  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.1);
+    background: rgba(255, 255, 255, 0.1);
+    color: #064E3B;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 .btn-secondary:hover {
-  background: #2E7D32;
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(46, 125, 50, 0.3);
+    border-color: #10B981;
+    color: #047857;
+    background: rgba(16, 185, 129, 0.1);
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 15px 25px -5px rgba(16, 185, 129, 0.2);
 }
 
 .btn-large {

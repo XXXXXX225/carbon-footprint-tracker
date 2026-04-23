@@ -25,9 +25,21 @@
                 </el-option>
                 <el-option label="鱼类" value="fish" />
                 <el-option label="饮料" value="beverages" />
+                <el-option label="自定义" value="custom" />
               </el-select>
             </el-form-item>
-            <el-form-item label="具体食物" prop="specificFood" v-if="dietForm.foodType">
+
+            <template v-if="dietForm.foodType === 'custom'">
+              <el-form-item label="自定义食物名称" prop="customName">
+                <el-input v-model="dietForm.customName" placeholder="例如：未知混合食物" />
+              </el-form-item>
+              <el-form-item label="排放因子" prop="customFactor">
+                <el-input v-model.number="dietForm.customFactor" placeholder="请输入碳排放因子" />
+                <span class="unit">kg CO₂e / 单位</span>
+              </el-form-item>
+            </template>
+
+            <el-form-item label="具体食物" prop="specificFood" v-if="dietForm.foodType && dietForm.foodType !== 'custom'">
               <el-select v-model="dietForm.specificFood" placeholder="请选择具体食物">
                 <el-option 
                   v-for="food in getSpecificFoods(dietForm.foodType)" 
@@ -86,14 +98,14 @@
           </template>
           <el-table :data="dietRecords" style="width: 100%">
             <el-table-column prop="date" label="日期" width="120" />
-            <el-table-column prop="foodType" label="食物类别" width="120">
+            <el-table-column prop="foodType" label="食物类别" width="140">
               <template #default="scope">
-                {{ getFoodTypeName(scope.row.foodType) }}
+                {{ getFoodTypeName(scope.row.foodType, scope.row) }}
               </template>
             </el-table-column>
             <el-table-column prop="specificFood" label="具体食物" width="150">
               <template #default="scope">
-                {{ getSpecificFoodName(scope.row.foodType, scope.row.specificFood) }}
+                {{ scope.row.foodType === 'custom' ? '-' : getSpecificFoodName(scope.row.foodType, scope.row.specificFood) }}
               </template>
             </el-table-column>
             <el-table-column prop="amount" label="食用量" width="100" />
@@ -129,7 +141,29 @@ const carbonStore = useCarbonStore()
 const dietFormRef = ref<FormInstance>()
 const emissionResult = ref(0)
 
+const dietForm = reactive({
+  foodType: '',
+  specificFood: '',
+  amount: 0,
+  cookingMethod: 'boil',
+  date: new Date().toISOString().split('T')[0],
+  description: '',
+  customName: '',
+  customFactor: null as number | null
+})
 
+const dietRules = reactive<FormRules>({
+  foodType: [{ required: true, message: '请选择食物类别', trigger: 'change' }],
+  specificFood: [{ required: false, message: '请选择具体食物', trigger: 'change' }],
+  amount: [
+    { required: true, message: '请输入食用量', trigger: 'blur' },
+    { type: 'number', message: '必须为数字' }
+  ],
+  cookingMethod: [{ required: true, message: '请选择烹饪方式', trigger: 'change' }],
+  date: [{ required: true, message: '请选择日期', trigger: 'change' }],
+  customName: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+  customFactor: [{ required: true, message: '请输入排放因子', trigger: 'blur' }]
+})
 
 // 食物排放因子（kg CO₂e/千克）
 const foodEmissionFactors = {
@@ -241,15 +275,6 @@ const specificFoods = {
   ]
 }
 
-const dietForm = reactive({
-  foodType: '',
-  specificFood: '',
-  amount: 0,
-  cookingMethod: 'raw',
-  date: new Date().toISOString().split('T')[0],
-  description: ''
-})
-
 interface DietRecordItem {
   id: string
   date: string
@@ -260,24 +285,7 @@ interface DietRecordItem {
   description: string
 }
 
-const dietRules = reactive<FormRules>({
-  foodType: [
-    { required: true, message: '请选择食物类别', trigger: 'blur' }
-  ],
-  specificFood: [
-    { required: true, message: '请选择具体食物', trigger: 'blur' }
-  ],
-  amount: [
-    { required: true, message: '请输入食用量', trigger: 'blur' },
-    { type: 'number', min: 0.01, message: '食用量必须大于0', trigger: 'blur' }
-  ],
-  cookingMethod: [
-    { required: true, message: '请选择烹饪方式', trigger: 'blur' }
-  ],
-  date: [
-    { required: true, message: '请选择日期', trigger: 'blur' }
-  ]
-})
+// remove duplicate dietRules here
 
 const dietRecords = ref<DietRecordItem[]>([])
 
@@ -317,21 +325,27 @@ const mapDietFoodTypeFromApiCode = (foodType: number) => {
 
 const loadDietRecords = async () => {
   try {
-    const records = await carbonApi.getDietRecords()
-    dietRecords.value = records
-      .map(record => ({
-        id: String(record.id),
-        date: record.emissionDate,
-        foodType: mapDietFoodTypeFromApiCode(record.foodType),
-        specificFood: record.specificFood,
-        amount: record.amount,
-        emission: record.emissionAmount,
-        description: record.description || ''
-      }))
-      .sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime())
+    const apiRecords = await carbonApi.getDietRecords()
+    const mapped = apiRecords.map(record => ({
+      id: String(record.id),
+      date: record.emissionDate,
+      foodType: mapDietFoodTypeFromApiCode(record.foodType),
+      specificFood: record.specificFood,
+      amount: record.amount,
+      emission: record.emissionAmount,
+      description: record.description || ''
+    }))
+    
+    // 加载自定义数据
+    const localRecords = JSON.parse(localStorage.getItem('mock_diet_emissions') || '[]')
+    
+    dietRecords.value = [...mapped, ...localRecords].sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime())
   } catch (error) {
     console.error('加载饮食历史记录失败:', error)
     ElMessage.warning('饮食历史记录加载失败，已显示当前页面数据')
+    
+    const localRecords = JSON.parse(localStorage.getItem('mock_diet_emissions') || '[]')
+    dietRecords.value = localRecords.sort((left: any, right: any) => new Date(right.date).getTime() - new Date(left.date).getTime())
   }
 }
 
@@ -340,6 +354,11 @@ const calculateEmission = async () => {
   
   await dietFormRef.value.validate(async (valid) => {
     if (valid) {
+      if (dietForm.foodType === 'custom' && dietForm.customFactor !== null) {
+        emissionResult.value = dietForm.amount * dietForm.customFactor
+        return
+      }
+
       const foodType = dietForm.foodType as keyof typeof foodEmissionFactors
       const specificFood = dietForm.specificFood as keyof typeof foodEmissionFactors[typeof foodType]
       
@@ -371,6 +390,25 @@ const resetForm = () => {
 
 const saveRecord = async () => {
   try {
+    if (dietForm.foodType === 'custom') {
+      const localRecords = JSON.parse(localStorage.getItem('mock_diet_emissions') || '[]')
+      localRecords.push({
+        id: 'local_' + Date.now(),
+        date: dietForm.date,
+        foodType: 'custom',
+        customName: dietForm.customName,
+        specificFood: '自定义',
+        amount: dietForm.amount,
+        emission: Number(emissionResult.value.toFixed(2)),
+        description: dietForm.description || ''
+      })
+      localStorage.setItem('mock_diet_emissions', JSON.stringify(localRecords))
+      await loadDietRecords()
+      ElMessage.success('自定义饮食记录已保存至本地')
+      resetForm()
+      return
+    }
+
     await carbonApi.addDietRecord({
       foodType: mapDietFoodTypeToApiCode(dietForm.foodType, dietForm.specificFood),
       specificFood: dietForm.specificFood,
@@ -394,6 +432,15 @@ const saveRecord = async () => {
 
 const deleteRecord = async (id: string) => {
   try {
+    if (id.startsWith('local_')) {
+      const localRecords = JSON.parse(localStorage.getItem('mock_diet_emissions') || '[]')
+      const newRecords = localRecords.filter((r: any) => r.id !== id)
+      localStorage.setItem('mock_diet_emissions', JSON.stringify(newRecords))
+      await loadDietRecords()
+      ElMessage.success('自定义记录已删除')
+      return
+    }
+
     await carbonApi.deleteDietRecord(Number(id))
     await loadDietRecords()
     ElMessage.success('饮食记录已删除')
@@ -406,6 +453,7 @@ const deleteRecord = async (id: string) => {
 const clearHistory = async () => {
   try {
     await carbonApi.clearDietRecords()
+    localStorage.removeItem('mock_diet_emissions')
     await loadDietRecords()
     ElMessage.success('饮食记录已清空')
   } catch (error) {
@@ -414,7 +462,8 @@ const clearHistory = async () => {
   }
 }
 
-const getFoodTypeName = (type: string) => {
+const getFoodTypeName = (type: string, row?: any) => {
+  if (type === 'custom') return `自定义 (${row?.customName || '未知'})`
   const typeMap = {
     grains: '谷物类',
     vegetables: '蔬菜类',

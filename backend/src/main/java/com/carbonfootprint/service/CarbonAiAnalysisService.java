@@ -42,16 +42,16 @@ public class CarbonAiAnalysisService {
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
-    @Value("${ai.provider:ollama}")
+    @Value("${ai.provider:zhipu}")
     private String provider;
 
-    @Value("${ai.base-url:http://localhost:11434}")
+    @Value("${ai.base-url:https://open.bigmodel.cn/api/paas/v4}")
     private String baseUrl;
 
     @Value("${ai.api-key:}")
     private String apiKey;
 
-    @Value("${ai.model:qwen2.5:7b-instruct}")
+    @Value("${ai.model:glm-4-flash}")
     private String model;
 
     @Value("${ai.timeout-seconds:45}")
@@ -252,10 +252,14 @@ public class CarbonAiAnalysisService {
 
             String contextJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload);
 
-            return "你是企业级碳足迹分析助手。请基于给定数据输出 JSON，且只输出 JSON，不要输出 Markdown、注释或额外解释。\n"
+            return "你是企业级碳足迹诊断与预测专家。请基于给定数据输出 JSON，且只输出 JSON，不要输出 Markdown、注释或额外解释。\n"
+                    + "作为大赛重点的 AI 诊断与预测模块，请务必执行：\n"
+                    + "1. 【深度溯源分析】在 insights 中必须有一项 title 为「核心根因溯源」，分析当前最大排放源及习惯成因；\n"
+                    + "2. 【趋势预测判断】在 insights 中有一项 title 为「未来趋势预测」，结合历史数据预测下月走势及潜在风险点；\n"
+                    + "3. 【任务闭环建议】在 recommendations 中提供具体、可量化（如含有减排量）的无痛减排打卡任务建议。\n"
                     + "JSON 必须包含以下字段：headline, summary, riskLevel, confidence, insights, recommendations, nextActions, source。\n"
                     + "其中 insights 是对象数组，每个对象包含 title 和 text；recommendations 和 nextActions 是字符串数组；riskLevel 只能是 LOW, MEDIUM, HIGH 之一；confidence 是 0 到 100 之间的数字；source 固定返回 AI。\n"
-                    + "请用简体中文输出，并尽量给出可执行、具体的建议。\n\n"
+                    + "请用简体中文输出，并尽量给出严谨的数据推理与切实可行的建议。\n\n"
                     + "数据如下：\n"
                     + contextJson;
         } catch (IOException ex) {
@@ -638,6 +642,7 @@ public class CarbonAiAnalysisService {
                         || provider.equalsIgnoreCase("openai-compatible")
                         || provider.equalsIgnoreCase("deepseek")
                         || provider.equalsIgnoreCase("doubao")
+                        || provider.equalsIgnoreCase("zhipu")
         );
     }
 

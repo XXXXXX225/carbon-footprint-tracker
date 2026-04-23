@@ -483,13 +483,31 @@ const submitStatusUpdate = async () => {
         currentEditingRecommendation.progress = statusForm.status === '已完成' ? 100 : statusForm.progress
         currentEditingRecommendation.notes = statusForm.notes
         
+        // 当状态更新为“已完成”时，触发积分激励闭环
+        if (statusForm.status === '已完成') {
+          // 在实际应用中此处应调用后端API： carbonApi.addPoints(...)
+          // 模拟发放减排对应的积分 (每减排1kg大约10积分)
+          const earnedPoints = Math.round(Number(currentEditingRecommendation.impact) * 10) || 50
+          ElMessage({
+            message: `🎉 恭喜完成减排任务！成功减少 ${currentEditingRecommendation.impact} kg 碳排，获得 ${earnedPoints} 减碳积分！`,
+            type: 'success',
+            duration: 4000
+          })
+          
+          // 记录到本地模拟积分增加
+          try {
+            const currentPoints = Number(localStorage.getItem('mock_total_points') || '350')
+            localStorage.setItem('mock_total_points', String(currentPoints + earnedPoints))
+          } catch(e) {}
+        } else {
+          ElMessage.success('状态更新成功')
+        }
+        
         // 尝试找到对应在列表中的对象更新
         const index = adoptedRecommendations.value.findIndex(item => item.id === currentEditingRecommendation.id)
         if (index !== -1) {
           adoptedRecommendations.value[index] = { ...currentEditingRecommendation }
         }
-        
-        ElMessage.success('状态更新成功')
       }
       statusDialogVisible.value = false
     }

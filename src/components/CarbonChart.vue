@@ -76,6 +76,9 @@ const updateChart = () => {
     case 'gauge':
       option = {
         tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          borderColor: '#34d399',
+          textStyle: { color: '#f8fafc' },
           trigger: 'item',
           formatter: '{a} <br/>{b}: {c}%'
         },
@@ -160,10 +163,14 @@ const updateChart = () => {
     case 'pie':
       option = {
         tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          borderColor: '#34d399',
+          textStyle: { color: '#f8fafc' },
           trigger: 'item',
           formatter: '{a} <br/>{b}: {c} ({d}%)'
         },
         legend: {
+          textStyle: { color: '#cbd5e1' },
           orient: 'horizontal',
           bottom: 0,
           data: props.data.legend || []
@@ -202,9 +209,13 @@ const updateChart = () => {
     case 'line':
       option = {
         tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          borderColor: '#34d399',
+          textStyle: { color: '#f8fafc' },
           trigger: 'axis'
         },
         legend: {
+          textStyle: { color: '#cbd5e1' },
           data: props.data.legend || [],
           bottom: 0
         },
@@ -230,12 +241,16 @@ const updateChart = () => {
     case 'bar':
       option = {
         tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          borderColor: '#34d399',
+          textStyle: { color: '#f8fafc' },
           trigger: 'axis',
           axisPointer: {
             type: 'shadow'
           }
         },
         legend: {
+          textStyle: { color: '#cbd5e1' },
           data: props.data.legend || [],
           bottom: 0
         },

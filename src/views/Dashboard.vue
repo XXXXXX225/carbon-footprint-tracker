@@ -97,7 +97,45 @@
                 </el-card>
               </el-col>
             </el-row>
-
+                        <!-- 碳减排目标 -->
+            <el-row :gutter="20" class="kpi-hero-row" style="margin-top: 20px;">
+              <el-col :span="24">
+                <el-card class="overview-card glow-card" style="margin-bottom: 20px;">
+                  <template #header>
+                    <div class="card-header flexible-header">
+                      <span class="card-title">碳减排目标</span>
+                    </div>
+                  </template>
+                  <div v-if="!activeGoal" style="text-align: center; padding: 20px;">
+                    <p style="margin-bottom: 10px; color: #666;">您当前没有正在进行的减排目标</p>
+                    <el-button type="primary" @click="openGoalDialog">设置新目标</el-button>
+                  </div>
+                  <div v-else style="display: flex; align-items: center; justify-content: space-around; padding: 10px 0;">
+                    <div>
+                      <h4 style="margin: 0 0 10px 0; color: #409EFF;">目标减排: {{ activeGoal.targetPercentage }}%</h4>
+                      <p style="margin: 5px 0; color: #666; font-size: 14px;"><strong>截止时间:</strong> {{ activeGoal.endDate }}</p>
+                      <p style="margin: 5px 0; font-size: 14px;"><strong>基准排放:</strong> {{ activeGoal.baselineEmission.toFixed(2) }} kg</p>
+                      <p style="margin: 5px 0; font-size: 14px;"><strong>目标排放:</strong> {{ activeGoal.targetEmission.toFixed(2) }} kg</p>
+                    </div>
+                    <div style="text-align: center;">
+                      <el-progress 
+                        type="dashboard" 
+                        :percentage="progressPercentage" 
+                        :color="[ {color: '#85ce61', percentage: 50}, {color: '#e6a23c', percentage: 80}, {color: '#f56c6c', percentage: 100} ]"
+                      >
+                        <template #default="{ percentage }">
+                          <span style="display: block; font-size: 20px; font-weight: bold;">{{ percentage }}%</span>
+                          <span style="font-size: 12px; color: #999;">额度消耗率</span>
+                        </template>
+                      </el-progress>
+                      <div style="margin-top: 5px; font-size: 14px;">
+                        <strong>当前排放:</strong> {{ (activeGoal.currentEmission || 0).toFixed(2) }} kg
+                      </div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+            </el-row>
             <el-row :gutter="20" class="kpi-secondary-row">
               <el-col :xs="24" :md="8" class="stagger-item delay-2">
                 <el-card class="overview-card glow-card">
@@ -305,11 +343,29 @@ import RoleSidebar from '../components/RoleSidebar.vue'
 import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, ArrowUp, Download, Document, CollectionTag, TrendCharts, Aim, PieChart, Histogram } from '@element-plus/icons-vue'
 import { ExportService, type ExportData } from '../utils/export'
 import { ElMessage } from 'element-plus'
+import { goalApi, type ReductionGoal } from '@/api'
 
 const router = useRouter()
 const carbonStore = useCarbonStore()
 const activeMenu = ref('/dashboard')
 const goalDialogVisible = ref(false)
+const activeGoal = ref<ReductionGoal | null>(null)
+const progressPercentage = computed(() => {
+  if (!activeGoal.value) return 0;
+  const current = activeGoal.value.currentEmission || 0;
+  const target = activeGoal.value.targetEmission || 1;
+  return Math.min(100, Math.round((current / target) * 100));
+})
+
+const loadActiveGoal = async () => {
+  try {
+    const res = await goalApi.getActiveGoal();
+    activeGoal.value = res;
+  } catch (error: any) {
+    // Ignore 404 or other errors for now, maybe notify
+  }
+}
+
 const drillDownDialogVisible = ref(false)
 const drillDownTitle = ref('')
 const drillDownChartType = ref('')
@@ -321,6 +377,7 @@ const drillDownColumns = ref<any[]>([])
 onMounted(() => {
   carbonStore.loadUserFromLocalStorage()
   loadPointsData()
+  loadActiveGoal()
 })
 
 // 加载积分数据
@@ -519,11 +576,18 @@ const openGoalDialog = () => {
 
 const submitGoal = async () => {
   if (!goalFormRef.value) return
-  
-  await goalFormRef.value.validate(async (valid) => {
+  await goalFormRef.value.validate(async (valid: boolean) => {
     if (valid) {
-      carbonStore.setReductionGoal(goalForm.value.reductionGoal)
-      goalDialogVisible.value = false
+      try {
+        const d = new Date(goalForm.value.deadline);
+        const dateStr = d.toISOString().split('T')[0];
+        await goalApi.createGoal(goalForm.value.reductionGoal, dateStr);
+        ElMessage.success('目标设置成功');
+        goalDialogVisible.value = false;
+        loadActiveGoal();
+      } catch (err: any) {
+        ElMessage.error(err.message || '目标设置失败');
+      }
     }
   })
 }
@@ -683,6 +747,9 @@ const elMessage = {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Fira+Code:wght@500;700&display=swap');
+
+
 /* =========== SaaS Enhanced Data View Custom CSS =========== */
 .saas-enhanced-section {
   background: #ffffff;
@@ -806,6 +873,7 @@ const elMessage = {
 
 
 .dashboard-container {
+  font-family: 'Noto Sans SC', sans-serif;
   min-height: 100vh;
   background: transparent !important;
 }
@@ -919,6 +987,7 @@ const elMessage = {
 }
 
 .overview-value {
+  font-family: 'Bahnschrift', sans-serif;
   font-size: 32px;
   font-weight: 900;
   color: #4CAF50;
@@ -935,6 +1004,7 @@ const elMessage = {
 }
 
 .overview-change {
+  font-family: 'Bahnschrift', sans-serif;
   font-size: 12px;
   display: flex;
   align-items: center;
@@ -956,6 +1026,7 @@ const elMessage = {
 }
 
 .points-value {
+  font-family: 'Bahnschrift', sans-serif;
   color: #4CAF50;
   font-size: 36px;
   font-weight: bold;
@@ -1041,11 +1112,13 @@ const elMessage = {
   }
   
   .overview-value {
-    font-size: 20px;
+    font-family: 'Bahnschrift', sans-serif;
+  font-size: 20px;
   }
 
   .points-value {
-    font-size: 26px;
+    font-family: 'Bahnschrift', sans-serif;
+  font-size: 26px;
   }
   
   .chart-card {
@@ -1096,11 +1169,13 @@ const elMessage = {
   }
   
   .overview-value {
-    font-size: 18px;
+    font-family: 'Bahnschrift', sans-serif;
+  font-size: 18px;
   }
 
   .points-value {
-    font-size: 22px;
+    font-family: 'Bahnschrift', sans-serif;
+  font-size: 22px;
   }
   
   .chart-card {
@@ -1137,11 +1212,13 @@ const elMessage = {
   }
   
   .overview-value {
-    font-size: 16px;
+    font-family: 'Bahnschrift', sans-serif;
+  font-size: 16px;
   }
 
   .points-value {
-    font-size: 20px;
+    font-family: 'Bahnschrift', sans-serif;
+  font-size: 20px;
   }
   
   .overview-label {
@@ -1149,7 +1226,8 @@ const elMessage = {
   }
   
   .overview-change {
-    font-size: 11px;
+    font-family: 'Bahnschrift', sans-serif;
+  font-size: 11px;
   }
   
   .chart-card {

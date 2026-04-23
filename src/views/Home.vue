@@ -151,48 +151,48 @@
       </div>
       <div class="hero-container page-shell">
         <div class="hero-content">
-          <h2 class="scrolling-text">
-            <span class="text-wrapper">
-              <span class="text-content" v-for="(text, index) in scrollingTexts" :key="index" :class="{ active: currentTextIndex === index }">
-                {{ text }}
-              </span>
-            </span>
-          </h2>
-          <p>通过我们的平台，您可以追踪、分析和减少您的日常碳排放，为环保事业贡献力量。</p>
-          <div class="hero-buttons">
-            <router-link :to="user && user.id ? landingRoute : '/login'" class="btn btn-large btn-secondary">立即开始</router-link>
-            <router-link to="/news" class="btn btn-large btn-secondary">了解更多</router-link>
+          <div class="system-status">
+            <span class="pulse-dot"></span> 智能监控节点：在线
           </div>
-        </div>
-        <div class="hero-carousel-wrapper">
-          <div class="hero-carousel" :style="{ transform: carouselTransform }">
-            <div class="carousel-slides" :style="{ transform: `translateX(-${currentSlide * 100}%)` }">
-            <div class="carousel-slide">
-              <img
-                src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=carbon%20footprint%20tracking%20dashboard%20with%20charts%20and%20environmental%20icons%2C%20clean%20modern%20design%2C%20minimalist%2C%20professional%2C%20high%20quality%20rendering&image_size=landscape_16_9"
-                alt="碳足迹追踪平台" />
-            </div>
-            <div class="carousel-slide">
-              <img
-                src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=eco%20friendly%20lifestyle%20with%20solar%20panels%20and%20electric%20vehicles%2C%20clean%20modern%20design%2C%20minimalist%2C%20professional%2C%20high%20quality%20rendering&image_size=landscape_16_9"
-                alt="环保生活方式" />
-            </div>
-            <div class="carousel-slide">
-              <img
-                src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=sustainable%20transportation%20with%20bicycles%20and%20public%20transit%2C%20clean%20modern%20design%2C%20minimalist%2C%20professional%2C%20high%20quality%20rendering&image_size=landscape_16_9"
-                alt="可持续交通" />
-            </div>
-            <div class="carousel-slide">
-              <img
-                src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=green%20energy%20solutions%20with%20wind%20turbines%20and%20hydroelectric%20power%2C%20clean%20modern%20design%2C%20minimalist%2C%20professional%2C%20high%20quality%20rendering&image_size=landscape_16_9"
-                alt="绿色能源解决方案" />
+          <div class="marquee-container">
+            <div class="marquee-content">
+              <span v-for="(text, index) in scrollingTexts" :key="'a'+index" class="marquee-text">{{ text }} <span class="marquee-dot">&bull;</span> </span>
+              <span v-for="(text, index) in scrollingTexts" :key="'b'+index" class="marquee-text">{{ text }} <span class="marquee-dot">&bull;</span> </span>
             </div>
           </div>
-          <div class="carousel-indicators">
-            <button v-for="(slide, index) in slides" :key="index" class="indicator"
-              :class="{ active: index === currentSlide }" @click="currentSlide = index"></button>
+          
+          <div class="live-data-screen">
+            <div class="data-label">平台累计追踪减排量 (kg CO₂e)</div>
+            <div class="data-number">{{ animatedCounter.toFixed(2) }}</div>
           </div>
-        </div>
+
+          <p class="hero-desc">融合先进算法与生态模型，精准量化您的每一次低碳行动，让环保效益清晰可见。</p>
+          
+          <div class="hero-actions">
+              <router-link :to="user && user.id ? landingRoute : '/login'" class="eco-btn-primary glow-effect anti-gravity-float magnetic-item" @mousemove="handleMagneticMove" @mouseleave="handleMagneticLeave">
+                <el-icon style="margin-right: 8px;"><User /></el-icon>
+                {{ user && user.id ? '立即开始' : '登录/注册' }}
+              </router-link>
+              <router-link to="/news" class="eco-btn-secondary anti-gravity-float magnetic-item" @mousemove="handleMagneticMove" @mouseleave="handleMagneticLeave">
+                <el-icon style="margin-right: 8px;"><CollectionTag /></el-icon>
+                了解更多
+              </router-link>
+            </div>
+          </div>
+        <div class="hero-visual" :style="{ transform: carouselTransform }">
+          <div class="hologram-frame">
+            <div class="carousel-track" :style="{ transform: `translateX(-${currentSlide * 100}%)` }">
+              <div class="carousel-slide" v-for="(img, idx) in carouselImages" :key="idx">
+                <div class="slide-overlay"></div>
+                <img :src="img" alt="Eco Display" />
+              </div>
+            </div>
+          </div>
+          <div class="eco-indicators">
+            <span v-for="(_, idx) in carouselImages" :key="idx"
+                  class="eco-dot" :class="{ active: idx === currentSlide }"
+                  @click="currentSlide = idx"></span>
+          </div>
         </div>
       </div>
     </section>
@@ -202,7 +202,9 @@
       <div class="features-container page-shell">
         <h3>核心功能</h3>
         <div class="features-grid">
-          <div class="feature-card fade-in" data-aos="fade-up">
+          <div class="feature-card fade-in anti-gravity-float magnetic-item" data-aos="fade-up"
+          @mousemove="handleMagneticMove"
+          @mouseleave="handleMagneticLeave">
             <div class="feature-icon">
               <img
                 src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=transportation%20carbon%20emission%20icon%2C%20clean%20modern%20design%2C%20minimalist%2C%20professional&image_size=square"
@@ -211,7 +213,9 @@
             <h4>交通排放追踪</h4>
             <p>记录您的日常出行，计算并分析交通方式对环境的影响。</p>
           </div>
-          <div class="feature-card fade-in" data-aos="fade-up" data-aos-delay="100">
+          <div class="feature-card fade-in anti-gravity-float magnetic-item" data-aos="fade-up" data-aos-delay="100"
+          @mousemove="handleMagneticMove"
+          @mouseleave="handleMagneticLeave">
             <div class="feature-icon">
               <img
                 src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=food%20diet%20carbon%20emission%20icon%2C%20clean%20modern%20design%2C%20minimalist%2C%20professional&image_size=square"
@@ -220,7 +224,9 @@
             <h4>饮食排放分析</h4>
             <p>了解您的饮食习惯产生的碳排放，获取健康环保的饮食建议。</p>
           </div>
-          <div class="feature-card fade-in" data-aos="fade-up" data-aos-delay="200">
+          <div class="feature-card fade-in anti-gravity-float magnetic-item" data-aos="fade-up" data-aos-delay="200"
+          @mousemove="handleMagneticMove"
+          @mouseleave="handleMagneticLeave">
             <div class="feature-icon">
               <img
                 src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=electricity%20energy%20carbon%20emission%20icon%2C%20clean%20modern%20design%2C%20minimalist%2C%20professional&image_size=square"
@@ -229,7 +235,9 @@
             <h4>用电排放监测</h4>
             <p>追踪您的家庭用电量，分析能源使用效率，寻找节能减排机会。</p>
           </div>
-          <div class="feature-card fade-in" data-aos="fade-up" data-aos-delay="300">
+          <div class="feature-card fade-in anti-gravity-float magnetic-item" data-aos="fade-up" data-aos-delay="300"
+          @mousemove="handleMagneticMove"
+          @mouseleave="handleMagneticLeave">
             <div class="feature-icon">
               <img
                 src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=reduction%20goal%20carbon%20emission%20icon%2C%20clean%20modern%20design%2C%20minimalist%2C%20professional&image_size=square"
@@ -238,7 +246,9 @@
             <h4>减排目标设定</h4>
             <p>设定个人减排目标，跟踪进展，获取个性化的减排建议。</p>
           </div>
-          <div class="feature-card fade-in" data-aos="fade-up" data-aos-delay="400">
+          <div class="feature-card fade-in anti-gravity-float magnetic-item" data-aos="fade-up" data-aos-delay="400"
+          @mousemove="handleMagneticMove"
+          @mouseleave="handleMagneticLeave">
             <div class="feature-icon">
               <img
                 src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=report%20analytics%20carbon%20emission%20icon%2C%20clean%20modern%20design%2C%20minimalist%2C%20professional&image_size=square"
@@ -247,7 +257,9 @@
             <h4>排放报告生成</h4>
             <p>生成详细的碳排放报告，了解您的环境影响，分享您的环保成就。</p>
           </div>
-          <div class="feature-card fade-in" data-aos="fade-up" data-aos-delay="500">
+          <div class="feature-card fade-in anti-gravity-float magnetic-item" data-aos="fade-up" data-aos-delay="500"
+          @mousemove="handleMagneticMove"
+          @mouseleave="handleMagneticLeave">
             <div class="feature-icon">
               <img
                 src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=personalized%20recommendations%20carbon%20emission%20icon%2C%20clean%20modern%20design%2C%20minimalist%2C%20professional&image_size=square"
@@ -348,10 +360,15 @@
 </template>
 
 <script setup lang="ts">
+
+import slide1 from '../assets/slide1.jpg'
+import slide2 from '../assets/slide2.jpg'
+import slide3 from '../assets/slide3.jpg'
+
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
-import { UserFilled, User, House, CollectionTag, SwitchButton, ArrowDown, Setting, DataLine } from '@element-plus/icons-vue'
+import { UserFilled, User, House, CollectionTag, SwitchButton, ArrowDown, Setting, DataLine, Cpu } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getLandingRoute, getTopNavItems } from '../utils/access'
 
@@ -371,34 +388,36 @@ const iconMap: Record<string, any> = {
   admin: Setting
 }
 
-// 滚动文字列表
-const scrollingTexts = ref([
-  '了解并减少您的碳足迹',
-  '追踪您的日常碳排放',
-  '为环保事业贡献力量',
-  '实现可持续的生活方式',
-  '加入全球减排行动',
-  '创建绿色未来'
-])
+// 动态跳动数字逻辑
+  // 滚动文字逻辑
+  const scrollingTexts = [
+    '全球碳足迹追踪引擎',
+    '精确量化低碳环保行动',
+    'AI驱动智能减排预测',
+    '构建个人零碳全新生活',
+    '赋能企业ESG数字化转型',
+    '共同守护地球生态资产'
+  ]
+  const currentTextIndex = ref(0)
+  const startTextScroll = () => {}
 
-// 当前显示的文字索引
-const currentTextIndex = ref(0)
+  const targetNumber = 125849.27
+  const animatedCounter = ref(100000.00)
+  let animationFrameId: number
 
-// 自动切换文字
-let textInterval: number | null = null
-
-const startTextScroll = () => {
-  textInterval = window.setInterval(() => {
-    currentTextIndex.value = (currentTextIndex.value + 1) % scrollingTexts.value.length
-  }, 3000)
-}
-
-const stopTextScroll = () => {
-  if (textInterval) {
-    clearInterval(textInterval)
-    textInterval = null
+  const animateNumber = () => {
+    const diff = targetNumber - animatedCounter.value
+    if (diff > 0.1) {
+      animatedCounter.value += diff * 0.05
+      animationFrameId = requestAnimationFrame(animateNumber)
+    startTextScroll()
+    } else {
+      animatedCounter.value = targetNumber
+      setInterval(() => {
+        animatedCounter.value = targetNumber + (Math.random() * 5 - 2.5)
+      }, 2000)
+    }
   }
-}
 
 // 处理用户下拉菜单命令
 const handleUserCommand = (command: string) => {
@@ -444,6 +463,65 @@ const isHovered = ref(false)
 const handleMouseMove = (event: MouseEvent) => {
   mouseX.value = event.clientX
   mouseY.value = event.clientY
+
+  // 计算归一化坐标 (-1 到 1)，用于粒子视差
+  const normalizedX = (event.clientX / window.innerWidth) * 2 - 1
+  const normalizedY = (event.clientY / window.innerHeight) * 2 - 1
+  
+  // 将鼠标坐标注入到全局 CSS 变量中
+  document.documentElement.style.setProperty('--mouse-x', `${event.clientX}px`)
+  document.documentElement.style.setProperty('--mouse-y', `${event.clientY}px`)
+  document.documentElement.style.setProperty('--mouse-norm-x', normalizedX.toString())
+  document.documentElement.style.setProperty('--mouse-norm-y', normalizedY.toString())
+}
+
+// 高级 3D 卡片倾斜效果
+const handleCardMouseMove = (e: MouseEvent) => {
+  const card = e.currentTarget as HTMLElement
+  const rect = card.getBoundingClientRect()
+  
+  // 计算鼠标在卡片内部的局部坐标
+  const x = e.clientX - rect.left 
+  const y = e.clientY - rect.top  
+  
+  const centerX = rect.width / 2
+  const centerY = rect.height / 2
+  
+  // 计算倾斜角度 (最大倾斜 ±10 度)
+  const rotateX = ((y - centerY) / centerY) * -10 
+  const rotateY = ((x - centerX) / centerX) * 10
+  
+  // 应用 3D 变换
+  card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-10px)`
+  
+  // 将局部坐标注入卡片 CSS 变量，用于内部光晕跟随
+  card.style.setProperty('--card-mouse-x', `${x}px`)
+  card.style.setProperty('--card-mouse-y', `${y}px`)
+}
+
+const handleCardMouseLeave = (e: MouseEvent) => {
+  const card = e.currentTarget as HTMLElement
+  // 鼠标移出时恢复平整，带有平滑过渡
+  card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)`
+}
+
+// 鼠标在元素上移动时，产生磁性吸附感
+const handleMagneticMove = (e: MouseEvent) => {
+  const el = e.currentTarget as HTMLElement
+  const rect = el.getBoundingClientRect()
+  
+  // 计算鼠标相对于元素中心的偏移量
+  const x = e.clientX - rect.left - rect.width / 2
+  const y = e.clientY - rect.top - rect.height / 2
+  
+  // 施加引力系数 (例如 0.2，数值越大吸得越远)
+  el.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px)`
+}
+
+// 鼠标离开时，弹性回弹到原位
+const handleMagneticLeave = (e: MouseEvent) => {
+  const el = e.currentTarget as HTMLElement
+  el.style.transform = `translate(0px, 0px)`
 }
 
 const carouselTransform = computed(() => {
@@ -455,13 +533,13 @@ const carouselTransform = computed(() => {
 
 // 轮播功能
 const currentSlide = ref(0)
-const slides = ref([1, 2, 3, 4]) // 4张幻灯片
+const carouselImages = [ slide1, slide2, slide3 ]
 let carouselInterval: number | null = null
 
 // 自动轮播
 const startCarousel = () => {
   carouselInterval = window.setInterval(() => {
-    currentSlide.value = (currentSlide.value + 1) % slides.value.length
+    currentSlide.value = (currentSlide.value + 1) % carouselImages.length
   }, 5000) // 每5秒切换一次
 }
 
@@ -470,8 +548,11 @@ onMounted(() => {
   // 加载用户信息
   carbonStore.loadUserFromLocalStorage()
 
+    requestAnimationFrame(animateNumber)
+    startTextScroll()
+
   startCarousel()
-  startTextScroll()
+  
 
   // 滚动动画
   const observer = new IntersectionObserver((entries) => {
@@ -498,7 +579,7 @@ onUnmounted(() => {
     clearInterval(carouselInterval)
   }
 
-  stopTextScroll()
+  cancelAnimationFrame(animationFrameId)
 
   // 移除鼠标移动监听
   window.removeEventListener('mousemove', handleMouseMove)
@@ -597,13 +678,16 @@ body {
 
 /* 英雄区域样式 */
 .hero-section {
-  background: linear-gradient(270deg, #2E7D32, #1B5E20, #388E3C, #2E7D32);
-  background-size: 400% 400%;
-  color: white;
+  background: linear-gradient(135deg, rgba(232, 245, 233, 0.4) 0%, rgba(241, 248, 233, 0.6) 50%, rgba(232, 245, 233, 0.4) 100%);
+  background-size: 200% 200%;
+  animation: dynamicBg 15s ease infinite;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #4B5563;
   padding: 6rem 0 4rem;
   position: relative;
   overflow: hidden;
-  animation: gradientFlow 8s ease infinite;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 @keyframes gradientFlow {
@@ -625,7 +709,7 @@ body {
   left: -10%;
   width: 60vw;
   height: 60vw;
-  background: radial-gradient(circle, rgba(129, 199, 132, 0.45) 0%, transparent 65%);
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 65%);
   border-radius: 50%;
   animation: auroraFlow 15s infinite alternate ease-in-out;
   filter: blur(60px);
@@ -640,7 +724,7 @@ body {
   right: -10%;
   width: 70vw;
   height: 70vw;
-  background: radial-gradient(circle, rgba(165, 214, 167, 0.35) 0%, transparent 65%);
+  background: radial-gradient(circle, rgba(5, 150, 105, 0.2) 0%, transparent 65%);
   border-radius: 50%;
   animation: auroraFlowReverse 18s infinite alternate ease-in-out;
   filter: blur(80px);
@@ -683,13 +767,24 @@ body {
   pointer-events: none;
   overflow: hidden;
   z-index: 1;
+  transform: translate(calc(var(--mouse-norm-x, 0) * -40px), calc(var(--mouse-norm-y, 0) * -40px));
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
-
+.hero-container::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle 600px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.25), transparent 60%);
+  z-index: -1;
+  pointer-events: none;
+  transition: background 0.1s ease-out;
+  border-radius: 24px; /* 与卡片保持一致的圆角 */
+}
 .particle {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+  background: rgba(16, 185, 129, 0.4); /* 亮绿色的粒子点缀 */
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
   animation: floatAround 8s ease-in-out infinite;
 }
 
@@ -2113,17 +2208,7 @@ body {
   animation-delay: 29.7s;
 }
 
-.hero-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  position: relative;
-  z-index: 2;
-}
+
 
 /* 确保按钮可点击 */
 .hero-buttons {
@@ -2131,15 +2216,7 @@ body {
   z-index: 2;
 }
 
-.hero-content h2 {
-  font-size: 3.2rem;
-  margin-bottom: 1.5rem;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -1px;
-  opacity: 0;
-  animation: fadeInUp 1s ease forwards;
-}
+
 
 /* 滚动文字效果 */
 .scrolling-text {
@@ -2180,16 +2257,13 @@ body {
   right: 0;
   width: 100%;
   text-align: center;
-  opacity: 0;
-  transform: translateY(-20px);
-  transition: all 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  background: linear-gradient(90deg, #ffffff 0%, #e8f5e9 50%, #ffffff 100%);
+  background: linear-gradient(90deg, #064E3B 0%, #059669 50%, #064E3B 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   color: transparent;
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  text-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
   font-weight: 700;
   font-size: 3.2rem;
   line-height: 4.5rem;
@@ -2212,28 +2286,11 @@ body {
   }
 }
 
-.scrolling-text .text-content.active {
-  opacity: 1;
-  transform: translateY(0);
-  transition: all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  z-index: 3;
-}
 
-.scrolling-text .text-content:not(.active) {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  z-index: 1;
-}
 
-.hero-content p {
-  font-size: 1.3rem;
-  margin-bottom: 2.5rem;
-  max-width: 800px;
-  font-weight: 300;
-  opacity: 0;
-  animation: fadeInUp 1s ease 0.3s forwards;
-}
+
+
+
 
 .hero-buttons {
   display: flex;
@@ -2245,105 +2302,81 @@ body {
 }
 
 /* 轮播样式 */
-.hero-carousel-wrapper {
-  margin-top: 4rem;
-  max-width: 100%;
-  width: 100%;
-  max-width: 900px;
-  position: relative;
+
+.scroll-up-enter-active,
+.scroll-up-leave-active {
+  transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.scroll-up-enter-from {
   opacity: 0;
-  animation: fadeUpElevate 1.2s cubic-bezier(0.25, 0.8, 0.25, 1) 0.6s forwards;
-  will-change: transform, opacity;
+  transform: translateY(30px);
 }
 
-.hero-carousel {
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
-  position: relative;
-  width: 100%;
-  transition: transform 0.1s linear; /* 平滑3D抖动 */
-}
-
-.carousel-slides {
-  display: flex;
-  transition: transform 0.6s ease-in-out;
-  width: 100%;
-}
-
-.carousel-slide {
-  flex: 0 0 100%;
-  width: 100%;
-  position: relative;
-}
-
-.carousel-slide img {
-  width: 100%;
-  height: 450px;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.5s ease;
-}
-
-.carousel-slide:hover img {
-  transform: scale(1.02);
-}
-
-.carousel-indicators {
-  position: absolute;
-  bottom: 25px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 12px;
-}
-
-.indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid white;
-  background-color: transparent;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  opacity: 0.7;
-}
-
-.indicator.active {
-  background-color: white;
-  transform: scale(1.3);
-  opacity: 1;
-}
-
-.indicator:hover {
-  background-color: rgba(255, 255, 255, 0.5);
-  opacity: 1;
-}
-
-/* 响应式轮播样式 */
-@media (max-width: 768px) {
-  .hero-carousel {
-    max-width: 100%;
-  }
-
-  .carousel-indicators {
-    bottom: 15px;
-  }
-
-  .indicator {
-    width: 10px;
-    height: 10px;
-  }
-
-  .carousel-slide img {
-    height: 300px;
-  }
+.scroll-up-leave-to {
+  opacity: 0;
+  transform: translateY(-30px);
 }
 
 /* 功能介绍样式 */
+/* 3D 轮播图 */
+.hero-visual {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/10;
+  border-radius: 24px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 30px 60px rgba(16, 185, 129, 0.1);
+  backdrop-filter: blur(10px);
+  transition: transform 0.1s linear;
+  margin-top: 4rem;
+}
+.hologram-frame {
+  width: 100%; height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  background: #F3F4F6;
+}
+.carousel-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.carousel-slide {
+  flex: 0 0 100%;
+  position: relative;
+}
+.carousel-slide img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.eco-indicators {
+  position: absolute;
+  bottom: -35px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 12px;
+}
+.eco-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #D1D5DB;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.eco-dot.active { 
+  background: #10B981; 
+  transform: scale(1.5);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); 
+}
+
 .features-section {
   padding: 6rem 0;
-  background-color: #f8f9fa;
+  background: linear-gradient(135deg, #F4FBF7 0%, #E6F4EA 50%, #F4FBF7 100%);
+  background-size: 200% 200%;
+  animation: dynamicBg 12s ease infinite reverse;
 }
 
 .features-container {
@@ -2372,24 +2405,27 @@ body {
   border-radius: 16px;
   padding: 2.5rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
   opacity: 0;
-  transform: translateY(30px);
-  transition: all 0.6s ease;
+  /* 【修改】移除原有的 transform 动画，因为我们要把它交给 JS 控制 3D 旋转 */
+  /* 使用 important 确保 JS 注入的 transform 不会带有高延迟的 transition 导致卡顿 */
+  transition: opacity 0.6s ease, box-shadow 0.3s ease; 
+  will-change: transform; /* 开启 GPU 加速，让 3D 翻转更丝滑 */
 }
 
 .feature-card.visible {
   opacity: 1;
-  transform: translateY(0);
+  /* 初始状态通过 JS 会覆盖，这里保留淡入效果 */
 }
 
 .feature-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+  /* 【修改】移除了原有的 transform: translateY(-10px) */
+  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.15);
+  z-index: 10;
 }
 
+/* 顶部流光线条优化 */
 .feature-card::before {
   content: '';
   position: absolute;
@@ -2399,30 +2435,35 @@ body {
   height: 4px;
   background: linear-gradient(90deg, #2E7D32, #4CAF50);
   transform: scaleX(0);
-  transition: transform 0.3s ease;
+  transform-origin: left; /* 让线条从左往右展开，更具科技感 */
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 2;
 }
 
 .feature-card:hover::before {
   transform: scaleX(1);
 }
 
+/* 【修改】将原本固定的中间圆形光晕，改为随鼠标移动的局部探照灯 */
 .feature-card::after {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  background: radial-gradient(circle, rgba(76, 175, 80, 0.1) 0%, transparent 70%);
-  border-radius: 50%;
+  /* 绑定 JS 计算并注入的局部坐标 */
+  top: var(--card-mouse-y, 50%);
+  left: var(--card-mouse-x, 50%);
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(76, 175, 80, 0.12) 0%, transparent 60%);
   transform: translate(-50%, -50%);
-  transition: all 0.6s ease;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+  border-radius: 50%;
 }
 
 .feature-card:hover::after {
-  width: 200px;
-  height: 200px;
+  opacity: 1;
 }
 
 .feature-icon {
@@ -2491,7 +2532,9 @@ body {
 /* 为什么选择我们样式 */
 .why-us-section {
   padding: 6rem 0;
-  background-color: white;
+  background: linear-gradient(135deg, #E6F4EA 0%, #F4FBF7 50%, #E6F4EA 100%);
+  background-size: 200% 200%;
+  animation: dynamicBg 10s ease infinite;
 }
 
 .why-us-container {
@@ -2739,6 +2782,39 @@ body {
   color: rgba(255, 255, 255, 0.8);
   line-height: 1.7;
   font-size: 1.05rem;
+}
+
+/* 磁性吸附过渡：必须使用带有弹性的 cubic-bezier 才能模拟真实的物理引力 */
+.magnetic-item {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  will-change: transform;
+}
+
+/* 抵消 hover 冲突：如果你原来的按钮有 transform: translateY(-5px)，建议在这里去掉，完全交给 JS 控制 */
+.magnetic-item:hover {
+  /* 去掉原有的 transform 变化 */
+}
+
+/* ====================
+   无重力持续漂浮动画
+   ==================== */
+.anti-gravity-float {
+  /* 挂载一个持续 6 秒的上下缓动动画 */
+  animation: float 6s ease-in-out infinite;
+}
+
+/* 为了让多个元素浮动不那么死板，可以给相邻元素加上动画延迟 */
+.feature-card:nth-child(1) { animation-delay: 0s; }
+.feature-card:nth-child(2) { animation-delay: -2s; }
+.feature-card:nth-child(3) { animation-delay: -4s; }
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px); /* 向上漂浮 15px */
+  }
 }
 
 /* 按钮样式 */
@@ -2989,5 +3065,326 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #388E3C;
+}
+
+.keyword-gradient {
+  background: linear-gradient(135deg, #10B981, #059669);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+}
+
+.number-display {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: #059669;
+  line-height: 1;
+}
+
+
+  .hero-content {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .hero-visual {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .hero-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 5rem;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  .system-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #059669;
+    margin-bottom: 20px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    background: #E6F4EA;
+  }
+  .pulse-dot {
+    width: 8px; height: 8px;
+    background: #10B981;
+    border-radius: 50%;
+    animation: pulseGreen 1.5s infinite;
+  }
+  @keyframes pulseGreen {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+
+  .hero-title {
+    font-size: 4rem;
+    font-weight: 800;
+    color: #064E3B;
+    line-height: 1.15;
+    margin-bottom: 2rem;
+    letter-spacing: -1px;
+  }
+  .text-gradient {
+    background: linear-gradient(135deg, #10B981, #059669);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .live-data-screen {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    padding: 1.5rem 2rem;
+    border-radius: 20px;
+    margin-bottom: 2.5rem;
+    box-shadow: 0 10px 40px rgba(16, 185, 129, 0.08);
+    backdrop-filter: blur(20px);
+    display: inline-block;
+  }
+  .data-label {
+    font-size: 14px;
+    color: #6B7280;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+  .data-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 3.5rem;
+    color: #059669;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .hero-desc {
+    font-size: 1.2rem;
+    color: #4B5563;
+    margin-bottom: 3rem;
+    line-height: 1.7;
+    max-width: 90%;
+  }
+
+  .hero-actions { display: flex; gap: 1.5rem; }
+
+  /* 清透按钮样式 */
+  
+    
+    .eco-btn-primary, .eco-btn-secondary, .eco-btn-outline {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 36px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-decoration: none;
+      border-radius: 50px;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .eco-btn-primary::before {
+      content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: all 0.6s ease;
+    }
+    .eco-btn-primary:hover::before { left: 100%; }
+    .eco-btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0; 
+  left: -100%;
+  width: 50%; 
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transform: skewX(-20deg);
+  animation: buttonShine 4s infinite cubic-bezier(0.65, 0.05, 0.36, 1);
+  pointer-events: none;
+}
+
+@keyframes buttonShine {
+  0% { left: -100%; }
+  20% { left: 200%; }
+  100% { left: 200%; }
+}
+
+    .eco-btn-primary {
+      background: linear-gradient(135deg, #0ea5e9, #10B981);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .eco-btn-primary:hover {
+      background: linear-gradient(135deg, #0284c7, #059669);
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 20px 30px -10px rgba(16, 185, 129, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+    }
+    .eco-btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: #064E3B;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .eco-btn-secondary:hover {
+      border-color: #10B981;
+      color: #047857;
+      background: rgba(16, 185, 129, 0.1);
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 15px 25px -5px rgba(16, 185, 129, 0.2);
+    }
+
+    @media (max-width: 992px) {
+    .hero-content {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .hero-visual {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .hero-container { grid-template-columns: 1fr; text-align: center; }
+    .system-status { margin: 0 auto 20px auto; }
+    .hero-actions { justify-content: center; }
+    .hero-title { font-size: 3rem; }
+    .live-data-screen { display: block; max-width: 100%; top: auto; }
+  }
+
+/* 横向 LED 滚动跑马灯 */
+.marquee-container {
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+  white-space: nowrap;
+  margin-bottom: 2.5rem;
+  padding: 10px 0;
+  background: rgba(16, 185, 129, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05);
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+.marquee-content {
+  display: inline-block;
+  animation: marqueeScroll 45s linear infinite;
+}
+
+.marquee-content:hover {
+  animation-play-state: paused;
+}
+
+.marquee-text {
+  font-size: 3.5rem;
+  font-weight: 800;
+  background: linear-gradient(to right, #10B981, #34D399, #0ea5e9, #10B981);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  padding: 0 1.5rem;
+  letter-spacing: 4px;
+  animation: textGradientFlow 4s linear infinite;
+}
+
+.marquee-dot {
+  color: rgba(52, 211, 153, 0.6);
+  text-shadow: 0 0 10px rgba(52, 211, 153, 0.8);
+  -webkit-text-fill-color: initial;
+  font-size: 2.2rem;
+  vertical-align: middle;
+  margin: 0 15px;
+}
+
+@keyframes marqueeScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+
+@keyframes textGradientFlow {
+  0% { background-position: 0% center; }
+  100% { background-position: 300% center; }
+}
+
+@keyframes dynamicBg {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 横向 LED 滚动跑马灯 */
+.marquee-container {
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+  white-space: nowrap;
+  margin-bottom: 2.5rem;
+  padding: 10px 0;
+  background: rgba(16, 185, 129, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05);
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+.marquee-content {
+  display: inline-block;
+  animation: marqueeScroll 45s linear infinite;
+}
+
+.marquee-content:hover {
+  animation-play-state: paused;
+}
+
+.marquee-text {
+  font-size: 3.5rem;
+  font-weight: 800;
+  background: linear-gradient(to right, #10B981, #34D399, #0ea5e9, #10B981);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  padding: 0 1.5rem;
+  letter-spacing: 4px;
+  animation: textGradientFlow 4s linear infinite;
+}
+
+.marquee-dot {
+  color: rgba(52, 211, 153, 0.6);
+  text-shadow: 0 0 10px rgba(52, 211, 153, 0.8);
+  -webkit-text-fill-color: initial;
+  font-size: 2.2rem;
+  vertical-align: middle;
+  margin: 0 15px;
+}
+
+@keyframes marqueeScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+
+@keyframes textGradientFlow {
+  0% { background-position: 0% center; }
+  100% { background-position: 300% center; }
 }
 </style>

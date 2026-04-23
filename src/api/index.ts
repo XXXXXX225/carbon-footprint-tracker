@@ -495,3 +495,48 @@ export const dashboardApi = {
         }>('/api/dashboard/data')
     }
 }
+
+// 目标相关API
+export interface ReductionGoal {
+    id: number
+    userId: number
+    targetPercentage: number
+    baselineEmission: number
+    targetEmission: number
+    currentEmission: number | null
+    startDate: string
+    endDate: string
+    status: 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'CANCELLED'
+    progress: number
+    createdAt: string
+    updatedAt: string
+}
+
+export const goalApi = {
+    // 创建减排目标
+    createGoal: (targetPercentage: number, endDate: string) => {
+        return request<ReductionGoal>(`/api/goals?targetPercentage=${targetPercentage}&endDate=${endDate}`, {
+            method: 'POST'
+        })
+    },
+    // 更新目标进度
+    updateProgress: (goalId: number) => {
+        return request<{ success: boolean }>(`/api/goals/${goalId}/progress`, {
+            method: 'PUT'
+        })
+    },
+    // 获取用户目标列表
+    getUserGoals: () => {
+        return request<ReductionGoal[]>('/api/goals')
+    },
+    // 获取活跃目标
+    getActiveGoal: () => {
+        return request<ReductionGoal>('/api/goals/active')
+    },
+    // 取消目标
+    cancelGoal: (goalId: number) => {
+        return request<{ success: boolean }>(`/api/goals/${goalId}`, {
+            method: 'DELETE'
+        })
+    }
+}

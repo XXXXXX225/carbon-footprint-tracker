@@ -15,7 +15,7 @@
               >
                 <el-button type="success" size="small" :loading="ocrLoading">
                   <el-icon style="margin-right: 4px"><Camera /></el-icon>
-                  电费单 OCR 识别
+                  ⚡智能票据 OCR 采集
                 </el-button>
               </el-upload>
             </div>
@@ -32,8 +32,20 @@
                 <el-option label="热水器" value="water_heater" />
                 <el-option label="厨房电器" value="kitchen_appliances" />
                 <el-option label="其他" value="other" />
+                <el-option label="自定义" value="custom" />
               </el-select>
             </el-form-item>
+
+            <template v-if="electricityForm.deviceType === 'custom'">
+              <el-form-item label="自定义设备名称" prop="customName">
+                <el-input v-model="electricityForm.customName" placeholder="例如：实验仪器" />
+              </el-form-item>
+              <el-form-item label="排放因子" prop="customFactor">
+                <el-input v-model.number="electricityForm.customFactor" placeholder="请输入碳排放因子" />
+                <span class="unit">kg CO₂e / 千瓦时</span>
+              </el-form-item>
+            </template>
+
             <el-form-item label="功率" prop="power" v-if="electricityForm.deviceType">
               <el-input v-model.number="electricityForm.power" placeholder="请输入功率（瓦特）" />
               <span class="unit">瓦特</span>
@@ -85,9 +97,9 @@
           </template>
           <el-table :data="electricityRecords" style="width: 100%">
             <el-table-column prop="date" label="日期" width="120" />
-            <el-table-column prop="deviceType" label="用电设备" width="120">
+            <el-table-column prop="deviceType" label="用电设备" width="140">
               <template #default="scope">
-                {{ getDeviceTypeName(scope.row.deviceType) }}
+                {{ getDeviceTypeName(scope.row.deviceType, scope.row) }}
               </template>
             </el-table-column>
             <el-table-column prop="power" label="功率（瓦特）" width="100" />
@@ -139,7 +151,9 @@ const electricityForm = reactive({
   usageTime: 0,
   usageDays: 1,
   startDate: new Date().toISOString().split('T')[0],
-  description: ''
+  description: '',
+  customName: '',
+  customFactor: null as number | null
 })
 
 interface ElectricityRecordItem {
@@ -172,7 +186,9 @@ const electricityRules = reactive<FormRules>({
   ],
   startDate: [
     { required: true, message: '请选择开始日期', trigger: 'blur' }
-  ]
+  ],
+  customName: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+  customFactor: [{ required: true, message: '请输入排放因子', trigger: 'blur' }]
 })
 
 const electricityRecords = ref<ElectricityRecordItem[]>([])
@@ -215,7 +231,11 @@ const calculateEmission = async () => {
       totalElectricity.value = (electricityForm.power * electricityForm.usageTime * electricityForm.usageDays) / 1000
       
       // 计算碳排放
-      emissionResult.value = totalElectricity.value * electricityEmissionFactor
+      if (electricityForm.deviceType === 'custom' && electricityForm.customFactor !== null) {
+        emissionResult.value = totalElectricity.value * electricityForm.customFactor
+      } else {
+        emissionResult.value = totalElectricity.value * electricityEmissionFactor
+      }
     }
   })
 }
@@ -228,6 +248,15 @@ const resetForm = () => {
 
 const deleteRecord = async (id: string) => {
   try {
+    if (id.startsWith('local_')) {
+      const localRecords = JSON.parse(localStorage.getItem('mock_electricity_emissions') || '[]')
+      const newRecords = localRecords.filter((r: any) => r.id !== id)
+      localStorage.setItem('mock_electricity_emissions', JSON.stringify(newRecords))
+      await loadElectricityRecords()
+      ElMessage.success('自定义记录已删除')
+      return
+    }
+
     await carbonApi.deleteElectricityRecord(Number(id))
     await loadElectricityRecords()
     ElMessage.success('用电记录已删除')
@@ -240,6 +269,7 @@ const deleteRecord = async (id: string) => {
 const clearHistory = async () => {
   try {
     await carbonApi.clearElectricityRecords()
+    localStorage.removeItem('mock_electricity_emissions')
     await loadElectricityRecords()
     ElMessage.success('用电记录已清空')
   } catch (error) {
@@ -248,7 +278,8 @@ const clearHistory = async () => {
   }
 }
 
-const getDeviceTypeName = (type: string) => {
+const getDeviceTypeName = (type: string, row?: any) => {
+  if (type === 'custom') return `自定义 (${row?.customName || '未知'})`
   const typeMap = {
     air_conditioner: '空调',
     refrigerator: '冰箱',
@@ -265,28 +296,55 @@ const getDeviceTypeName = (type: string) => {
 
 const loadElectricityRecords = async () => {
   try {
-    const records = await carbonApi.getElectricityRecords()
-    electricityRecords.value = records
-      .map(record => ({
-        id: String(record.id),
-        date: record.emissionDate,
-        deviceType: record.deviceType,
-        power: record.power,
-        usageTime: record.usageTime,
-        usageDays: record.usageDays,
-        electricity: record.electricityAmount,
-        emission: record.emissionAmount,
-        description: record.description || ''
-      }))
-      .sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime())
+    const apiRecords = await carbonApi.getElectricityRecords()
+    const mapped = apiRecords.map(record => ({
+      id: String(record.id),
+      date: record.emissionDate,
+      deviceType: record.deviceType,
+      power: record.power,
+      usageTime: record.usageTime,
+      usageDays: record.usageDays,
+      electricity: record.electricityAmount,
+      emission: record.emissionAmount,
+      description: record.description || ''
+    }))
+    
+    // 加载自定义数据
+    const localRecords = JSON.parse(localStorage.getItem('mock_electricity_emissions') || '[]')
+    
+    electricityRecords.value = [...mapped, ...localRecords].sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime())
   } catch (error) {
     console.error('加载用电历史记录失败:', error)
     ElMessage.warning('用电历史记录加载失败，已显示当前页面数据')
+    
+    const localRecords = JSON.parse(localStorage.getItem('mock_electricity_emissions') || '[]')
+    electricityRecords.value = localRecords.sort((left: any, right: any) => new Date(right.date).getTime() - new Date(left.date).getTime())
   }
 }
 
 const saveRecord = async () => {
   try {
+    if (electricityForm.deviceType === 'custom') {
+      const localRecords = JSON.parse(localStorage.getItem('mock_electricity_emissions') || '[]')
+      localRecords.push({
+        id: 'local_' + Date.now(),
+        date: electricityForm.startDate,
+        deviceType: 'custom',
+        customName: electricityForm.customName,
+        power: electricityForm.power,
+        usageTime: electricityForm.usageTime,
+        usageDays: electricityForm.usageDays,
+        electricity: Number(totalElectricity.value.toFixed(2)),
+        emission: Number(emissionResult.value.toFixed(2)),
+        description: electricityForm.description || ''
+      })
+      localStorage.setItem('mock_electricity_emissions', JSON.stringify(localRecords))
+      await loadElectricityRecords()
+      ElMessage.success('自定义用电记录已保存至本地')
+      resetForm()
+      return
+    }
+
     await carbonApi.addElectricityRecord({
       deviceType: electricityForm.deviceType,
       power: electricityForm.power,

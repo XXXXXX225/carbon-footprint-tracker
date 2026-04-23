@@ -1,82 +1,188 @@
--- 数据初始化脚本
+SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE footprint_summary;
+TRUNCATE TABLE electricity_emissions;
+TRUNCATE TABLE diet_emissions;
+TRUNCATE TABLE transport_emissions;
+TRUNCATE TABLE user_recommendations;
+TRUNCATE TABLE recommendations;
+SET FOREIGN_KEY_CHECKS = 1;
 
--- 插入测试用户
-INSERT INTO users (username, password, name, email, role, created_at, updated_at) VALUES
-('testuser', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iK7OGq', '测试用户', 'test@example.com', 'INDIVIDUAL', NOW(), NOW()),
-('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iK7OGq', '管理员', 'admin@example.com', 'ENTERPRISE', NOW(), NOW()),
-('root', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iK7OGq', '超级管理员', 'root@example.com', 'ADMIN', NOW(), NOW())
-ON DUPLICATE KEY UPDATE 
-  password = VALUES(password),
-  role = VALUES(role),
-  updated_at = NOW();
+INSERT INTO users (id, username, password, name, email, role, created_at, updated_at) VALUES
+(1, 'testuser', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iK7OGq', '测试用户', 'test@example.com', 'INDIVIDUAL', NOW(), NOW())
+ON DUPLICATE KEY UPDATE updated_at = NOW();
 
--- 插入交通排放记录（用户ID=1）
+UPDATE users SET total_points = 3500 WHERE id = 1;
+
+INSERT INTO recommendations (title, description, category, difficulty, impact, cost, created_at) VALUES 
+('公共交通出行', '建议使用公交或地铁，减少私家车使用，显著降低个人碳足迹。', 'TRANSPORT', 'MEDIUM', 30.5, 'LOW', NOW()),
+('降低红肉摄入', '减少牛肉等红肉摄入，增加蔬菜谷物比例，有效减少温室气体排放。', 'DIET', 'MEDIUM', 25.0, 'MEDIUM', NOW()),
+('优化空调使用', '夏季空调控制在26度，使用节能模式，从源头减少电力资源浪费。', 'ELECTRICITY', 'LOW', 15.0, 'LOW', NOW())
+ON DUPLICATE KEY UPDATE description = VALUES(description);
+
 INSERT INTO transport_emissions (user_id, transport_type, distance, fuel_type, fuel_consumption, emission_amount, emission_date, description, created_at) VALUES
-(1, 5, 15.5, '汽油', 8.5, 3.255, DATE_SUB(CURDATE(), INTERVAL 1 DAY), '上班通勤', NOW()),
-(1, 5, 12.3, '汽油', 7.8, 2.583, DATE_SUB(CURDATE(), INTERVAL 2 DAY), '购物出行', NOW()),
-(1, 2, 8.0, NULL, NULL, 0.712, DATE_SUB(CURDATE(), INTERVAL 3 DAY), '地铁通勤', NOW()),
-(1, 5, 20.0, '汽油', 9.2, 4.2, DATE_SUB(CURDATE(), INTERVAL 4 DAY), '周末出行', NOW()),
-(1, 3, 5.5, NULL, NULL, 0.4895, DATE_SUB(CURDATE(), INTERVAL 5 DAY), '公交出行', NOW()),
-(1, 5, 18.7, '汽油', 8.9, 3.927, DATE_SUB(CURDATE(), INTERVAL 6 DAY), '接送孩子', NOW()),
-(1, 2, 10.0, NULL, NULL, 0.89, DATE_SUB(CURDATE(), INTERVAL 7 DAY), '地铁通勤', NOW()),
-(1, 5, 14.2, '汽油', 7.5, 2.982, DATE_SUB(CURDATE(), INTERVAL 8 DAY), '就医出行', NOW()),
-(1, 1, 3.0, NULL, NULL, 0, DATE_SUB(CURDATE(), INTERVAL 9 DAY), '步行', NOW()),
-(1, 5, 16.8, '汽油', 8.2, 3.528, DATE_SUB(CURDATE(), INTERVAL 10 DAY), '商务出行', NOW())
-ON DUPLICATE KEY UPDATE updated_at = NOW();
-
--- 插入饮食排放记录（用户ID=1）
+(1, 'car', 34.1, '汽油', 2.73, 7.16, '2026-03-20', '日常私家车通勤', NOW()),
+(1, 'car', 32.9, '汽油', 2.63, 6.91, '2026-03-21', '日常私家车通勤', NOW()),
+(1, 'car', 49.9, '汽油', 3.99, 10.47, '2026-03-22', '日常私家车通勤', NOW()),
+(1, 'car', 37.0, '汽油', 2.96, 7.76, '2026-03-23', '日常私家车通勤', NOW()),
+(1, 'car', 49.1, '汽油', 3.93, 10.32, '2026-03-24', '日常私家车通勤', NOW()),
+(1, 'car', 45.0, '汽油', 3.6, 9.44, '2026-03-25', '日常私家车通勤', NOW()),
+(1, 'car', 46.7, '汽油', 3.74, 9.82, '2026-03-26', '日常私家车通勤', NOW()),
+(1, 'car', 30.5, '汽油', 2.44, 6.4, '2026-03-27', '日常私家车通勤', NOW()),
+(1, 'car', 40.0, '汽油', 3.2, 8.4, '2026-03-28', '日常私家车通勤', NOW()),
+(1, 'car', 32.1, '汽油', 2.57, 6.74, '2026-03-29', '日常私家车通勤', NOW()),
+(1, 'car', 36.8, '汽油', 2.95, 7.74, '2026-03-30', '日常私家车通勤', NOW()),
+(1, 'car', 36.9, '汽油', 2.96, 7.76, '2026-03-31', '日常私家车通勤', NOW()),
+(1, 'car', 49.3, '汽油', 3.95, 10.36, '2026-04-01', '日常私家车通勤', NOW()),
+(1, 'car', 39.0, '汽油', 3.12, 8.18, '2026-04-02', '日常私家车通勤', NOW()),
+(1, 'car', 49.1, '汽油', 3.93, 10.32, '2026-04-03', '日常私家车通勤', NOW()),
+(1, 'subway', 48.3, NULL, NULL, 2.17, '2026-04-04', '地铁通勤绿色出行', NOW()),
+(1, 'subway', 45.0, NULL, NULL, 2.03, '2026-04-05', '地铁通勤绿色出行', NOW()),
+(1, 'biking', 3.0, NULL, NULL, 0, '2026-04-05', '共享单车接驳', NOW()),
+(1, 'subway', 45.8, NULL, NULL, 2.06, '2026-04-06', '地铁通勤绿色出行', NOW()),
+(1, 'subway', 36.6, NULL, NULL, 1.65, '2026-04-07', '地铁通勤绿色出行', NOW()),
+(1, 'subway', 45.4, NULL, NULL, 2.04, '2026-04-08', '地铁通勤绿色出行', NOW()),
+(1, 'subway', 49.2, NULL, NULL, 2.21, '2026-04-09', '地铁通勤绿色出行', NOW()),
+(1, 'subway', 48.8, NULL, NULL, 2.2, '2026-04-10', '地铁通勤绿色出行', NOW()),
+(1, 'biking', 3.0, NULL, NULL, 0, '2026-04-10', '共享单车接驳', NOW()),
+(1, 'subway', 45.5, NULL, NULL, 2.05, '2026-04-11', '地铁通勤绿色出行', NOW()),
+(1, 'biking', 3.0, NULL, NULL, 0, '2026-04-11', '共享单车接驳', NOW()),
+(1, 'subway', 30.4, NULL, NULL, 1.37, '2026-04-12', '地铁通勤绿色出行', NOW()),
+(1, 'biking', 3.0, NULL, NULL, 0, '2026-04-12', '共享单车接驳', NOW()),
+(1, 'subway', 33.6, NULL, NULL, 1.51, '2026-04-13', '地铁通勤绿色出行', NOW()),
+(1, 'biking', 3.0, NULL, NULL, 0, '2026-04-13', '共享单车接驳', NOW()),
+(1, 'subway', 30.8, NULL, NULL, 1.38, '2026-04-14', '地铁通勤绿色出行', NOW()),
+(1, 'biking', 3.0, NULL, NULL, 0, '2026-04-14', '共享单车接驳', NOW()),
+(1, 'subway', 40.3, NULL, NULL, 1.82, '2026-04-15', '地铁通勤绿色出行', NOW()),
+(1, 'subway', 31.0, NULL, NULL, 1.4, '2026-04-16', '地铁通勤绿色出行', NOW()),
+(1, 'biking', 3.0, NULL, NULL, 0, '2026-04-16', '共享单车接驳', NOW()),
+(1, 'subway', 32.3, NULL, NULL, 1.45, '2026-04-17', '地铁通勤绿色出行', NOW()),
+(1, 'biking', 3.0, NULL, NULL, 0, '2026-04-17', '共享单车接驳', NOW()),
+(1, 'subway', 41.7, NULL, NULL, 1.88, '2026-04-18', '地铁通勤绿色出行', NOW()),
+(1, 'subway', 43.0, NULL, NULL, 1.94, '2026-04-19', '地铁通勤绿色出行', NOW()),
+(1, 'biking', 3.0, NULL, NULL, 0, '2026-04-19', '共享单车接驳', NOW());
 INSERT INTO diet_emissions (user_id, food_type, specific_food, amount, cooking_method, emission_amount, emission_date, description, created_at) VALUES
-(1, 0, '牛肉', 0.3, '煎炒', 16.5, DATE_SUB(CURDATE(), INTERVAL 1 DAY), '晚餐', NOW()),
-(1, 3, '鸡肉', 0.4, '炖煮', 2.4, DATE_SUB(CURDATE(), INTERVAL 2 DAY), '午餐', NOW()),
-(1, 1, '羊肉', 0.2, '烧烤', 8.2, DATE_SUB(CURDATE(), INTERVAL 3 DAY), '聚餐', NOW()),
-(1, 7, '蔬菜', 0.5, '清炒', 0.75, DATE_SUB(CURDATE(), INTERVAL 4 DAY), '晚餐', NOW()),
-(1, 2, '猪肉', 0.35, '红烧', 5.25, DATE_SUB(CURDATE(), INTERVAL 5 DAY), '午餐', NOW()),
-(1, 8, '水果', 0.3, NULL, 0.6, DATE_SUB(CURDATE(), INTERVAL 6 DAY), '早餐', NOW()),
-(1, 0, '牛肉', 0.25, '煎炒', 13.75, DATE_SUB(CURDATE(), INTERVAL 7 DAY), '晚餐', NOW()),
-(1, 4, '鱼肉', 0.4, '清蒸', 1.6, DATE_SUB(CURDATE(), INTERVAL 8 DAY), '午餐', NOW()),
-(1, 10, '谷物', 0.6, NULL, 1.2, DATE_SUB(CURDATE(), INTERVAL 9 DAY), '早餐', NOW()),
-(1, 11, '豆类', 0.4, '炖煮', 0.8, DATE_SUB(CURDATE(), INTERVAL 10 DAY), '晚餐', NOW())
-ON DUPLICATE KEY UPDATE updated_at = NOW();
-
--- 插入用电排放记录（用户ID=1）
+(1, 'meat', 'beef', 0.56, 'fry', 15.07, '2026-03-20', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-03-20', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.66, 'fry', 17.95, '2026-03-21', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-03-21', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.78, 'fry', 20.95, '2026-03-22', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-03-22', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.50, 'fry', 13.56, '2026-03-23', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-03-23', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.95, 'fry', 25.55, '2026-03-24', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-03-24', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.67, 'fry', 18.11, '2026-03-25', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-03-25', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.88, 'fry', 23.75, '2026-03-26', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-03-26', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.52, 'fry', 14.07, '2026-03-27', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-03-27', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.80, 'fry', 21.7, '2026-03-28', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-03-28', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.96, 'fry', 25.92, '2026-03-29', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-03-29', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.84, 'fry', 22.57, '2026-03-30', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-03-30', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.51, 'fry', 13.74, '2026-03-31', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-03-31', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.61, 'fry', 16.42, '2026-04-01', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-04-01', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.90, 'fry', 24.3, '2026-04-02', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-04-02', '奶茶饮料', NOW()),
+(1, 'meat', 'beef', 0.65, 'fry', 17.55, '2026-04-03', '高热量肉类饮食', NOW()),
+(1, 'beverages', 'cola', 1.0, 'raw', 1.5, '2026-04-03', '奶茶饮料', NOW()),
+(1, 'meat', 'chicken', 0.49, 'boil', 3.39, '2026-04-04', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.78, 'steam', 1.57, '2026-04-04', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.40, 'boil', 2.75, '2026-04-05', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.52, 'steam', 1.05, '2026-04-05', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.46, 'boil', 3.14, '2026-04-06', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.45, 'steam', 0.9, '2026-04-06', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.39, 'boil', 2.7, '2026-04-07', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.69, 'steam', 1.38, '2026-04-07', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.40, 'boil', 2.78, '2026-04-08', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.70, 'steam', 1.41, '2026-04-08', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.41, 'boil', 2.83, '2026-04-09', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.40, 'steam', 0.81, '2026-04-09', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.35, 'boil', 2.42, '2026-04-10', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.54, 'steam', 1.08, '2026-04-10', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.35, 'boil', 2.42, '2026-04-11', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.45, 'steam', 0.91, '2026-04-11', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.34, 'boil', 2.33, '2026-04-12', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.57, 'steam', 1.13, '2026-04-12', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.42, 'boil', 2.88, '2026-04-13', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.53, 'steam', 1.05, '2026-04-13', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.31, 'boil', 2.14, '2026-04-14', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.44, 'steam', 0.88, '2026-04-14', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.47, 'boil', 3.23, '2026-04-15', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.52, 'steam', 1.04, '2026-04-15', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.49, 'boil', 3.35, '2026-04-16', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.71, 'steam', 1.41, '2026-04-16', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.36, 'boil', 2.48, '2026-04-17', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.74, 'steam', 1.48, '2026-04-17', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.36, 'boil', 2.47, '2026-04-18', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.70, 'steam', 1.39, '2026-04-18', '多素食', NOW()),
+(1, 'meat', 'chicken', 0.43, 'boil', 2.93, '2026-04-19', '适量白肉粗粮', NOW()),
+(1, 'vegetables', 'greens', 0.74, 'steam', 1.49, '2026-04-19', '多素食', NOW());
 INSERT INTO electricity_emissions (user_id, device_type, power, usage_time, usage_days, electricity_amount, emission_amount, emission_date, description, created_at) VALUES
-(1, '空调', 1500, 8, 30, 360.0, 194.4, DATE_SUB(CURDATE(), INTERVAL 1 DAY), '夏季空调使用', NOW()),
-(1, '冰箱', 150, 24, 30, 108.0, 58.32, DATE_SUB(CURDATE(), INTERVAL 2 DAY), '日常使用', NOW()),
-(1, '洗衣机', 500, 1, 8, 4.0, 2.16, DATE_SUB(CURDATE(), INTERVAL 3 DAY), '洗衣', NOW()),
-(1, '电视', 200, 4, 30, 24.0, 12.96, DATE_SUB(CURDATE(), INTERVAL 4 DAY), '娱乐', NOW()),
-(1, '热水器', 2000, 1, 30, 60.0, 32.4, DATE_SUB(CURDATE(), INTERVAL 5 DAY), '洗澡', NOW()),
-(1, '微波炉', 800, 0.5, 15, 6.0, 3.24, DATE_SUB(CURDATE(), INTERVAL 6 DAY), '加热食物', NOW()),
-(1, '空调', 1500, 6, 30, 270.0, 145.8, DATE_SUB(CURDATE(), INTERVAL 7 DAY), '夏季空调使用', NOW()),
-(1, '电饭煲', 800, 1, 30, 24.0, 12.96, DATE_SUB(CURDATE(), INTERVAL 8 DAY), '煮饭', NOW()),
-(1, '电脑', 300, 5, 30, 45.0, 24.3, DATE_SUB(CURDATE(), INTERVAL 9 DAY), '办公', NOW()),
-(1, '照明', 100, 6, 30, 18.0, 9.72, DATE_SUB(CURDATE(), INTERVAL 10 DAY), '日常照明', NOW())
-ON DUPLICATE KEY UPDATE updated_at = NOW();
-
--- 插入碳足迹汇总数据（用户ID=1）
-INSERT INTO footprint_summaries (user_id, period, start_date, end_date, total_emission, transport_emission, diet_emission, electricity_emission, average_daily_emission, record_count, created_at) VALUES
-(1, 'WEEK', DATE_SUB(CURDATE(), INTERVAL 7 DAY), CURDATE(), 25.5, 22.0, 2.5, 0.0, 3.64, 7, NOW()),
-(1, 'MONTH', DATE_SUB(CURDATE(), INTERVAL 30 DAY), CURDATE(), 108.5, 22.0, 51.4, 35.1, 3.62, 30, NOW()),
-(1, 'YEAR', DATE_SUB(CURDATE(), INTERVAL 365 DAY), CURDATE(), 1302.0, 264.0, 616.8, 421.2, 3.57, 365, NOW())
-ON DUPLICATE KEY UPDATE updated_at = NOW();
-
--- 插入减排建议
-INSERT INTO recommendations (category, title, description, impact, difficulty, cost, created_at) VALUES
-('TRANSPORT', '使用公共交通工具', '将私家车出行替换为公共汽车或地铁，每周至少3天，预计每月可减少排放25 kg CO₂e', 25.0, 'MEDIUM', 'LOW', NOW()),
-('TRANSPORT', '3公里内步行或骑行', '对于3公里内的短途出行，选择步行或骑行，预计每月可减少排放15 kg CO₂e', 15.0, 'LOW', 'LOW', NOW()),
-('TRANSPORT', '拼车出行', '与同事或邻居拼车出行，减少单独驾驶次数，预计每月可减少排放20 kg CO₂e', 20.0, 'MEDIUM', 'LOW', NOW()),
-('DIET', '每周增加2顿素食', '每周至少有2天选择素食，减少牛肉和羊肉的摄入，预计每月可减少排放30 kg CO₂e', 30.0, 'LOW', 'LOW', NOW()),
-('DIET', '减少食物浪费', '合理规划采购，避免食物浪费，预计每月可减少排放10 kg CO₂e', 10.0, 'LOW', 'LOW', NOW()),
-('DIET', '选择本地食材', '优先选择本地生产的食材，减少运输排放，预计每月可减少排放8 kg CO₂e', 8.0, 'LOW', 'LOW', NOW()),
-('ELECTRICITY', '更换LED灯泡', '将所有传统灯泡更换为LED节能灯泡，预计每月可减少排放8 kg CO₂e', 8.0, 'LOW', 'MEDIUM', NOW()),
-('ELECTRICITY', '使用节能电器', '选择高能效等级的电器，预计每月可减少排放15 kg CO₂e', 15.0, 'LOW', 'MEDIUM', NOW()),
-('ELECTRICITY', '错峰用电', '避开用电高峰时段使用大功率电器，预计每月可减少排放12 kg CO₂e', 12.0, 'LOW', 'LOW', NOW()),
-('ELECTRICITY', '智能插座管理', '使用智能插座管理待机功耗，预计每月可减少排放5 kg CO₂e', 5.0, 'LOW', 'LOW', NOW())
-ON DUPLICATE KEY UPDATE updated_at = NOW();
-
--- 插入用户建议关联（用户ID=1）
-INSERT INTO user_recommendations (user_id, recommendation_id, status, created_at) VALUES
-(1, 1, 'PENDING', NOW()),
-(1, 2, 'PENDING', NOW()),
-(1, 4, 'PENDING', NOW()),
-(1, 7, 'PENDING', NOW())
-ON DUPLICATE KEY UPDATE updated_at = NOW();
+(1, 'air_conditioner', 1500, 11.4, 1, 17.07, 9.92, '2026-03-20', '整夜开空调', NOW()),
+(1, 'computer', 300, 4.9, 1, 1.47, 0.86, '2026-03-20', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 9.2, 1, 13.80, 8.02, '2026-03-21', '整夜开空调', NOW()),
+(1, 'computer', 300, 4.7, 1, 1.41, 0.82, '2026-03-21', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 9.6, 1, 14.36, 8.34, '2026-03-22', '整夜开空调', NOW()),
+(1, 'computer', 300, 5.2, 1, 1.56, 0.91, '2026-03-22', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 10.0, 1, 14.96, 8.69, '2026-03-23', '整夜开空调', NOW()),
+(1, 'computer', 300, 4.1, 1, 1.23, 0.72, '2026-03-23', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 9.6, 1, 14.37, 8.35, '2026-03-24', '整夜开空调', NOW()),
+(1, 'computer', 300, 5.1, 1, 1.52, 0.89, '2026-03-24', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 11.1, 1, 16.68, 9.69, '2026-03-25', '整夜开空调', NOW()),
+(1, 'computer', 300, 6.0, 1, 1.80, 1.05, '2026-03-25', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 11.7, 1, 17.52, 10.18, '2026-03-26', '整夜开空调', NOW()),
+(1, 'computer', 300, 5.2, 1, 1.55, 0.9, '2026-03-26', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 10.2, 1, 15.25, 8.86, '2026-03-27', '整夜开空调', NOW()),
+(1, 'computer', 300, 4.1, 1, 1.22, 0.71, '2026-03-27', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 9.1, 1, 13.63, 7.92, '2026-03-28', '整夜开空调', NOW()),
+(1, 'computer', 300, 5.1, 1, 1.53, 0.89, '2026-03-28', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 9.0, 1, 13.44, 7.81, '2026-03-29', '整夜开空调', NOW()),
+(1, 'computer', 300, 4.3, 1, 1.28, 0.74, '2026-03-29', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 9.3, 1, 13.93, 8.1, '2026-03-30', '整夜开空调', NOW()),
+(1, 'computer', 300, 5.4, 1, 1.62, 0.94, '2026-03-30', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 8.1, 1, 12.13, 7.05, '2026-03-31', '整夜开空调', NOW()),
+(1, 'computer', 300, 6.0, 1, 1.80, 1.05, '2026-03-31', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 8.3, 1, 12.42, 7.22, '2026-04-01', '整夜开空调', NOW()),
+(1, 'computer', 300, 4.5, 1, 1.36, 0.79, '2026-04-01', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 10.9, 1, 16.38, 9.52, '2026-04-02', '整夜开空调', NOW()),
+(1, 'computer', 300, 5.9, 1, 1.78, 1.03, '2026-04-02', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 8.2, 1, 12.25, 7.12, '2026-04-03', '整夜开空调', NOW()),
+(1, 'computer', 300, 5.7, 1, 1.71, 0.99, '2026-04-03', '高配电脑打游戏', NOW()),
+(1, 'air_conditioner', 1500, 2.8, 1, 4.26, 2.48, '2026-04-04', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.1, 1, 0.34, 0.2, '2026-04-04', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 2.7, 1, 4.06, 2.36, '2026-04-05', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 2.0, 1, 0.59, 0.34, '2026-04-05', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 3.9, 1, 5.83, 3.39, '2026-04-06', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.3, 1, 0.40, 0.23, '2026-04-06', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 3.7, 1, 5.51, 3.2, '2026-04-07', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.2, 1, 0.37, 0.22, '2026-04-07', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 4.0, 1, 5.93, 3.45, '2026-04-08', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.1, 1, 0.34, 0.2, '2026-04-08', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 2.8, 1, 4.13, 2.4, '2026-04-09', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.8, 1, 0.53, 0.31, '2026-04-09', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 3.1, 1, 4.64, 2.69, '2026-04-10', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.4, 1, 0.41, 0.24, '2026-04-10', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 3.7, 1, 5.54, 3.22, '2026-04-11', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.3, 1, 0.40, 0.23, '2026-04-11', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 3.3, 1, 5.00, 2.9, '2026-04-12', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.6, 1, 0.48, 0.28, '2026-04-12', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 2.2, 1, 3.29, 1.91, '2026-04-13', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.8, 1, 0.54, 0.32, '2026-04-13', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 3.6, 1, 5.37, 3.12, '2026-04-14', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.5, 1, 0.46, 0.26, '2026-04-14', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 3.7, 1, 5.49, 3.19, '2026-04-15', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.2, 1, 0.37, 0.21, '2026-04-15', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 2.9, 1, 4.39, 2.55, '2026-04-16', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.3, 1, 0.39, 0.23, '2026-04-16', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 3.4, 1, 5.16, 3.0, '2026-04-17', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.2, 1, 0.36, 0.21, '2026-04-17', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 3.1, 1, 4.67, 2.71, '2026-04-18', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.8, 1, 0.53, 0.31, '2026-04-18', '适度娱乐', NOW()),
+(1, 'air_conditioner', 1500, 3.0, 1, 4.56, 2.65, '2026-04-19', '定时空调+风扇', NOW()),
+(1, 'computer', 300, 1.6, 1, 0.48, 0.28, '2026-04-19', '适度娱乐', NOW());

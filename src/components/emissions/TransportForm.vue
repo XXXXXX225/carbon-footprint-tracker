@@ -16,7 +16,7 @@
               >
                 <el-button type="success" size="small" :loading="ocrLoading">
                   <el-icon style="margin-right: 4px"><Camera /></el-icon>
-                  车票机打票扫描
+                  ⚡智能票据 OCR 采集
                 </el-button>
               </el-upload>
             </div>
@@ -32,8 +32,20 @@
                 <el-option label="私家车" value="car" />
                 <el-option label="飞机" value="plane" />
                 <el-option label="火车" value="train" />
+                <el-option label="自定义" value="custom" />
               </el-select>
             </el-form-item>
+            
+            <template v-if="transportForm.transportType === 'custom'">
+              <el-form-item label="自定义类型名称" prop="customName">
+                <el-input v-model="transportForm.customName" placeholder="例如：骑马" />
+              </el-form-item>
+              <el-form-item label="排放因子" prop="customFactor">
+                <el-input v-model.number="transportForm.customFactor" placeholder="请输入碳排放因子" />
+                <span class="unit">kg CO₂e / 公里</span>
+              </el-form-item>
+            </template>
+
             <el-form-item label="行驶距离" prop="distance">
               <el-input v-model.number="transportForm.distance" placeholder="请输入距离（公里）" />
               <span class="unit">公里</span>
@@ -86,7 +98,7 @@
             <el-table-column prop="date" label="日期" width="120" />
             <el-table-column prop="transportType" label="交通方式" width="120">
               <template #default="scope">
-                {{ getTransportTypeName(scope.row.transportType) }}
+                {{ getTransportTypeName(scope.row.transportType, scope.row) }}
               </template>
             </el-table-column>
             <el-table-column prop="distance" label="距离（公里）" width="120" />
@@ -145,7 +157,9 @@ const transportForm = reactive({
   fuelType: 'gasoline',
   fuelConsumption: 8,
   date: new Date().toISOString().split('T')[0],
-  description: ''
+  description: '',
+  customName: '',
+  customFactor: null as number | null
 })
 
 interface TransportRecordItem {
@@ -174,7 +188,9 @@ const transportRules = reactive<FormRules>({
   ],
   date: [
     { required: true, message: '请选择日期', trigger: 'blur' }
-  ]
+  ],
+  customName: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+  customFactor: [{ required: true, message: '请输入排放因子', trigger: 'blur' }]
 })
 
 const transportRecords = ref<TransportRecordItem[]>([])
@@ -212,7 +228,9 @@ const calculateEmission = async () => {
     if (valid) {
       let emissionFactor = 0
       
-      if (transportForm.transportType === 'car') {
+      if (transportForm.transportType === 'custom' && transportForm.customFactor !== null) {
+        emissionFactor = transportForm.customFactor
+      } else if (transportForm.transportType === 'car') {
         if (transportForm.fuelType === 'electric') {
           emissionFactor = emissionFactors.car.electric
         } else {

@@ -1509,6 +1509,9 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Fira+Code:wght@500;700&display=swap');
+
+
 .marquee-container {
   width: 100%;
   height: 36px;
@@ -1549,6 +1552,7 @@ onUnmounted(() => {
 }
 
 .dashboard-screen {
+  font-family: 'Noto Sans SC', sans-serif;
   --bg-0: #04111c;
   --bg-1: #071a28;
   --panel: rgba(7, 18, 30, 0.72);
@@ -1945,6 +1949,7 @@ onUnmounted(() => {
 }
 
 .summary-number {
+  font-family: 'Bahnschrift', sans-serif;
   font-size: 34px;
   font-weight: 800;
   line-height: 1;
@@ -1998,6 +2003,7 @@ onUnmounted(() => {
 }
 
 .rail.collapsed .summary-number {
+  font-family: 'Bahnschrift', sans-serif;
   font-size: 24px;
 }
 
@@ -2338,6 +2344,7 @@ onUnmounted(() => {
 }
 
 .insight-value {
+  font-family: 'Bahnschrift', sans-serif;
   margin: 8px 0 6px;
   font-size: 22px;
   font-weight: 800;
@@ -2351,6 +2358,7 @@ onUnmounted(() => {
 }
 
 .recommend-badge {
+  font-family: 'Bahnschrift', sans-serif;
   padding: 6px 10px;
   border-radius: 999px;
   background: rgba(87, 242, 135, 0.14);
@@ -2576,7 +2584,8 @@ onUnmounted(() => {
 
 @media (max-width: 1280px) {
   .dashboard-screen {
-    overflow: auto;
+    font-family: 'Noto Sans SC', sans-serif;
+  overflow: auto;
   }
 
   .topbar {
@@ -2608,7 +2617,8 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .dashboard-screen {
-    padding: 12px;
+    font-family: 'Noto Sans SC', sans-serif;
+  padding: 12px;
   }
 
   .panel,

@@ -24,10 +24,12 @@ onMounted(() => {
 })
 </script>
 
+
 <style>
 :root {
+  --el-font-family: 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   --primary-color: #4CAF50;
-  --secondary-color: #81C784;
+    --secondary-color: #81C784;
   --accent-color: #2E7D32;
   --background-color: #F0F8F0;
   --text-color: #333333;
@@ -40,7 +42,7 @@ onMounted(() => {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   color: var(--text-color);
   /* 添加全局流体呼吸纹理背景 (Ambient Mesh Gradient) */
   background: linear-gradient(135deg, #F0F8F0 0%, #E8F5E9 25%, #E0F2F1 50%, #F1F8E9 75%, #F0F8F0 100%);
@@ -278,5 +280,36 @@ body {
 @keyframes pulseScore {
   0%, 100% { transform: scale(1); text-shadow: 0 0 0 rgba(255, 152, 0, 0); }
   50% { transform: scale(1.08); text-shadow: 0 0 12px rgba(255, 152, 0, 0.4); }
+}
+</style>
+<style>
+/* ========================================================
+   Eco-Light Tech 森林清透科技主题 
+   ======================================================== */
+:root {
+  --page-bg-color: #F4FBF7; /* 极其柔和的薄荷白底色 */
+  --card-bg-color: rgba(255, 255, 255, 0.85); /* 霜白毛玻璃 */
+  --main-text-color: #064E3B; /* 极深的森林绿（代替纯黑） */
+  --sub-text-color: #4B5563; /* 柔和的次要文本 */
+
+  --el-color-primary: #10B981; /* 核心：充满生机的翠绿色 */
+  --el-color-primary-light-3: #34D399;
+  --el-color-primary-light-5: #6EE7B7;
+  --el-color-primary-dark-2: #059669;
+
+  --el-color-success: #10B981;
+  --el-color-warning: #F59E0B;
+  --el-color-danger: #EF4444;
+
+  --el-border-radius-base: 16px;
+  --el-box-shadow-light: 0 8px 32px rgba(16, 185, 129, 0.08); /* 柔和的绿色光晕 */
+}
+
+.el-button, .el-card, .el-input__wrapper {
+  border-radius: var(--el-border-radius-base) !important;
+}
+body {
+  background-color: var(--page-bg-color);
+  color: var(--main-text-color);
 }
 </style>

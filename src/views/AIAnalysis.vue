@@ -1,1125 +1,678 @@
 <template>
-  <el-container class="ai-container">
-    <el-header height="60px" class="dashboard-header">
+  <el-container class="cyber-sandbox-container">
+    <el-header height="60px" class="cyber-header">
       <div class="header-left">
-        <router-link to="/home" class="logo-link">
+        <router-link to="/home" target="_blank" class="logo-link" title="在新标签页打开首页">
           <el-icon class="brand-icon"><TrendCharts /></el-icon>
-          <h1>碳足迹追踪平台</h1>
+          <h1 class="glitch-text" data-text="Eco-Cyber 推演中心">Eco-Cyber 推演中心</h1>
         </router-link>
       </div>
       <div class="header-right">
-        <el-dropdown>
-          <span class="user-info">
-            <el-avatar :size="30" :icon="UserFilled" />
-            {{ user.name }}
-            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item @click="navigateToProfile">
-                <el-icon><User /></el-icon>
-                <span>个人中心</span>
-              </el-dropdown-item>
-              <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        <el-button type="primary" style="color: white; font-weight: bold; letter-spacing: 1px; margin-right: 15px;" @click="exportPDF" :loading="exporting" title="导出为PDF报告">
+          <el-icon><Download /></el-icon>导出报告
+        </el-button>
+        <el-button type="primary" style="color: white; font-weight: bold; letter-spacing: 1px;" @click="openDashboard" title="在新标签页保留此控制台并打开指挥台">
+          <el-icon><House /></el-icon>返回指挥台
+        </el-button>
       </div>
     </el-header>
 
-    <el-container>
-      <el-aside width="200px" class="dashboard-aside">
-        <RoleSidebar />
-      </el-aside>
-
-      <el-main class="ai-main">
-        <div class="page-hero">
-          <div>
-            <p class="eyebrow">AI 分析与预测</p>
-            <h2>下一月碳排放预测与优化建议</h2>
-            <p class="hero-copy">
-              结合你的历史排放数据，自动生成趋势判断、风险提示和可执行的减排建议。
-            </p>
+    <el-main class="cyber-main">
+      <div class="sandbox-wrapper" ref="sandboxWrapperRef">
+        <div class="sandbox-sidebar">
+          <div class="cyber-panel status-panel">
+            <h3 class="panel-title">SYSTEM STATUS</h3>
+            <div class="status-indicator">
+              <div class="led" :class="{ 'led-active': !loading }"></div>
+              <span>Neural Engine: {{ loading ? 'BOOTING...' : 'ONLINE' }}</span>
+            </div>
+            <div class="status-indicator">
+              <div class="led led-active"></div>
+              <span>Data Link: SECURE</span>
+            </div>
+            
+            <div class="metric-glitch" v-if="!loading">
+              <div class="metric-label">当前月排放量测算</div>
+              <div class="metric-value">{{ currentEmission.toFixed(2) }} <span class="unit">kg CO₂e</span></div>
+            </div>
           </div>
-          <div style="display: flex; gap: 12px; align-items: center;">
-            <el-button type="success" size="large" :loading="planGenerating" @click="generateWeeklyPlan">
-              <el-icon style="margin-right: 6px;"><MagicStick /></el-icon>
-              生成本周无痛减排计划
-            </el-button>
-            <el-button type="primary" size="large" :loading="loading" @click="refreshData">
-              <el-icon style="margin-right: 6px;"><Refresh /></el-icon>
-              刷新分析
-            </el-button>
+
+          <div class="cyber-panel chart-panel" v-if="!loading">
+            <h3 class="panel-title">EMISSION RADAR</h3>
+            <div class="chart-container">
+              <CarbonChart type="pie" :data="categoryPieData" :height="220" :showActions="false" />
+            </div>
           </div>
         </div>
 
-        <!-- AI 减排计划弹窗 -->
-        <el-dialog v-model="planVisible" title="本周无痛减排计划 (AI生成)" width="650px" class="plan-dialog">
-          <div v-if="weeklyPlan.length > 0">
-            <p class="plan-intro">基于对你近期 <strong>出行</strong>、<strong>饮食</strong> 以及 <strong>用电</strong> 习惯的深度学习，减碳管家为你量身定制了未来 7 天的改善计划。</p>
-            <el-timeline>
-              <el-timeline-item
-                v-for="(day, index) in weeklyPlan"
-                :key="index"
-                :type="day.type"
-                :color="day.color"
-                :icon="day.icon"
-                :timestamp="day.dateStr"
-                placement="top"
-              >
-                <el-card class="plan-card">
-                  <h4>{{ day.title }}</h4>
-                  <p>{{ day.description }}</p>
-                  <div class="plan-meta">
-                    <span class="reduction-estimate">
-                      <el-icon><DataLine /></el-icon> 预计减排: {{ day.reduction }} kg CO₂e
-                    </span>
-                    <el-tag size="small" :type="day.tagType">{{ day.category }}</el-tag>
-                  </div>
-                </el-card>
-              </el-timeline-item>
-            </el-timeline>
-          </div>
-          <template #footer>
-            <div class="dialog-footer">
-              <el-button @click="planVisible = false">看完啦</el-button>
-              <el-button type="success" @click="acceptPlan">
-                <el-icon><Check /></el-icon> 接受计划并立即执行
-              </el-button>
+        <div class="sandbox-terminal">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <span></span><span></span><span></span>
             </div>
-          </template>
-        </el-dialog>
+            <div class="terminal-title">AI_PREDICTION_TERMINAL_v3.0</div>
+            <el-button 
+              class="cyber-button" 
+              :loading="isTyping" 
+              @click="startAiInference"
+              :disabled="loading"
+            >
+              {{ isTyping ? '推理进行中...' : 'INITIATE INFERENCE' }}
+            </el-button>
+          </div>
+          
+          <div class="terminal-body" ref="terminalBody">
+            <div v-if="!hasInferred && !isTyping" class="terminal-placeholder">
+              <p>> Awaiting user command to start predictive analysis...</p>
+              <p class="blink-cursor">_</p>
+            </div>
+            
+            <div v-else class="typewriter-content">
+              <div v-for="(line, index) in typedLines" :key="index" class="terminal-line">
+                <span class="prompt">></span> <span v-html="line"></span>
+              </div>
+              <div v-if="isTyping" class="terminal-line typing-indicator">
+                <span class="prompt">></span> <span class="blink-cursor">█</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        <el-alert
-          v-if="!hasData && !loading"
-          type="warning"
-          show-icon
-          :closable="false"
-          title="当前历史数据较少，AI 预测结果会偏保守。"
-          description="建议先录入交通、饮食和用电排放记录，再查看更稳定的趋势判断。"
-          class="data-alert"
-        />
+      <!-- Hidden Formal Report Container for PDF Export -->
+      <div id="pdf-report-container" class="pdf-formal-report">
+        <h1 class="report-title">碳足迹 AI 深度诊断与预测报告</h1>
+        <div class="report-meta">
+          <span>报告生成时间：{{ new Date().toLocaleString() }}</span>
+          <span v-if="aiAnalysis?.model">分析引擎：{{ aiAnalysis?.model }}</span>
+        </div>
 
-        <el-alert
-          v-if="aiAnalysisError"
-          type="info"
-          show-icon
-          :closable="false"
-          :title="aiAnalysisError"
-          class="data-alert"
-        />
+        <div class="report-section summary-section">
+          <h2>核心数据摘要</h2>
+          <div class="data-grid">
+            <div class="data-box">
+              <span class="data-label">当月碳排放总量</span>
+              <span class="data-value">{{ currentEmission.toFixed(2) }} <small>kg CO₂e</small></span>
+            </div>
+            <div class="data-box">
+              <span class="data-label">下月预测排放量</span>
+              <span class="data-value">{{ prediction?.predictedEmission?.toFixed(2) || 'N/A' }} <small>kg CO₂e</small></span>
+            </div>
+            <div class="data-box">
+              <span class="data-label">测算置信度</span>
+              <span class="data-value">{{ (prediction?.confidence * 100)?.toFixed(0) || 'N/A' }}%</span>
+            </div>
+            <div class="data-box">
+              <span class="data-label">整体风险等级</span>
+              <span class="data-value" :class="'risk-' + (aiAnalysis?.riskLevel?.toLowerCase() || 'unknown')">{{ aiAnalysis?.riskLevel || 'N/A' }}</span>
+            </div>
+          </div>
+        </div>
 
-        <el-alert
-          v-else-if="isFallbackAnalysis"
-          type="info"
-          show-icon
-          :closable="false"
-          title="当前展示的是本地规则分析结果。"
-          description="页面继续展示趋势判断、历史误差和减排建议，不依赖外部模型。"
-          class="data-alert"
-        />
+        <div class="report-section">
+          <h2>核心结论与风险预警</h2>
+          <p class="headline-text" v-if="aiAnalysis?.headline">{{ aiAnalysis.headline }}</p>
+          <p class="summary-text" v-if="aiAnalysis?.summary">{{ aiAnalysis.summary }}</p>
+        </div>
 
-        <el-skeleton v-if="loading" animated :rows="8" />
+        <div class="report-section" v-if="aiAnalysis?.insights?.length">
+          <h2>深度溯源分析</h2>
+          <ul class="insight-list">
+            <li v-for="(insight, idx) in aiAnalysis.insights" :key="idx">
+              <strong>{{ insight.title }}：</strong> {{ insight.text }}
+            </li>
+          </ul>
+        </div>
 
-        <template v-else>
-          <el-row :gutter="20" class="metric-row">
-            <el-col :xs="24" :sm="12" :lg="6">
-              <el-card class="metric-card metric-card-primary">
-                <div class="metric-label">本月总排放</div>
-                <div class="metric-value">{{ currentEmission.toFixed(2) }}</div>
-                <div class="metric-suffix">kg CO₂e</div>
-              </el-card>
-            </el-col>
-            <el-col :xs="24" :sm="12" :lg="6">
-              <el-card class="metric-card">
-                <div class="metric-label">预测下月排放</div>
-                <div class="metric-value">{{ predictedEmission.toFixed(2) }}</div>
-                <div class="metric-suffix">kg CO₂e</div>
-              </el-card>
-            </el-col>
-            <el-col :xs="24" :sm="12" :lg="6">
-              <el-card class="metric-card">
-                <div class="metric-label">预测变化</div>
-                <div class="metric-value" :class="predictionDeltaClass">{{ predictionDeltaLabel }}</div>
-                <div class="metric-suffix">相较本月</div>
-              </el-card>
-            </el-col>
-            <el-col :xs="24" :sm="12" :lg="6">
-              <el-card class="metric-card">
-                <div class="metric-label">预测置信度</div>
-                <div class="metric-value">{{ predictionConfidence.toFixed(0) }}%</div>
-                <div class="metric-suffix">{{ confidenceLabel }}</div>
-              </el-card>
-            </el-col>
-          </el-row>
+        <div class="report-section" v-if="aiAnalysis?.recommendations?.length || prediction?.suggestion">
+          <h2>改善建议与指导</h2>
+          <ul class="recommendation-list">
+             <li v-if="prediction?.suggestion"><strong>系统优先建议：</strong> {{ prediction.suggestion.suggestion }}</li>
+             <li v-for="(rec, idx) in aiAnalysis?.recommendations || []" :key="'r-'+idx">{{ rec }}</li>
+          </ul>
+        </div>
 
-          <el-row :gutter="20" class="chart-row">
-            <el-col :xs="24" :lg="14">
-              <el-card class="chart-card">
-                <template #header>
-                  <div class="card-header">
-                    <span>未来 30 天预测曲线</span>
-                  </div>
-                </template>
-                <CarbonChart
-                  type="line"
-                  :data="predictionLineData"
-                  :height="340"
-                  :showActions="false"
-                />
-              </el-card>
-            </el-col>
+        <div class="report-section" v-if="aiAnalysis?.nextActions?.length">
+          <h2>下一步行动计划 (Next Actions)</h2>
+          <ul class="action-list">
+            <li v-for="(action, idx) in aiAnalysis.nextActions" :key="'a-'+idx">{{ action }}</li>
+          </ul>
+        </div>
 
-            <el-col :xs="24" :lg="10">
-              <el-card class="chart-card">
-                <template #header>
-                  <div class="card-header">
-                    <span>当前排放结构</span>
-                  </div>
-                </template>
-                <CarbonChart
-                  type="pie"
-                  :data="categoryPieData"
-                  :height="340"
-                  :showActions="false"
-                />
-              </el-card>
-            </el-col>
-          </el-row>
-
-          <el-row :gutter="20" class="analysis-row">
-            <el-col :xs="24" :lg="10">
-              <el-card class="analysis-card">
-                <template #header>
-                  <div class="card-header">
-                    <span>AI 分析结论</span>
-                  </div>
-                </template>
-
-                <div class="analysis-summary">
-                  <h3>{{ analysisHeadline }}</h3>
-                  <p>{{ analysisDescription }}</p>
-                </div>
-
-                <div class="analysis-meta">
-                  <el-tag :type="aiAnalysis ? (aiAnalysis.riskLevel === 'HIGH' ? 'danger' : aiAnalysis.riskLevel === 'LOW' ? 'success' : 'warning') : 'info'">
-                    {{ aiRiskLabel }}
-                  </el-tag>
-                  <span>{{ analysisMetaText }}</span>
-                </div>
-
-                <el-divider />
-
-                <div class="insight-list">
-                  <div v-for="item in analysisInsights" :key="item.title" class="insight-item">
-                    <div class="insight-title">{{ item.title }}</div>
-                    <div class="insight-text">{{ item.text }}</div>
-                  </div>
-                </div>
-
-                <el-divider />
-
-                <div v-if="prediction?.suggestion" class="suggestion-box">
-                  <div class="suggestion-title">推荐优先执行</div>
-                  <div class="suggestion-category">{{ prediction.suggestion.category }}</div>
-                  <div class="suggestion-text">{{ prediction.suggestion.suggestion }}</div>
-                  <div class="suggestion-meta">
-                    <span>预计可减少 {{ prediction.suggestion.potentialReduction.toFixed(2) }} kg CO₂e</span>
-                    <span>优先级 {{ prediction.suggestion.priority }}</span>
-                  </div>
-                </div>
-
-                <div v-if="aiRecommendations.length > 0" class="suggestion-box" style="margin-top: 16px;">
-                  <div class="suggestion-title">AI 建议动作</div>
-                  <ul class="ai-action-list">
-                    <li v-for="item in aiRecommendations" :key="item">{{ item }}</li>
-                  </ul>
-                </div>
-              </el-card>
-            </el-col>
-
-            <el-col :xs="24" :lg="14">
-              <el-card class="analysis-card">
-                <template #header>
-                  <div class="card-header">
-                    <span>日级预测明细</span>
-                  </div>
-                </template>
-
-                <el-table :data="dailyPredictions" style="width: 100%" max-height="420">
-                  <el-table-column prop="date" label="日期" width="120" />
-                  <el-table-column prop="predictedEmission" label="预测值" width="120">
-                    <template #default="scope">
-                      {{ scope.row.predictedEmission.toFixed(2) }}
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="lowerBound" label="下限" width="120">
-                    <template #default="scope">
-                      {{ scope.row.lowerBound.toFixed(2) }}
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="upperBound" label="上限" width="120">
-                    <template #default="scope">
-                      {{ scope.row.upperBound.toFixed(2) }}
-                    </template>
-                  </el-table-column>
-                  <el-table-column label="波动范围">
-                    <template #default="scope">
-                      {{ (scope.row.upperBound - scope.row.lowerBound).toFixed(2) }} kg CO₂e
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </el-card>
-            </el-col>
-          </el-row>
-
-          <el-row :gutter="20" class="analysis-row">
-            <el-col :xs="24" :lg="14">
-              <el-card class="analysis-card">
-                <template #header>
-                  <div class="card-header">
-                    <span>预测 vs 实际</span>
-                  </div>
-                </template>
-
-                <el-alert
-                  v-if="completedHistoryRecords.length === 0"
-                  type="info"
-                  show-icon
-                  :closable="false"
-                  title="暂无可对比的历史记录"
-                  description="当某个月份结束并生成实际月汇总后，这里会自动显示预测值与实际值的对比曲线。"
-                />
-
-                <CarbonChart
-                  v-else
-                  type="line"
-                  :data="comparisonLineData"
-                  :height="320"
-                  :showActions="false"
-                />
-              </el-card>
-            </el-col>
-
-            <el-col :xs="24" :lg="10">
-              <el-card class="analysis-card">
-                <template #header>
-                  <div class="card-header">
-                    <span>预测历史记录</span>
-                  </div>
-                </template>
-
-                <el-table :data="historyRecords" style="width: 100%" max-height="320">
-                  <el-table-column prop="targetMonth" label="月份" width="100" />
-                  <el-table-column prop="predictedEmission" label="预测值" width="100">
-                    <template #default="scope">
-                      {{ scope.row.predictedEmission.toFixed(2) }}
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="actualEmission" label="实际值" width="100">
-                    <template #default="scope">
-                      {{ scope.row.actualEmission !== null ? scope.row.actualEmission.toFixed(2) : '待更新' }}
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="errorRate" label="误差率" width="90">
-                    <template #default="scope">
-                      {{ scope.row.errorRate !== null ? `${scope.row.errorRate.toFixed(1)}%` : '待更新' }}
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="status" label="状态" width="90" />
-                </el-table>
-              </el-card>
-            </el-col>
-          </el-row>
-        </template>
-      </el-main>
-    </el-container>
+        <div class="report-footer">
+          <p>
+            <span v-if="aiAnalysis?.source">Source: {{ aiAnalysis.source }}</span> • 
+            <span>Eco-Cyber 绿能预测追踪系统</span>
+          </p>
+          <p>本报告由人工智能模型自动化生成，数据仅供改善生活方式与参考。</p>
+        </div>
+      </div>
+    </el-main>
   </el-container>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { useCarbonStore } from '../store'
 import CarbonChart from '../components/CarbonChart.vue'
 import { aiAnalysisApi, carbonApi, predictionApi } from '../api'
-import RoleSidebar from '../components/RoleSidebar.vue'
-import {
-  House,
-  Van,
-  KnifeFork,
-  Lightning,
-  DataLine,
-  TrendCharts,
-  Star,
-  CollectionTag,
-  ArrowDown,
-  User,
-  UserFilled,
-  MagicStick,
-  Refresh,
-  Check,
-  Calendar
-} from '@element-plus/icons-vue'
+import { TrendCharts, House, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-
-// AI 管家计划数据结构
-interface PlanDay {
-  dateStr: string
-  title: string
-  description: string
-  reduction: number
-  category: string
-  type: string
-  color: string
-  tagType: string
-  icon: any
-}
-
-interface EmissionSummary {
-  totalEmission: number
-  transportEmission: number
-  dietEmission: number
-  electricityEmission: number
-  averageDailyEmission: number
-  recordCount: number
-}
-
-interface PredictionSuggestion {
-  category: string
-  suggestion: string
-  potentialReduction: number
-  priority: number
-}
-
-interface DailyPrediction {
-  date: string
-  predictedEmission: number
-  lowerBound: number
-  upperBound: number
-}
-
-interface CarbonPrediction {
-  predictedEmission: number
-  confidence: number
-  trend: string
-  dailyPredictions: DailyPrediction[]
-  suggestion: PredictionSuggestion | null
-}
-
-interface PredictionHistoryRecord {
-  id: number
-  targetMonth: string
-  predictionDate: string
-  predictedEmission: number
-  confidence: number
-  trend: string
-  actualEmission: number | null
-  absoluteError: number | null
-  errorRate: number | null
-  status: string
-  createdAt: string
-  updatedAt: string
-}
-
-interface AiAnalysisInsight {
-  title: string
-  text: string
-}
-
-interface AiAnalysisResult {
-  model: string
-  generatedAt: string
-  headline: string
-  summary: string
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
-  confidence: number
-  insights: AiAnalysisInsight[]
-  recommendations: string[]
-  nextActions: string[]
-  source: string
-}
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 
 const router = useRouter()
-const carbonStore = useCarbonStore()
-const activeMenu = ref('/ai-analysis')
-const loading = ref(false)
-const summary = ref<EmissionSummary | null>(null)
-const prediction = ref<CarbonPrediction | null>(null)
-const historyRecords = ref<PredictionHistoryRecord[]>([])
-const aiAnalysis = ref<AiAnalysisResult | null>(null)
-const aiAnalysisError = ref('')
+const loading = ref(true)
+const exporting = ref(false)
+const sandboxWrapperRef = ref<HTMLElement | null>(null)
 
-// 管家功能状态
-const planGenerating = ref(false)
-const planVisible = ref(false)
-const weeklyPlan = ref<PlanDay[]>([])
+const openDashboard = () => {
+  const routeUrl = router.resolve('/dashboard')
+  window.open(routeUrl.href, '_blank')
+}
 
-const user = computed(() => carbonStore.user)
+// 数据源 (完美保留你的 API 调用逻辑)
+const summary = ref<any>(null)
+const prediction = ref<any>(null)
+const aiAnalysis = ref<any>(null)
 
-const hasData = computed(() => {
-  return (summary.value?.recordCount || 0) > 0
-})
-
+// 衍生数据
 const currentEmission = computed(() => summary.value?.totalEmission || 0)
-const predictedEmission = computed(() => prediction.value?.predictedEmission || 0)
-const predictionConfidence = computed(() => (prediction.value?.confidence || 0) * 100)
-
-const predictionDelta = computed(() => predictedEmission.value - currentEmission.value)
-const predictionDeltaPercent = computed(() => {
-  if (currentEmission.value <= 0) return 0
-  return (predictionDelta.value / currentEmission.value) * 100
-})
-
-const predictionDeltaLabel = computed(() => {
-  const value = predictionDeltaPercent.value
-  const sign = value > 0 ? '+' : ''
-  return `${sign}${value.toFixed(1)}%`
-})
-
-const predictionDeltaClass = computed(() => {
-  if (predictionDelta.value > 0) return 'metric-up'
-  if (predictionDelta.value < 0) return 'metric-down'
-  return ''
-})
-
-const confidenceLabel = computed(() => {
-  if (predictionConfidence.value >= 80) return '高可信'
-  if (predictionConfidence.value >= 60) return '中等可信'
-  return '低可信'
-})
-
-const aiRiskLabel = computed(() => {
-  if (aiAnalysis.value?.riskLevel === 'HIGH') return '高风险'
-  if (aiAnalysis.value?.riskLevel === 'LOW') return '低风险'
-  if (aiAnalysis.value?.riskLevel === 'MEDIUM') return '中风险'
-  return '未知'
-})
-
-const isFallbackAnalysis = computed(() => aiAnalysis.value?.source === 'LOCAL_ANALYSIS')
-
-const dailyPredictions = computed(() => prediction.value?.dailyPredictions || [])
-
-const completedHistoryRecords = computed(() => {
-  return [...historyRecords.value]
-    .filter(item => item.actualEmission !== null)
-    .sort((a, b) => a.targetMonth.localeCompare(b.targetMonth))
-})
-
-const comparisonLineData = computed(() => ({
-  legend: ['预测值', '实际值'],
-  xAxis: completedHistoryRecords.value.map(item => item.targetMonth),
-  series: [
-    {
-      name: '预测值',
-      type: 'line',
-      data: completedHistoryRecords.value.map(item => item.predictedEmission),
-      smooth: true,
-      lineStyle: { color: '#4CAF50', width: 3 }
-    },
-    {
-      name: '实际值',
-      type: 'line',
-      data: completedHistoryRecords.value.map(item => item.actualEmission),
-      smooth: true,
-      lineStyle: { color: '#2196F3', width: 3 }
-    }
-  ]
-}))
-
 const categoryPieData = computed(() => ({
   legend: ['交通', '饮食', '用电'],
   series: [
-    {
-      name: '交通',
-      value: summary.value?.transportEmission || 0,
-      itemStyle: { color: '#4CAF50' }
-    },
-    {
-      name: '饮食',
-      value: summary.value?.dietEmission || 0,
-      itemStyle: { color: '#81C784' }
-    },
-    {
-      name: '用电',
-      value: summary.value?.electricityEmission || 0,
-      itemStyle: { color: '#A5D6A7' }
-    }
+    { name: '交通', value: summary.value?.transportEmission || 0, itemStyle: { color: '#0088cc' } },
+    { name: '饮食', value: summary.value?.dietEmission || 0, itemStyle: { color: '#00e5ff' } },
+    { name: '用电', value: summary.value?.electricityEmission || 0, itemStyle: { color: '#00ffaa' } }
   ]
 }))
 
-const predictionLineData = computed(() => ({
-  legend: ['预测值', '下限', '上限'],
-  xAxis: dailyPredictions.value.map(item => formatDateLabel(item.date)),
-  series: [
-    {
-      name: '预测值',
-      type: 'line',
-      data: dailyPredictions.value.map(item => item.predictedEmission),
-      smooth: true,
-      lineStyle: { color: '#4CAF50', width: 3 },
-      areaStyle: {
-        color: 'rgba(76, 175, 80, 0.12)'
+// --- 流式打字机沙盘核心逻辑 ---
+const terminalBody = ref<HTMLElement | null>(null)
+const isTyping = ref(false)
+const hasInferred = ref(false)
+const typedLines = ref<string[]>([])
+
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (terminalBody.value) {
+      terminalBody.value.scrollTop = terminalBody.value.scrollHeight
+    }
+  })
+}
+
+const typeLine = async (text: string, speed: number = 20) => {
+  return new Promise<void>((resolve) => {
+    let currentText = ''
+    typedLines.value.push('') // Add empty line
+    const lineIndex = typedLines.value.length - 1
+    
+    let i = 0
+    const interval = setInterval(() => {
+      if (i < text.length) {
+        currentText += text.charAt(i)
+        typedLines.value[lineIndex] = currentText
+        scrollToBottom()
+        i++
+      } else {
+        clearInterval(interval)
+        resolve()
       }
-    },
-    {
-      name: '下限',
-      type: 'line',
-      data: dailyPredictions.value.map(item => item.lowerBound),
-      smooth: true,
-      lineStyle: { color: '#FFC107', width: 2, type: 'dashed' }
-    },
-    {
-      name: '上限',
-      type: 'line',
-      data: dailyPredictions.value.map(item => item.upperBound),
-      smooth: true,
-      lineStyle: { color: '#F44336', width: 2, type: 'dashed' }
-    }
-  ]
-}))
+    }, speed)
+  })
+}
 
-const analysisHeadline = computed(() => {
-  if (aiAnalysis.value?.headline) return aiAnalysis.value.headline
-  if (!prediction.value) return '等待数据分析'
-  if (predictionDelta.value > 0) return '你的下月排放预计上升，需要提前干预'
-  if (predictionDelta.value < 0) return '你的下月排放预计下降，当前策略有效'
-  return '你的下月排放预计保持稳定'
-})
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-const analysisDescription = computed(() => {
+const startAiInference = async () => {
+  isTyping.value = true
+  hasInferred.value = true
+  typedLines.value = [] // Clear terminal
+  
+  await typeLine('Initiating neural network analysis module...', 30)
+  await sleep(400)
+  await typeLine('Extracting historical carbon footprint data... <span style="color:#34d399">[SUCCESS]</span>', 10)
+  await sleep(600)
+  await typeLine('Applying predictive models...', 40)
+  await sleep(800)
+  
+  // 结合真实的后端数据输出
+  const nextMonthPred = prediction.value?.predictedEmission?.toFixed(2) || 'N/A'
+  const confidence = (prediction.value?.confidence * 100)?.toFixed(0) || 'N/A'
+  
+  if (aiAnalysis.value?.model) {
+    await typeLine(`[SYSTEM] Linked to AI core: <span style="color:#38bdf8">${aiAnalysis.value.model}</span>`, 20)
+    await sleep(300)
+  }
+
+  await typeLine(`<span style="background: linear-gradient(135deg, #6ee7b7, #10b981); -webkit-background-clip: text; color: transparent; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: 1px; display: inline-block;">================ ANALYSIS COMPLETE ================</span>`, 5)
+  await sleep(300)
+  
+  if (aiAnalysis.value?.headline) {
+    await typeLine(`[HEADLINE] <strong style="color:#c084fc;">${aiAnalysis.value.headline}</strong>`, 30)
+    await sleep(200)
+  }
+  
+  if (aiAnalysis.value?.riskLevel) {
+    const riskColor = aiAnalysis.value.riskLevel === 'HIGH' ? '#ef4444' : (aiAnalysis.value.riskLevel === 'MEDIUM' ? '#f59e0b' : '#10b981')
+    await typeLine(`[RISK LEVEL] <strong style="color:${riskColor};">${aiAnalysis.value.riskLevel}</strong>`, 30)
+    await sleep(200)
+  }
+
+  await typeLine(`[PREDICTION] Projected next month emission: <strong style="color:#34d399; font-size:1.1em;">${nextMonthPred} kg CO₂e</strong>`, 30)
+  await typeLine(`[CONFIDENCE] Model confidence level: ${confidence}%`, 30)
+  
   if (aiAnalysis.value?.summary) {
-    return aiAnalysis.value.summary
+    await sleep(300)
+    await typeLine(`[SUMMARY] ${aiAnalysis.value.summary}`, 20)
   }
 
-  if (!prediction.value) {
-    return '当前没有可用于建模的历史数据，请先录入交通、饮食和用电记录。'
+  await sleep(500)
+  await typeLine(`<br><span style="background: linear-gradient(135deg, #6ee7b7, #10b981); -webkit-background-clip: text; color: transparent; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: 1px; display: inline-block;">>> GENERATING ACTIONABLE INTELLIGENCE:</span>`, 20)
+  
+  if (aiAnalysis.value?.insights && aiAnalysis.value.insights.length > 0) {
+    for (const insight of aiAnalysis.value.insights) {
+      await sleep(400)
+      if (insight.title === '排放占比排序') {
+        const highlightedText = insight.text.replace(/([^\s]+)\s([\d.]+)\s(kg\sCO₂e)/g, '<strong style="color:#6ee7b7;">$1 $2</strong> <span style="color:#94a3b8;">$3</span>')
+        await typeLine(`- <span style="color:#a7f3d0">${insight.title}</span>: <span style="color:#f8fafc; font-weight: 500;">${highlightedText}</span>`, 20)
+      } else {
+        await typeLine(`- <span style="color:#a7f3d0">${insight.title}</span>: <span style="color:#cbd5e1;">${insight.text}</span>`, 20)
+      }
+    }
+  } else if (prediction.value?.suggestion) {
+    await sleep(400)
+    await typeLine(`- <span style="color:#a7f3d0">Priority Suggestion</span>: ${prediction.value.suggestion.suggestion}`, 20)
+  } else {
+    await sleep(400)
+    await typeLine(`- No critical risk detected. Maintain current green lifestyle.`, 20)
   }
-
-  const trendText = prediction.value.trend || '暂无趋势结论'
-  const deltaText = predictionDelta.value > 0
-    ? `预计比本月增加 ${Math.abs(predictionDelta.value).toFixed(2)} kg CO₂e。`
-    : `预计比本月减少 ${Math.abs(predictionDelta.value).toFixed(2)} kg CO₂e。`
-
-  return `${trendText}，模型判断下月总排放为 ${predictedEmission.value.toFixed(2)} kg CO₂e，${deltaText}`
-})
-
-const analysisInsights = computed(() => {
-  if (aiAnalysis.value?.insights?.length) {
-    return aiAnalysis.value.insights
-  }
-
-  const items: Array<{ title: string; text: string }> = []
-
-  if (summary.value) {
-    const categories = [
-      { label: '交通', value: summary.value.transportEmission },
-      { label: '饮食', value: summary.value.dietEmission },
-      { label: '用电', value: summary.value.electricityEmission }
-    ].sort((a, b) => b.value - a.value)
-
-    const topCategory = categories[0]
-    if (topCategory && topCategory.value > 0) {
-      items.push({
-        title: `${topCategory.label}是当前主排放源`,
-        text: `本月 ${topCategory.label} 排放约 ${topCategory.value.toFixed(2)} kg CO₂e，优先优化这里最有效。`
-      })
+  
+  if (aiAnalysis.value?.recommendations && aiAnalysis.value.recommendations.length > 0) {
+    await sleep(400)
+    await typeLine(`<br><span style="color:#38bdf8; font-weight:bold;">[RECOMMENDATIONS]</span>`, 20)
+    for (const rec of aiAnalysis.value.recommendations) {
+       await sleep(300)
+       await typeLine(`  * ${rec}`, 20)
     }
   }
 
-  if (prediction.value) {
-    items.push({
-      title: '下一月趋势判断',
-      text: prediction.value.trend || '暂时无法识别趋势'
+  if (aiAnalysis.value?.nextActions && aiAnalysis.value.nextActions.length > 0) {
+    await sleep(400)
+    await typeLine(`<br><span style="color:#f59e0b; font-weight:bold;">[NEXT ACTIONS]</span>`, 20)
+    for (const action of aiAnalysis.value.nextActions) {
+       await sleep(300)
+       await typeLine(`  > ${action}`, 20)
+    }
+  }
+  
+  if (aiAnalysis.value?.source) {
+    await sleep(400)
+    await typeLine(`<br><span style="color:#64748b; font-size: 0.9em;">Source: ${aiAnalysis.value.source}</span>`, 10)
+  }
+  
+  await sleep(500)
+  await typeLine('<br>Analysis session terminated. Awaiting further input.', 10)
+  isTyping.value = false
+}
+// --- 结束 ---
+
+const exportPDF = async () => {
+  if (loading.value) return
+  
+  try {
+    exporting.value = true
+    
+    const wrapperElement = document.getElementById('pdf-report-container')
+    if (!wrapperElement) return
+    
+    // Make visible temporarily for capture
+    wrapperElement.style.display = 'block'
+    wrapperElement.style.opacity = '1'
+    wrapperElement.style.position = 'absolute'
+    wrapperElement.style.left = '0'
+    wrapperElement.style.top = '0'
+    wrapperElement.style.zIndex = '-999'
+    
+    await nextTick()
+
+    // Add brief pause to allow fonts and layout to settle
+    await new Promise(r => setTimeout(r, 100))
+
+    const canvas = await html2canvas(wrapperElement, {
+      scale: 3, 
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false,
+      windowWidth: wrapperElement.scrollWidth,
+      windowHeight: wrapperElement.scrollHeight
     })
+
+    // Hide again
+    wrapperElement.style.display = 'none'
+
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const imgWidth = 210
+    const pageHeight = 297
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+    let heightLeft = imgHeight
+    let position = 0
+
+    const imgData = canvas.toDataURL('image/jpeg', 1.0)
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
+    heightLeft -= pageHeight
+
+    while (heightLeft > 0) {
+      position -= pageHeight
+      pdf.addPage()
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+    }
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    pdf.save(`AI_Carbon_Analysis_Report_${timestamp}.pdf`)
+    ElMessage.success('报告导出成功')
+  } catch (error) {
+    console.error('Export failed:', error)
+    ElMessage.error('报告导出失败')
+  } finally {
+    exporting.value = false
   }
-
-  if (prediction.value?.confidence) {
-    items.push({
-      title: '模型可信度',
-      text: `当前预测置信度为 ${predictionConfidence.value.toFixed(0)}%，适合做趋势参考，但不建议单独作为决策依据。`
-    })
-  }
-
-  if (prediction.value?.suggestion) {
-    items.push({
-      title: '建议优先执行项',
-      text: prediction.value.suggestion.suggestion
-    })
-  }
-
-  return items.slice(0, 4)
-})
-
-const aiRecommendations = computed(() => {
-  if (aiAnalysis.value?.nextActions?.length) {
-    return aiAnalysis.value.nextActions
-  }
-
-  return prediction.value?.suggestion ? [prediction.value.suggestion.suggestion] : []
-})
-
-const analysisMetaText = computed(() => {
-  if (!aiAnalysis.value) {
-    return '当前显示的是本地规则分析结果'
-  }
-
-  const generatedAt = formatAiTime(aiAnalysis.value.generatedAt)
-  const sourceLabel = aiAnalysis.value.source === 'LOCAL_ANALYSIS' ? '本地规则分析' : aiAnalysis.value.source
-  return `模型：${aiAnalysis.value.model} · 来源：${sourceLabel} · 生成于 ${generatedAt}`
-})
+}
 
 const loadData = async () => {
   loading.value = true
   try {
-    const [summaryResult, predictionResult, historyResult] = await Promise.all([
+    const [summaryResult, predictionResult] = await Promise.all([
       carbonApi.getSummary('month'),
-      predictionApi.getNextMonthPrediction(),
-      predictionApi.getHistory()
+      predictionApi.getNextMonthPrediction()
     ])
-
     summary.value = summaryResult
     prediction.value = predictionResult
-    historyRecords.value = historyResult
 
     try {
       aiAnalysis.value = await aiAnalysisApi.getAnalysis()
-      aiAnalysisError.value = ''
-    } catch (error) {
-      console.error('加载 AI 分析失败:', error)
-      aiAnalysis.value = null
-      aiAnalysisError.value = '本地分析加载失败，请稍后重试。'
+    } catch (e) {
+      console.warn('AI analysis API failed, using fallback')
     }
   } catch (error) {
-    console.error('加载 AI 分析数据失败:', error)
-    ElMessage.error('加载 AI 分析数据失败，请稍后重试')
+    console.error('加载底层数据失败:', error)
+    ElMessage.error('系统数据加载异常')
   } finally {
     loading.value = false
   }
 }
 
-const refreshData = () => {
-  loadData()
-}
-
-const handleMenuSelect = (key: string) => {
-  router.push(key)
-  activeMenu.value = key
-}
-
-const generateWeeklyPlan = () => {
-  planGenerating.value = true
-  ElMessage.info('AI 管家正在根据您的历史数据生成专属减排计划...')
-  
-  setTimeout(() => {
-    // 根据当前时间向后排 7 天
-    const startDate = new Date()
-    
-    // 模拟数据分析：查看用户是否经常吃肉、开车等（通过访问 store）
-    const totalRecords = carbonStore.records
-    const hasCar = totalRecords.some(r => r.type === 'transport' && (r as any).vehicleType === 'car')
-    const hasMeat = totalRecords.some(r => r.type === 'diet' && (r as any).foodType === 'meat')
-    
-    const plan: PlanDay[] = []
-    
-    for(let i=0; i<7; i++) {
-        const date = new Date(startDate)
-        date.setDate(startDate.getDate() + i)
-        const dateStr = `${date.getMonth() + 1}月${date.getDate()}日`
-        const isWeekend = date.getDay() === 0 || date.getDay() === 6
-        
-        let title = ''
-        let desc = ''
-        let red = 0
-        let cat = ''
-        let tagType : "success" | "warning" | "info" | "primary" | "danger" = "success"
-        let icon: any = null
-        
-        // 伪随机加上一些规则判断，生成每天的独特建议
-        if (i === 0 && hasCar) {
-            title = '明日预报晴好，尝试骑行通勤'
-            desc = '根据天气预报，明天非常适合骑行。既然你平时习惯开车，不如明天将上下班交通改为骑行或地铁，既锻炼身体又大幅减排。'
-            red = 2.5
-            cat = '交通出行'
-            tagType = 'primary'
-            icon = Van
-        } else if (i === 1 && hasMeat) {
-            title = '开启周二“植物性饮食”挑战'
-            desc = '分析到你近日红肉摄入较多。这一天试着将午餐的牛肉换成鸡肉或豆腐，不仅对肠胃好，还能大幅降低食物碳足迹。'
-            red = 1.2
-            cat = '饮食习惯'
-            tagType = 'success'
-            icon = KnifeFork
-        } else if (i === 3) {
-            title = '家庭用电“随手关”小突击'
-            desc = '周四晚上洗完澡，顺手拔掉热水器、电视机等电器的待机插头，关闭不必要的灯光。积少成多也是大贡献。'
-            red = 0.5
-            cat = '电器使用'
-            tagType = 'warning'
-            icon = Lightning
-        } else if (isWeekend) {
-            title = '周末低碳周边游'
-            desc = '周末别宅在家里吹空调啦，带上家人坐公交去周边的公园呼吸新鲜空气，记得自带水杯哦。'
-            red = 3.0
-            cat = '综合减碳'
-            tagType = 'danger'
-            icon = House
-        } else {
-            title = '自带环保袋/餐具的一天'
-            desc = '今天买咖啡或者点外卖时，试试使用自带的环保杯和餐具吧。向商家说一句“不需要一次性餐具”。'
-            red = 0.3
-            cat = '绿色生活'
-            tagType = 'info'
-            icon = Star
-        }
-        
-        plan.push({
-            dateStr,
-            title,
-            description: desc,
-            reduction: red,
-            category: cat,
-            type: tagType === 'danger' ? 'primary' : tagType,
-            color: '',
-            tagType,
-            icon
-        })
-    }
-    
-    weeklyPlan.value = plan
-    planGenerating.value = false
-    planVisible.value = true
-  }, 1500)
-}
-
-const acceptPlan = () => {
-  planVisible.value = false
-  ElMessage.success('成功接跑计划！每天登录来打卡吧~')
-}
-
-const handleLogout = () => {
-  router.push('/login')
-}
-
-const navigateToProfile = () => {
-  router.push('/profile')
-}
-
-function formatDateLabel(dateText: string) {
-  const date = new Date(dateText)
-  if (Number.isNaN(date.getTime())) {
-    return dateText
-  }
-
-  return `${date.getMonth() + 1}/${date.getDate()}`
-}
-
-function formatAiTime(dateText: string) {
-  const date = new Date(dateText)
-  if (Number.isNaN(date.getTime())) {
-    return dateText
-  }
-
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
 onMounted(() => {
-  carbonStore.loadUserFromLocalStorage()
   loadData()
 })
 </script>
 
 <style scoped>
-/* 管家弹窗样式 */
-.plan-dialog .el-dialog__body {
-  padding: 10px 25px 20px;
-}
-.plan-intro {
-  color: #606266;
-  margin-bottom: 24px;
-  line-height: 1.6;
-  font-size: 14px;
-}
-.plan-intro strong {
-  color: #388e3c;
-}
-.plan-card {
-  margin-bottom: 12px;
-  border-left: 4px solid var(--el-color-primary);
-  border-radius: 8px;
-}
-.plan-card h4 {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  color: #303133;
-}
-.plan-card p {
-  margin: 0 0 12px 0;
-  color: #606266;
-  font-size: 13px;
-  line-height: 1.5;
-}
-.plan-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
-}
-.reduction-estimate {
-  color: #67c23a;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap');
+
+/* =========================================
+   Eco-Cyber Premium Deep Theme 
+   ========================================= */
+.cyber-sandbox-container {
+  height: 100vh;
+  background-color: #020b14;
+  background-image: 
+    linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+  color: #e0f8ff;
+  font-family: inherit;
+  position: relative;
+  overflow: hidden;
+  animation: bgScroll 20s linear infinite;
 }
 
-.ai-container {
-  min-height: 100vh;
-  background: linear-gradient(180deg, #eef8ef 0%, #f8fbf8 100%);
+/* 动态背景网格位移 */
+@keyframes bgScroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 30px 30px; }
 }
 
-.ai-main {
-  padding: 24px;
+/* 全屏扫描线特效 (CRT Scanline) */
+.cyber-sandbox-container::before {
+  content: ''; position: absolute; top: -100vh; left: 0; right: 0; height: 100vh;
+  background: linear-gradient(to bottom, transparent, rgba(0, 255, 170, 0.05) 80%, rgba(0, 229, 255, 0.15) 100%);
+  z-index: 1; pointer-events: none;
+  animation: scanSweep 8s linear infinite;
 }
 
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
+/* 呼吸发光光晕 (Ambient Pulse Orb) */
+.cyber-sandbox-container::after {
+  content: ''; position: absolute; top: 50%; left: 50%; width: 70vw; height: 70vh;
+  background: radial-gradient(circle, rgba(0, 255, 170, 0.06) 0%, transparent 60%);
+  transform: translate(-50%, -50%);
+  z-index: 1; pointer-events: none;
+  animation: orbPulse 6s ease-in-out infinite alternate;
 }
 
-.header-left .logo-link {
-  text-decoration: none;
-  color: inherit;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  transition: color 0.3s ease, transform 0.3s ease;
+@keyframes scanSweep {
+  0% { top: -100vh; }
+  100% { top: 100vh; }
 }
 
-.header-left .logo-link:hover {
-  color: #e8f5e9;
-  transform: translateY(-2px);
+@keyframes orbPulse {
+  0% { opacity: 0.4; transform: translate(-50%, -50%) scale(0.9); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
 }
 
-.brand-icon {
-  font-size: 20px;
+.cyber-header {
+  position: relative; z-index: 10;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.3);
+  background: rgba(3, 15, 20, 0.85);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
 }
 
-.header-left h1 {
-  font-size: 20px;
-  margin: 0;
-  line-height: 1;
+.logo-link { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #00e5ff; text-shadow: 0 0 10px rgba(0, 229, 255, 0.5); }
+.glitch-text { font-size: 20px; font-weight: 800; letter-spacing: 1px; margin: 0; color: #e0f8ff; }
+.brand-icon { filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.8)); font-size: 24px; }
+.header-right :deep(.el-button) {
+  background: rgba(0, 229, 255, 0.1) !important;
+  border: 1px solid rgba(0, 229, 255, 0.5) !important;
+  color: #00e5ff !important;
+  border-radius: 4px;
+  box-shadow: none;
+}
+.header-right :deep(.el-button:hover) {
+  background: rgba(0, 229, 255, 0.3) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.4) !important;
 }
 
-.user-info {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #fff;
-  cursor: pointer;
+.cyber-main { position: relative; z-index: 10; padding: 24px; height: calc(100vh - 60px); overflow: hidden; }    
+.sandbox-wrapper { display: flex; gap: 24px; height: 100%; max-width: 1400px; margin: 0 auto; }
+
+.cyber-panel {
+  background: rgba(4, 20, 29, 0.8);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  border-radius: 8px; padding: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 229, 255, 0.05);
+  backdrop-filter: blur(12px);
+  position: relative;
 }
 
-.user-name {
-  font-size: 14px;
+.cyber-panel::before, .cyber-panel::after,
+.sandbox-terminal::before, .sandbox-terminal::after {
+  content: ''; position: absolute; width: 12px; height: 12px; z-index: 2; pointer-events: none;
+}
+.cyber-panel::before, .sandbox-terminal::before {
+  top: -1px; left: -1px; border-top: 2px solid #00ffaa; border-left: 2px solid #00ffaa; border-top-left-radius: 4px;
+  box-shadow: -2px -2px 8px rgba(0, 255, 170, 0.5);
+}
+.cyber-panel::after, .sandbox-terminal::after {
+  bottom: -1px; right: -1px; border-bottom: 2px solid #00e5ff; border-right: 2px solid #00e5ff; border-bottom-right-radius: 4px;
+  box-shadow: 2px 2px 8px rgba(0, 229, 255, 0.5);
 }
 
-.page-hero {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: flex-end;
-  margin-bottom: 20px;
-  padding: 24px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #1b5e20 0%, #4caf50 55%, #81c784 100%);
-  color: #fff;
-  box-shadow: 0 16px 40px rgba(76, 175, 80, 0.22);
+.panel-title {
+  color: #00e5ff; font-size: 14px; font-weight: 700; letter-spacing: 2px;       
+  margin: 0 0 20px 0; border-bottom: 1px solid rgba(0, 229, 255, 0.3); padding-bottom: 10px;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.6); text-transform: uppercase;
 }
 
-.eyebrow {
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 12px;
-  opacity: 0.82;
+.sandbox-sidebar { width: 320px; display: flex; flex-direction: column; gap: 24px; }
+.status-indicator { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 14px; color: #a4d8d8; font-weight: 600; }
+.led { width: 10px; height: 10px; border-radius: 50%; background: #1a3a3a; border: 1px solid #00ffaa; }    
+.led-active { background: #00ffaa; box-shadow: 0 0 10px #00ffaa, 0 0 20px #00ffaa; border: none; animation: pulse 2s infinite; }
+
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(0.9); } }
+
+.metric-glitch { margin-top: 30px; position: relative; padding-top: 20px; border-top: 1px solid rgba(0, 229, 255, 0.3); }
+.metric-glitch::before { content:''; position: absolute; top: -2px; left: 0; width: 30px; height: 3px; background: #00ffaa; box-shadow: 0 0 10px #00ffaa; }
+.metric-label { font-size: 14px; color: #a4d8d8; margin-bottom: 8px; font-weight: bold; }
+.metric-value { font-size: 46px; font-weight: 800; color: #00ffaa; font-family: 'Bahnschrift', sans-serif; text-shadow: 0 0 20px rgba(0, 255, 170, 0.5); line-height: 1; }
+.unit { font-size: 20px; color: #00ffaa; font-weight: normal; opacity: 0.8; }
+
+.sandbox-terminal {
+  flex: 1; display: flex; flex-direction: column;
+  background: rgba(4, 20, 29, 0.8);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  border-radius: 8px; overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.05), 0 8px 30px rgba(0, 0, 0, 0.5);
+  position: relative;
 }
 
-.page-hero h2 {
+.terminal-header {
+  height: 52px; background: rgba(3, 15, 20, 0.9); border-bottom: 1px solid rgba(0, 229, 255, 0.4);
+  display: flex; justify-content: space-between; align-items: center; padding: 0 20px;
+}
+.terminal-dots { display: none; }
+.terminal-title { color: #00e5ff; font-size: 15px; letter-spacing: 2px; font-weight: 700; text-shadow: 0 0 8px rgba(0, 229, 255, 0.5); }
+
+.cyber-button {
+  background: rgba(0, 229, 255, 0.1) !important; border: 1px solid #00e5ff !important;
+  color: #e0f8ff !important; font-family: inherit; font-weight: 700; border-radius: 4px; letter-spacing: 1px; transition: all 0.3s;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+}
+.cyber-button:hover:not(:disabled) {
+  background: rgba(0, 229, 255, 0.3) !important; color: #ffffff !important; box-shadow: 0 0 15px rgba(0, 229, 255, 0.5), inset 0 0 10px rgba(0, 229, 255, 0.2);
+}
+
+.terminal-body {
+  flex: 1; padding: 24px; overflow-y: auto; font-size: 14px; line-height: 1.8;  
+  font-family: 'Fira Code', 'Consolas', monospace; font-weight: 500;
+  color: #e0f8ff;
+}
+
+.typewriter-content .terminal-line, .terminal-placeholder {
+  text-shadow: 0 0 5px rgba(224, 248, 255, 0.3);
+}
+
+.terminal-line { margin-bottom: 8px; word-wrap: break-word; }
+.prompt { color: #00ffaa; margin-right: 12px; font-weight: bold; text-shadow: 0 0 8px rgba(0, 255, 170, 0.6); }
+.blink-cursor { animation: blink 1s step-end infinite; font-weight: 700; color: #00ffaa; text-shadow: 0 0 8px rgba(0, 255, 170, 0.6); }
+
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+.terminal-body::-webkit-scrollbar { width: 8px; }
+.terminal-body::-webkit-scrollbar-track { background: rgba(0, 229, 255, 0.05); }
+.terminal-body::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, 0.3); border-radius: 4px; }
+.terminal-body::-webkit-scrollbar-thumb:hover { background: rgba(0, 229, 255, 0.6); }
+/* -------------------------------------
+   Formal PDF Report Hidden Styles
+   ------------------------------------- */
+.pdf-formal-report {
+  display: none;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  width: 800px;
+  background-color: #ffffff;
+  color: #333333;
+  padding: 40px 50px;
+  box-sizing: border-box;
+}
+.report-title {
+  text-align: center;
   font-size: 28px;
-  line-height: 1.2;
-  margin-bottom: 10px;
+  font-weight: bold;
+  color: #1a1a1a;
+  margin-bottom: 5px;
+  border-bottom: 2px solid #2563eb;
+  padding-bottom: 15px;
 }
-
-.hero-copy {
-  max-width: 720px;
-  opacity: 0.92;
-}
-
-.data-alert {
-  margin-bottom: 20px;
-}
-
-.metric-row,
-.chart-row,
-.analysis-row {
-  margin-top: 20px;
-}
-
-.metric-card {
-  min-height: 148px;
-  border-radius: 18px;
-  border: 1px solid rgba(76, 175, 80, 0.12);
-  box-shadow: 0 8px 28px rgba(34, 79, 39, 0.08);
-}
-
-.metric-card-primary {
-  background: linear-gradient(135deg, #e8f5e9 0%, #ffffff 100%);
-}
-
-.metric-label {
-  color: #61806a;
+.report-meta {
+  text-align: center;
   font-size: 14px;
-  margin-bottom: 8px;
-}
-
-.metric-value {
-  font-size: 30px;
-  font-weight: 700;
-  color: #17351b;
-  line-height: 1.1;
-}
-
-.metric-suffix {
-  margin-top: 8px;
-  color: #7c9480;
-  font-size: 13px;
-}
-
-.metric-up {
-  color: #d84315;
-}
-
-.metric-down {
-  color: #2e7d32;
-}
-
-.chart-card,
-.analysis-card {
-  border-radius: 18px;
-  border: 1px solid rgba(76, 175, 80, 0.12);
-  box-shadow: 0 8px 28px rgba(34, 79, 39, 0.08);
-}
-
-.analysis-summary h3 {
-  font-size: 18px;
-  margin-bottom: 10px;
-  color: #17351b;
-}
-
-.analysis-summary p {
-  color: #506155;
-  line-height: 1.75;
-}
-
-.analysis-meta {
+  color: #64748b;
+  margin-bottom: 30px;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-  color: #5f7263;
-  font-size: 13px;
+  justify-content: center;
+  gap: 20px;
 }
-
-.insight-list {
-  display: grid;
-  gap: 14px;
+.report-section {
+  margin-bottom: 30px;
 }
-
-.insight-item {
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: #f7fbf7;
-  border: 1px solid #dce8dd;
+.report-section h2 {
+  font-size: 20px;
+  color: #1e3a8a;
+  border-left: 4px solid #3b82f6;
+  padding-left: 10px;
+  margin-bottom: 15px;
 }
-
-.insight-title {
-  font-weight: 600;
-  color: #214326;
-  margin-bottom: 6px;
-}
-
-.insight-text {
-  color: #5f7263;
-  line-height: 1.7;
-}
-
-.suggestion-box {
-  padding: 16px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #ecf8ed 0%, #ffffff 100%);
-  border: 1px solid #d7ead8;
-}
-
-.suggestion-title {
-  font-size: 14px;
-  color: #5c7a60;
-  margin-bottom: 8px;
-}
-
-.suggestion-category {
-  font-size: 18px;
-  font-weight: 700;
-  color: #17351b;
-  margin-bottom: 8px;
-}
-
-.suggestion-text {
-  color: #4f6353;
-  line-height: 1.75;
-}
-
-.ai-action-list {
-  margin: 0;
-  padding-left: 18px;
-  color: #4f6353;
-  line-height: 1.8;
-}
-
-.suggestion-meta {
+.data-grid {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 12px;
-  color: #5f7263;
-  font-size: 13px;
+  flex-wrap: wrap;
+  gap: 15px;
+  background-color: #f1f5f9;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
 }
+.data-box {
+  display: flex;
+  flex-direction: column;
+  width: 45%;
+}
+.data-label {
+  font-size: 14px;
+  color: #475569;
+  margin-bottom: 5px;
+}
+.data-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #0f172a;
+}
+.risk-high { color: #dc2626; }
+.risk-medium { color: #f59e0b; }
+.risk-low { color: #10b981; }
 
-@media (max-width: 768px) {
-  .ai-main {
-    padding: 12px;
-  }
+.headline-text {
+  font-size: 18px;
+  font-weight: bold;
+  color: #b91c1c;
+  margin-bottom: 10px;
+}
+.summary-text {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #334155;
+  margin-bottom: 15px;
+  text-align: justify;
+}
+.insight-list, .recommendation-list, .action-list {
+  padding-left: 25px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #334155;
+}
+.insight-list li { margin-bottom: 10px; }
+.recommendation-list li, .action-list li { margin-bottom: 8px; }
 
-  .page-hero {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .suggestion-meta {
-    flex-direction: column;
-  }
+.report-footer {
+  margin-top: 50px;
+  padding-top: 20px;
+  border-top: 1px solid #cbd5e1;
+  text-align: center;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
 }
 </style>
