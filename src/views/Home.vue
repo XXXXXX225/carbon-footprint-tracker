@@ -364,7 +364,7 @@ const initParticles = () => {
   }
   
   const createParticles = () => {
-    const particleCount = Math.floor(width * height / 3000) // 增加粒子数量（除数从 12000 降低到 3000，粒子增加4倍）
+    const particleCount = Math.floor(width * height / 1500) // 再次增加粒子数量（除数从 3000 降低到 1500，粒子比初始增加8倍）
     for (let i = 0; i < particleCount; i++) {
       particles.push(new Particle())
     }
