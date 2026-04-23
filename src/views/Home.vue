@@ -314,14 +314,14 @@ const initParticles = () => {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
   
-  let width = canvas.width = canvas.offsetWidth
-  let height = canvas.height = canvas.offsetHeight
+  let width = canvas.width = window.innerWidth
+  let height = canvas.height = window.innerHeight
   let particles: any[] = []
   
   window.addEventListener('resize', () => {
     if(canvas) {
-      width = canvas.width = canvas.offsetWidth
-      height = canvas.height = canvas.offsetHeight
+      width = canvas.width = window.innerWidth
+      height = canvas.height = window.innerHeight
       particles = []
       createParticles()
     }
@@ -756,6 +756,19 @@ body {
 }
 
 .particles {
+  position: fixed !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 0 !important;
+  position: fixed !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 0 !important;
+/*
   position: absolute;
   top: 0;
   left: 0;
