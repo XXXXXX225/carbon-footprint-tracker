@@ -47,108 +47,7 @@
 
     <!-- 英雄区域 -->
     <section class="hero-section" @mousemove="handleMouseMove">
-      <div class="particles">
-        <div class="particle particle-1"></div>
-        <div class="particle particle-2"></div>
-        <div class="particle particle-3"></div>
-        <div class="particle particle-4"></div>
-        <div class="particle particle-5"></div>
-        <div class="particle particle-6"></div>
-        <div class="particle particle-7"></div>
-        <div class="particle particle-8"></div>
-        <div class="particle particle-9"></div>
-        <div class="particle particle-10"></div>
-        <div class="particle particle-11"></div>
-        <div class="particle particle-12"></div>
-        <div class="particle particle-13"></div>
-        <div class="particle particle-14"></div>
-        <div class="particle particle-15"></div>
-        <div class="particle particle-16"></div>
-        <div class="particle particle-17"></div>
-        <div class="particle particle-18"></div>
-        <div class="particle particle-19"></div>
-        <div class="particle particle-20"></div>
-        <div class="particle particle-21"></div>
-        <div class="particle particle-22"></div>
-        <div class="particle particle-23"></div>
-        <div class="particle particle-24"></div>
-        <div class="particle particle-25"></div>
-        <div class="particle particle-26"></div>
-        <div class="particle particle-27"></div>
-        <div class="particle particle-28"></div>
-        <div class="particle particle-29"></div>
-        <div class="particle particle-30"></div>
-        <div class="particle particle-31"></div>
-        <div class="particle particle-32"></div>
-        <div class="particle particle-33"></div>
-        <div class="particle particle-34"></div>
-        <div class="particle particle-35"></div>
-        <div class="particle particle-36"></div>
-        <div class="particle particle-37"></div>
-        <div class="particle particle-38"></div>
-        <div class="particle particle-39"></div>
-        <div class="particle particle-40"></div>
-        <div class="particle particle-41"></div>
-        <div class="particle particle-42"></div>
-        <div class="particle particle-43"></div>
-        <div class="particle particle-44"></div>
-        <div class="particle particle-45"></div>
-        <div class="particle particle-46"></div>
-        <div class="particle particle-47"></div>
-        <div class="particle particle-48"></div>
-        <div class="particle particle-49"></div>
-        <div class="particle particle-50"></div>
-        <div class="particle particle-51"></div>
-        <div class="particle particle-52"></div>
-        <div class="particle particle-53"></div>
-        <div class="particle particle-54"></div>
-        <div class="particle particle-55"></div>
-        <div class="particle particle-56"></div>
-        <div class="particle particle-57"></div>
-        <div class="particle particle-58"></div>
-        <div class="particle particle-59"></div>
-        <div class="particle particle-60"></div>
-        <div class="particle particle-61"></div>
-        <div class="particle particle-62"></div>
-        <div class="particle particle-63"></div>
-        <div class="particle particle-64"></div>
-        <div class="particle particle-65"></div>
-        <div class="particle particle-66"></div>
-        <div class="particle particle-67"></div>
-        <div class="particle particle-68"></div>
-        <div class="particle particle-69"></div>
-        <div class="particle particle-70"></div>
-        <div class="particle particle-71"></div>
-        <div class="particle particle-72"></div>
-        <div class="particle particle-73"></div>
-        <div class="particle particle-74"></div>
-        <div class="particle particle-75"></div>
-        <div class="particle particle-76"></div>
-        <div class="particle particle-77"></div>
-        <div class="particle particle-78"></div>
-        <div class="particle particle-79"></div>
-        <div class="particle particle-80"></div>
-        <div class="particle particle-81"></div>
-        <div class="particle particle-82"></div>
-        <div class="particle particle-83"></div>
-        <div class="particle particle-84"></div>
-        <div class="particle particle-85"></div>
-        <div class="particle particle-86"></div>
-        <div class="particle particle-87"></div>
-        <div class="particle particle-88"></div>
-        <div class="particle particle-89"></div>
-        <div class="particle particle-90"></div>
-        <div class="particle particle-91"></div>
-        <div class="particle particle-92"></div>
-        <div class="particle particle-93"></div>
-        <div class="particle particle-94"></div>
-        <div class="particle particle-95"></div>
-        <div class="particle particle-96"></div>
-        <div class="particle particle-97"></div>
-        <div class="particle particle-98"></div>
-        <div class="particle particle-99"></div>
-        <div class="particle particle-100"></div>
-      </div>
+      <canvas ref="particlesCanvas" class="particles"></canvas>
       <div class="hero-container page-shell">
         <div class="hero-content">
           <div class="system-status">
@@ -365,7 +264,7 @@ import slide1 from '../assets/slide1.jpg'
 import slide2 from '../assets/slide2.jpg'
 import slide3 from '../assets/slide3.jpg'
 
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
 import { UserFilled, User, House, CollectionTag, SwitchButton, ArrowDown, Setting, DataLine, Cpu } from '@element-plus/icons-vue'
@@ -373,6 +272,8 @@ import { ElMessage } from 'element-plus'
 import { getLandingRoute, getTopNavItems } from '../utils/access'
 
 const router = useRouter()
+const particlesCanvas = ref<HTMLCanvasElement | null>(null)
+
 const carbonStore = useCarbonStore()
 
 // 用户信息
@@ -405,7 +306,101 @@ const iconMap: Record<string, any> = {
   const animatedCounter = ref(100000.00)
   let animationFrameId: number
 
-  const animateNumber = () => {
+  
+// 交互式粒子系统 
+const initParticles = () => {
+  const canvas = particlesCanvas.value
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  
+  let width = canvas.width = canvas.offsetWidth
+  let height = canvas.height = canvas.offsetHeight
+  let particles: any[] = []
+  
+  window.addEventListener('resize', () => {
+    if(canvas) {
+      width = canvas.width = canvas.offsetWidth
+      height = canvas.height = canvas.offsetHeight
+      particles = []
+      createParticles()
+    }
+  })
+
+  class Particle {
+    x: number; y: number; size: number; speedX: number; speedY: number; color: string;
+    constructor() {
+      this.x = Math.random() * width
+      this.y = Math.random() * height
+      this.size = Math.random() * 3 + 1
+      this.speedX = Math.random() * 2 - 1
+      this.speedY = Math.random() * 2 - 1
+      this.color = `rgba(76, 175, 80, ${Math.random()})`
+    }
+    update() {
+      this.x += this.speedX
+      this.y += this.speedY
+      
+      // 边界反弹
+      if (this.x > width || this.x < 0) this.speedX *= -1
+      if (this.y > height || this.y < 0) this.speedY *= -1
+      
+      // 鼠标交互: 距离鼠标近的粒子会避开鼠标并连线
+      const dx = mouseX.value - window.scrollX - this.x
+      const dy = mouseY.value - window.scrollY - this.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      
+      if (distance < 120) {
+        this.x -= dx * 0.05
+        this.y -= dy * 0.05
+      }
+    }
+    draw() {
+      ctx.fillStyle = this.color
+      ctx.beginPath()
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+  
+  const createParticles = () => {
+    const particleCount = Math.floor(width * height / 12000)
+    for (let i = 0; i < particleCount; i++) {
+      particles.push(new Particle())
+    }
+  }
+  
+  createParticles()
+  
+  const animateParticles = () => {
+    if (!ctx || !canvas) return
+    ctx.clearRect(0, 0, width, height)
+    for (let i = 0; i < particles.length; i++) {
+      particles[i].update()
+      particles[i].draw()
+      for(let j = i; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x
+        const dy = particles[i].y - particles[j].y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+        if(distance < 100) {
+          ctx.beginPath()
+          ctx.strokeStyle = `rgba(76, 175, 80, ${1 - distance/100})`
+          ctx.lineWidth = 0.5
+          ctx.moveTo(particles[i].x, particles[i].y)
+          ctx.lineTo(particles[j].x, particles[j].y)
+          ctx.stroke()
+        }
+      }
+    }
+    animationFrameId2 = requestAnimationFrame(animateParticles)
+  }
+  
+  animateParticles()
+}
+let animationFrameId2: number
+
+
+const animateNumber = () => {
     const diff = targetNumber - animatedCounter.value
     if (diff > 0.1) {
       animatedCounter.value += diff * 0.05
@@ -547,6 +542,7 @@ const startCarousel = () => {
 onMounted(() => {
   // 加载用户信息
   carbonStore.loadUserFromLocalStorage()
+  initParticles()
 
     requestAnimationFrame(animateNumber)
     startTextScroll()
@@ -580,6 +576,7 @@ onUnmounted(() => {
   }
 
   cancelAnimationFrame(animationFrameId)
+  if (animationFrameId2) cancelAnimationFrame(animationFrameId2)
 
   // 移除鼠标移动监听
   window.removeEventListener('mousemove', handleMouseMove)
