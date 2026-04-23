@@ -336,6 +336,10 @@ const initParticles = () => {
       this.speedX = Math.random() * 2 - 1
       this.speedY = Math.random() * 2 - 1
       this.color = `rgba(76, 175, 80, ${Math.random()})`
+      const shapeTypes = ['circle', 'square', 'diamond', 'triangle', 'ring']
+      this.shapeType = shapeTypes[Math.floor(Math.random() * shapeTypes.length)]
+      this.rotation = Math.random() * Math.PI * 2
+      this.rotationSpeed = (Math.random() - 0.5) * 0.04
     }
     update() {
       this.x += this.speedX
@@ -357,9 +361,48 @@ const initParticles = () => {
     }
     draw() {
       ctx.fillStyle = this.color
-      ctx.beginPath()
-      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
-      ctx.fill()
+      ctx.strokeStyle = this.color
+      ctx.lineWidth = 1
+
+      ctx.save()
+      ctx.translate(this.x, this.y)
+      this.rotation += this.rotationSpeed
+      ctx.rotate(this.rotation)
+
+      switch (this.shapeType) {
+        case 'square':
+          ctx.fillRect(-this.size, -this.size, this.size * 2, this.size * 2)
+          break
+        case 'diamond':
+          ctx.beginPath()
+          ctx.moveTo(0, -this.size * 1.4)
+          ctx.lineTo(this.size * 1.1, 0)
+          ctx.lineTo(0, this.size * 1.4)
+          ctx.lineTo(-this.size * 1.1, 0)
+          ctx.closePath()
+          ctx.fill()
+          break
+        case 'triangle':
+          ctx.beginPath()
+          ctx.moveTo(0, -this.size * 1.5)
+          ctx.lineTo(this.size * 1.3, this.size * 1.1)
+          ctx.lineTo(-this.size * 1.3, this.size * 1.1)
+          ctx.closePath()
+          ctx.fill()
+          break
+        case 'ring':
+          ctx.beginPath()
+          ctx.arc(0, 0, this.size * 1.25, 0, Math.PI * 2)
+          ctx.stroke()
+          break
+        default:
+          ctx.beginPath()
+          ctx.arc(0, 0, this.size, 0, Math.PI * 2)
+          ctx.fill()
+          break
+      }
+
+      ctx.restore()
     }
   }
   
@@ -598,12 +641,13 @@ body {
   line-height: 1.6;
   color: #333;
   overflow-x: hidden;
+  background: linear-gradient(180deg, rgba(246, 253, 248, 0.72) 0%, rgba(238, 248, 242, 0.55) 42%, rgba(247, 253, 249, 0.68) 100%);
 }
 
 /* 导航栏样式 */
 .navbar {
-  background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
   position: sticky;
   top: 0;
@@ -675,10 +719,10 @@ body {
 
 /* 英雄区域样式 */
 .hero-section {
-  background: linear-gradient(135deg, rgba(232, 245, 233, 0.4) 0%, rgba(241, 248, 233, 0.6) 50%, rgba(232, 245, 233, 0.4) 100%);
+  background: linear-gradient(135deg, rgba(232, 245, 233, 0.16) 0%, rgba(241, 248, 233, 0.24) 50%, rgba(232, 245, 233, 0.16) 100%);
   background-size: 200% 200%;
   animation: dynamicBg 15s ease infinite;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(20px);
   color: #4B5563;
   padding: 6rem 0 4rem;
@@ -2368,8 +2412,8 @@ body {
 
 .features-section {
   padding: 6rem 0;
-  background: linear-gradient(135deg, rgba(244, 251, 247, 0.4) 0%, rgba(230, 244, 234, 0.4) 50%, rgba(244, 251, 247, 0.4) 100%);
-  /* backdrop-filter: blur(5px); */
+  background: linear-gradient(135deg, rgba(244, 251, 247, 0.12) 0%, rgba(230, 244, 234, 0.18) 50%, rgba(244, 251, 247, 0.12) 100%);
+  backdrop-filter: blur(6px);
   background-size: 200% 200%;
   animation: dynamicBg 12s ease infinite reverse;
 }
@@ -2396,10 +2440,12 @@ body {
 }
 
 .feature-card {
-  background-color: white;
+  background-color: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(14px) saturate(130%);
+  border: 1px solid rgba(255, 255, 255, 0.38);
   border-radius: 16px;
   padding: 2.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   position: relative;
   overflow: hidden;
   opacity: 0;
@@ -2416,7 +2462,7 @@ body {
 
 .feature-card:hover {
   /* 【修改】移除了原有的 transform: translateY(-10px) */
-  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.15);
+  box-shadow: 0 10px 24px rgba(16, 185, 129, 0.08);
   z-index: 10;
 }
 
@@ -2427,8 +2473,8 @@ body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 4px;
-  background: linear-gradient(90deg, #2E7D32, #4CAF50);
+  height: 2px;
+  background: linear-gradient(90deg, rgba(46, 125, 50, 0.55), rgba(76, 175, 80, 0.75));
   transform: scaleX(0);
   transform-origin: left; /* 让线条从左往右展开，更具科技感 */
   transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
@@ -2446,9 +2492,9 @@ body {
   /* 绑定 JS 计算并注入的局部坐标 */
   top: var(--card-mouse-y, 50%);
   left: var(--card-mouse-x, 50%);
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(circle, rgba(76, 175, 80, 0.12) 0%, transparent 60%);
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(76, 175, 80, 0.06) 0%, transparent 64%);
   transform: translate(-50%, -50%);
   pointer-events: none;
   opacity: 0;
@@ -2508,7 +2554,7 @@ body {
 
 .feature-card:hover .feature-icon img {
   transform: scale(1.1);
-  box-shadow: 0 10px 30px rgba(46, 125, 50, 0.2);
+  box-shadow: 0 8px 18px rgba(46, 125, 50, 0.12);
   animation: none;
 }
 
@@ -2528,8 +2574,8 @@ body {
 /* 为什么选择我们样式 */
 .why-us-section {
   padding: 6rem 0;
-  background: linear-gradient(135deg, rgba(230, 244, 234, 0.4) 0%, rgba(244, 251, 247, 0.4) 50%, rgba(230, 244, 234, 0.4) 100%);
-  /* backdrop-filter: blur(5px); */
+  background: linear-gradient(135deg, rgba(230, 244, 234, 0.10) 0%, rgba(244, 251, 247, 0.16) 50%, rgba(230, 244, 234, 0.10) 100%);
+  backdrop-filter: blur(6px);
   background-size: 200% 200%;
   animation: dynamicBg 10s ease infinite;
 }
@@ -2570,8 +2616,8 @@ body {
   width: 80px;
   height: 80px;
   margin: 0 auto 1.5rem;
-  background: linear-gradient(135deg, rgba(240, 253, 244, 0.4), rgba(220, 252, 231, 0.4));
-  /* backdrop-filter: blur(5px); */
+  background: linear-gradient(135deg, rgba(240, 253, 244, 0.2), rgba(220, 252, 231, 0.24));
+  backdrop-filter: blur(8px);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -2634,8 +2680,8 @@ body {
 /* 行动召唤样式 */
 .cta-section {
   padding: 6rem 0;
-  background: linear-gradient(135deg, rgba(240, 253, 244, 0.4) 0%, rgba(220, 252, 231, 0.4) 100%);
-  /* backdrop-filter: blur(5px); */
+  background: linear-gradient(135deg, rgba(240, 253, 244, 0.10) 0%, rgba(220, 252, 231, 0.16) 100%);
+  backdrop-filter: blur(6px);
   color: #1B5E20;
   text-align: center;
   position: relative;
@@ -2645,11 +2691,10 @@ body {
 
 @keyframes ctaGradient {
   0%, 100% {
-    background: linear-gradient(135deg, rgba(240, 253, 244, 0.4) 0%, rgba(220, 252, 231, 0.4) 100%);
-  /* backdrop-filter: blur(5px); */
+    background: linear-gradient(135deg, rgba(240, 253, 244, 0.10) 0%, rgba(220, 252, 231, 0.16) 100%);
   }
   50% {
-    background: linear-gradient(135deg, rgba(220, 252, 231, 0.4) 0%, rgba(187, 247, 208, 0.4) 100%);
+    background: linear-gradient(135deg, rgba(220, 252, 231, 0.14) 0%, rgba(187, 247, 208, 0.20) 100%);
   }
 }
 
