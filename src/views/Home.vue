@@ -1,5 +1,6 @@
 <template>
   <div class="home-container">
+    <canvas ref="particlesCanvas" class="particles"></canvas>
     <!-- 导航栏 -->
     <nav class="navbar">
       <div class="navbar-container">
@@ -47,7 +48,6 @@
 
     <!-- 英雄区域 -->
     <section class="hero-section" @mousemove="handleMouseMove">
-      <canvas ref="particlesCanvas" class="particles"></canvas>
       <div class="hero-container page-shell">
         <div class="hero-content">
           <div class="system-status">
@@ -314,14 +314,14 @@ const initParticles = () => {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
   
-  let width = canvas.width = window.innerWidth
-  let height = canvas.height = window.innerHeight
+  let width = canvas.width = document.documentElement.scrollWidth
+  let height = canvas.height = document.documentElement.scrollHeight
   let particles: any[] = []
   
   window.addEventListener('resize', () => {
     if(canvas) {
-      width = canvas.width = window.innerWidth
-      height = canvas.height = window.innerHeight
+      width = canvas.width = document.documentElement.scrollWidth
+      height = canvas.height = document.documentElement.scrollHeight
       particles = []
       createParticles()
     }
@@ -346,8 +346,8 @@ const initParticles = () => {
       if (this.y > height || this.y < 0) this.speedY *= -1
       
       // 鼠标交互: 距离鼠标近的粒子会避开鼠标并连线
-      const dx = mouseX.value - window.scrollX - this.x
-      const dy = mouseY.value - window.scrollY - this.y
+      const dx = (mouseX.value + window.scrollX) - this.x
+      const dy = (mouseY.value + window.scrollY) - this.y
       const distance = Math.sqrt(dx * dx + dy * dy)
       
       if (distance < 120) {
@@ -364,7 +364,7 @@ const initParticles = () => {
   }
   
   const createParticles = () => {
-    const particleCount = Math.floor(width * height / 1500) // 再次增加粒子数量（除数从 3000 降低到 1500，粒子比初始增加8倍）
+    const particleCount = Math.floor((window.innerWidth * window.innerHeight) / 1500) // 再次增加粒子数量（除数从 3000 降低到 1500，粒子比初始增加8倍）
     for (let i = 0; i < particleCount; i++) {
       particles.push(new Particle())
     }
@@ -756,29 +756,13 @@ body {
 }
 
 .particles {
-  position: fixed !important;
-  width: 100vw !important;
-  height: 100vh !important;
+  position: absolute !important;
+  width: 100% !important;
+  height: 100% !important;
   top: 0 !important;
   left: 0 !important;
   z-index: 0 !important;
-  position: fixed !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  top: 0 !important;
-  left: 0 !important;
-  z-index: 0 !important;
-/*
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   pointer-events: none;
-  overflow: hidden;
-  z-index: 1;
-  transform: translate(calc(var(--mouse-norm-x, 0) * -40px), calc(var(--mouse-norm-y, 0) * -40px));
-  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 .hero-container::before {
   content: '';
@@ -2384,7 +2368,8 @@ body {
 
 .features-section {
   padding: 6rem 0;
-  background: linear-gradient(135deg, #F4FBF7 0%, #E6F4EA 50%, #F4FBF7 100%);
+  background: linear-gradient(135deg, rgba(244, 251, 247, 0.4) 0%, rgba(230, 244, 234, 0.4) 50%, rgba(244, 251, 247, 0.4) 100%);
+  /* backdrop-filter: blur(5px); */
   background-size: 200% 200%;
   animation: dynamicBg 12s ease infinite reverse;
 }
@@ -2485,7 +2470,8 @@ body {
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  background: linear-gradient(135deg, rgba(240, 253, 244, 0.4), rgba(220, 252, 231, 0.4));
+  /* backdrop-filter: blur(5px); */
   padding: 1.5rem;
   transition: all 0.3s ease;
   animation: iconFloat 4s ease-in-out infinite;
@@ -2542,7 +2528,8 @@ body {
 /* 为什么选择我们样式 */
 .why-us-section {
   padding: 6rem 0;
-  background: linear-gradient(135deg, #E6F4EA 0%, #F4FBF7 50%, #E6F4EA 100%);
+  background: linear-gradient(135deg, rgba(230, 244, 234, 0.4) 0%, rgba(244, 251, 247, 0.4) 50%, rgba(230, 244, 234, 0.4) 100%);
+  /* backdrop-filter: blur(5px); */
   background-size: 200% 200%;
   animation: dynamicBg 10s ease infinite;
 }
@@ -2583,7 +2570,8 @@ body {
   width: 80px;
   height: 80px;
   margin: 0 auto 1.5rem;
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  background: linear-gradient(135deg, rgba(240, 253, 244, 0.4), rgba(220, 252, 231, 0.4));
+  /* backdrop-filter: blur(5px); */
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -2646,7 +2634,8 @@ body {
 /* 行动召唤样式 */
 .cta-section {
   padding: 6rem 0;
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  background: linear-gradient(135deg, rgba(240, 253, 244, 0.4) 0%, rgba(220, 252, 231, 0.4) 100%);
+  /* backdrop-filter: blur(5px); */
   color: #1B5E20;
   text-align: center;
   position: relative;
@@ -2656,10 +2645,11 @@ body {
 
 @keyframes ctaGradient {
   0%, 100% {
-    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    background: linear-gradient(135deg, rgba(240, 253, 244, 0.4) 0%, rgba(220, 252, 231, 0.4) 100%);
+  /* backdrop-filter: blur(5px); */
   }
   50% {
-    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    background: linear-gradient(135deg, rgba(220, 252, 231, 0.4) 0%, rgba(187, 247, 208, 0.4) 100%);
   }
 }
 
@@ -3396,5 +3386,12 @@ body {
 @keyframes textGradientFlow {
   0% { background-position: 0% center; }
   100% { background-position: 300% center; }
+}
+
+.home-container {
+  position: relative;
+  overflow-x: hidden;
+  position: relative;
+  overflow-x: hidden;
 }
 </style>
