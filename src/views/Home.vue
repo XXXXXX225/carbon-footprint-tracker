@@ -314,14 +314,14 @@ const initParticles = () => {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
   
-  let width = canvas.width = document.documentElement.scrollWidth
-  let height = canvas.height = document.documentElement.scrollHeight
+  let width = canvas.width = window.innerWidth
+  let height = canvas.height = window.innerHeight
   let particles: any[] = []
   
   window.addEventListener('resize', () => {
     if(canvas) {
-      width = canvas.width = document.documentElement.scrollWidth
-      height = canvas.height = document.documentElement.scrollHeight
+      width = canvas.width = window.innerWidth
+      height = canvas.height = window.innerHeight
       particles = []
       createParticles()
     }
@@ -756,9 +756,9 @@ body {
 }
 
 .particles {
-  position: absolute !important;
-  width: 100% !important;
-  height: 100% !important;
+  position: fixed !important;
+  width: 100vw !important;
+  height: 100vh !important;
   top: 0 !important;
   left: 0 !important;
   z-index: 0 !important;
