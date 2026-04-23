@@ -346,8 +346,8 @@ const initParticles = () => {
       if (this.y > height || this.y < 0) this.speedY *= -1
       
       // 鼠标交互: 距离鼠标近的粒子会避开鼠标并连线
-      const dx = (mouseX.value + window.scrollX) - this.x
-      const dy = (mouseY.value + window.scrollY) - this.y
+      const dx = mouseX.value - this.x
+      const dy = mouseY.value - this.y
       const distance = Math.sqrt(dx * dx + dy * dy)
       
       if (distance < 120) {
