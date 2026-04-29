@@ -1,15 +1,15 @@
-// API接口封装
+// API鎺ュ彛灏佽
 
 const BASE_URL = ''
 
-// 通用请求方法
+// 閫氱敤璇锋眰鏂规硶
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
     const token = localStorage.getItem('token')
 
-    console.log(`[API请求] URL: ${url}`)
-    console.log(`[API请求] Token存在: ${!!token}`)
-    console.log(`[API请求] Token值: ${token ? token.substring(0, 20) + '...' : 'null'}`)
-    console.log(`[API请求] localStorage内容:`, {
+    console.log(`[API璇锋眰] URL: ${url}`)
+    console.log(`[API璇锋眰] Token瀛樺湪: ${!!token}`)
+    console.log(`[API璇锋眰] Token鍊? ${token ? token.substring(0, 20) + '...' : 'null'}`)
+    console.log(`[API璇锋眰] localStorage鍐呭:`, {
         token: localStorage.getItem('token'),
         user: localStorage.getItem('user')
     })
@@ -19,27 +19,27 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
         ...options?.headers
     }
 
-    // 对于认证相关的请求，不添加Authorization token
+    // 瀵逛簬璁よ瘉鐩稿叧鐨勮姹傦紝涓嶆坊鍔燗uthorization token
     if (token && !url.startsWith('/auth/')) {
         headers['Authorization'] = `Bearer ${token}`
-        console.log(`[API请求] 已添加Authorization头: Bearer ${token.substring(0, 20)}...`)
+        console.log(`[API璇锋眰] 宸叉坊鍔燗uthorization澶? Bearer ${token.substring(0, 20)}...`)
     }
 
-    console.log(`[API请求] 完整headers:`, headers)
-    console.log(`[API请求] 完整URL: ${BASE_URL}${url}`)
+    console.log(`[API璇锋眰] 瀹屾暣headers:`, headers)
+    console.log(`[API璇锋眰] 瀹屾暣URL: ${BASE_URL}${url}`)
 
     const response = await fetch(`${BASE_URL}${url}`, {
         ...options,
         headers
     })
 
-    console.log(`[API响应] 状态码: ${response.status}`)
-    console.log(`[API响应] 响应头:`, Object.fromEntries(response.headers.entries()))
+    console.log(`[API鍝嶅簲] 鐘舵€佺爜: ${response.status}`)
+    console.log(`[API鍝嶅簲] 鍝嶅簲澶?`, Object.fromEntries(response.headers.entries()))
 
     if (!response.ok) {
         try {
             const error = await response.json()
-            console.error(`[API错误] 错误详情:`, error)
+            console.error(`[API閿欒] 閿欒璇︽儏:`, error)
             if (error.message) {
                 throw new Error(error.message)
             } else if (error.error) {
@@ -48,22 +48,22 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
                 throw new Error('请求失败')
             }
         } catch (e) {
-            throw new Error('请求失败：' + response.statusText)
+            throw new Error('请求失败: ' + response.statusText)
         }
     }
 
     try {
         const result = await response.json()
-        console.log(`[API响应] 数据:`, result)
+        console.log(`[API鍝嶅簲] 鏁版嵁:`, result)
         return (result.data || result) as T
     } catch (e) {
-        throw new Error('响应数据格式错误')
+        throw new Error('鍝嶅簲鏁版嵁鏍煎紡閿欒')
     }
 }
 
-// 认证相关API
+// 璁よ瘉鐩稿叧API
 export const authApi = {
-    // 登录
+    // 鐧诲綍
     login: (username: string, password: string) => {
         return request<{
             token: string
@@ -78,7 +78,7 @@ export const authApi = {
             body: JSON.stringify({ username, password })
         })
     },
-    // 注册
+    // 娉ㄥ唽
     register: (username: string, password: string, name: string, email: string) => {
         return request<{
             token: string
@@ -93,7 +93,7 @@ export const authApi = {
             body: JSON.stringify({ username, password, name, email })
         })
     },
-    // 登出
+    // 鐧诲嚭
     logout: () => {
         return request<{ success: boolean }>('/api/auth/logout', {
             method: 'POST'
@@ -103,7 +103,7 @@ export const authApi = {
 
 // 碳足迹相关API
 export const carbonApi = {
-    // 获取排放汇总
+    // 获取碳排放汇总
     getSummary: (period: string = 'month') => {
         return request<{
             userId: string
@@ -277,8 +277,8 @@ export const carbonApi = {
             method: 'DELETE'
         })
     },
-    // 获取减排建议
-    getRecommendations: () => {
+    // 获取碳行动计划
+    getActionPlans: () => {
         return request<Array<{
             id: number
             category: string
@@ -287,13 +287,13 @@ export const carbonApi = {
             impact: number
             difficulty: string
             cost: string
-        }>>('/api/recommendations')
+        }>>('/api/action-plans')
     }
 }
 
-// 用户相关API
+// 鐢ㄦ埛鐩稿叧API
 export const userApi = {
-    // 获取用户信息
+    // 鑾峰彇鐢ㄦ埛淇℃伅
     getUserInfo: () => {
         return request<{
             id: string
@@ -301,7 +301,7 @@ export const userApi = {
             email: string
         }>('/api/user/info')
     },
-    // 更新用户信息
+    // 鏇存柊鐢ㄦ埛淇℃伅
     updateUserInfo: (userInfo: {
         name: string
         email: string
@@ -539,4 +539,26 @@ export const goalApi = {
             method: 'DELETE'
         })
     }
+}
+
+// 建议相关API
+export const recommendationApi = {
+  // 从AI建议添加行动
+  addAiTask: (data: { content: string }) => 
+    request('/api/recommendations/add-from-ai', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    }),
+  // 更新用户建议状态
+  updateUserRecommendation: (data: { id: number, status: string, completedAt?: string }) => 
+    request('/api/recommendations/update', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    }),
 }

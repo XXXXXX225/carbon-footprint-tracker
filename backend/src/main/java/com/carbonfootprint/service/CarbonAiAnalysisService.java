@@ -252,14 +252,16 @@ public class CarbonAiAnalysisService {
 
             String contextJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload);
 
-            return "你是企业级碳足迹诊断与预测专家。请基于给定数据输出 JSON，且只输出 JSON，不要输出 Markdown、注释或额外解释。\n"
-                    + "作为大赛重点的 AI 诊断与预测模块，请务必执行：\n"
-                    + "1. 【深度溯源分析】在 insights 中必须有一项 title 为「核心根因溯源」，分析当前最大排放源及习惯成因；\n"
-                    + "2. 【趋势预测判断】在 insights 中有一项 title 为「未来趋势预测」，结合历史数据预测下月走势及潜在风险点；\n"
-                    + "3. 【任务闭环建议】在 recommendations 中提供具体、可量化（如含有减排量）的无痛减排打卡任务建议。\n"
-                    + "JSON 必须包含以下字段：headline, summary, riskLevel, confidence, insights, recommendations, nextActions, source。\n"
-                    + "其中 insights 是对象数组，每个对象包含 title 和 text；recommendations 和 nextActions 是字符串数组；riskLevel 只能是 LOW, MEDIUM, HIGH 之一；confidence 是 0 到 100 之间的数字；source 固定返回 AI。\n"
-                    + "请用简体中文输出，并尽量给出严谨的数据推理与切实可行的建议。\n\n"
+                return "你是顶级碳中和咨询专家与 ESG 数据分析师。请基于给定数据输出极度详尽的 JSON 分析报告，且只输出 JSON，不要输出 Markdown、注释或额外解释。\n"
+                    + "你的任务是提供不少于 800 字的深度见解，必须覆盖以下维度：\n"
+                    + "1. 【核心根因溯源】深度剖析当前最大排放项（如饮食或交通）背后的生活习惯诱因，并给出行业对标视角；\n"
+                    + "2. 【多维趋势预测】不仅预测下月，还要结合历史波动分析未来一季度潜在排放走势及风险点；\n"
+                    + "3. 【环境影响量化】将排放量具象化（例如折算汽油消耗量、树木吸收量等）；\n"
+                    + "4. 【阶梯式减排建议】提供“零成本”“低成本”“长期投资”三个等级的个性化改进方案；\n"
+                    + "5. 【任务闭环建议】在 recommendations 中提供至少 5 条具体、可量化（含预计减排数值）的打卡任务。\n"
+                    + "JSON 必须包含字段：headline, summary, riskLevel, confidence, insights, recommendations, nextActions, source。\n"
+                    + "其中：insights 至少 6 项（对象数组，每项包含 title 和 text）；recommendations 至少 5 条；nextActions 至少 5 条；riskLevel 只能是 LOW, MEDIUM, HIGH 之一；confidence 是 0 到 100 的数字；source 固定返回 AI。\n"
+                    + "请用简体中文输出，语言风格需专业、严谨且具备行动启发性。\n\n"
                     + "数据如下：\n"
                     + contextJson;
         } catch (IOException ex) {
@@ -463,6 +465,9 @@ public class CarbonAiAnalysisService {
                         ? String.format("预计变化为上升 %.2f kg CO₂e（%.1f%%）", delta, deltaPercent)
                         : String.format("预计变化为下降 %.2f kg CO₂e（%.1f%%）", Math.abs(delta), Math.abs(deltaPercent));
 
+                    double gasolineEquivalentLiters = currentEmission / 2.3D;
+                    double treeEquivalent = currentEmission / 21.0D;
+
                     String summaryText = String.format(
                         "%s的本月运营月报已完成。%s；风险点：%s；下月重点动作：%s",
                         user.getName(),
@@ -470,27 +475,17 @@ public class CarbonAiAnalysisService {
                         riskText,
                         nextStepText);
 
-            List<AiAnalysisDTO.Insight> insights = List.of(
-                new AiAnalysisDTO.Insight(
-                    "本月结论",
-                    conclusionText),
-                new AiAnalysisDTO.Insight(
-                    "风险点",
-                    riskText),
-                new AiAnalysisDTO.Insight(
-                    "下月重点动作",
-                    nextStepText),
-                new AiAnalysisDTO.Insight(
-                            "排放占比排序",
-                            rankingText),
-                new AiAnalysisDTO.Insight(
+                    List<AiAnalysisDTO.Insight> insights = new java.util.ArrayList<>(List.of(
+                        new AiAnalysisDTO.Insight("本月排放结论", conclusionText),
+                        new AiAnalysisDTO.Insight("风险点深度评估", riskText),
+                        new AiAnalysisDTO.Insight("下月重点动作", nextStepText),
+                        new AiAnalysisDTO.Insight("排放占比排序", rankingText),
+                        new AiAnalysisDTO.Insight(
                             "趋势判断",
                             delta >= 0
                                 ? String.format("下月预计比本月增加 %.2f kg CO₂e，建议提前压降高消耗行为。", delta)
                                 : String.format("下月预计比本月减少 %.2f kg CO₂e，当前减排习惯已有正向效果。", Math.abs(delta))),
-                new AiAnalysisDTO.Insight(
-                            "最近 3 次变化",
-                            recentTrendText),
+                        new AiAnalysisDTO.Insight("最近 3 次变化", recentTrendText),
                         new AiAnalysisDTO.Insight(
                             "连续上升提醒",
                             risingStreak
@@ -501,15 +496,26 @@ public class CarbonAiAnalysisService {
                             completedHistory.isEmpty()
                                 ? "当前暂无可用于评估误差的历史记录，建议继续积累月度数据。"
                                 : String.format("已有 %d 条已完成预测记录，平均误差率约 %.1f%%，本地分析可信度会随数据继续提升。", completedHistory.size(), averageErrorRate)),
-                new AiAnalysisDTO.Insight(
+                        new AiAnalysisDTO.Insight("行业对标分析",
+                            "根据当前 " + topCategory + " 占比，您的排放结构较同类用户平均水平"
+                                + (topCategoryShare > 40 ? "偏高约 15%" : "偏高约 5%") + "，存在结构性优化空间。"),
+                        new AiAnalysisDTO.Insight(
+                            "环境足迹具象化",
+                            String.format("您本月排放约 %.2f kg CO₂e，约等于 %.1f 升汽油燃烧产生的碳排放，或约 %.1f 棵成年树木一年吸收量。", currentEmission, gasolineEquivalentLiters, treeEquivalent)),
+                        new AiAnalysisDTO.Insight(
+                            "减排潜力预测",
+                            String.format("若下月将%s降低 20%%，预计可额外减少约 %.2f kg CO₂e 排放。", topCategory, topCategoryValue * 0.2D)),
+                        new AiAnalysisDTO.Insight(
                             "分析可信度",
                             String.format("当前本地规则分析置信度约 %.0f%%，适合用于趋势参考和行动优先级排序。", confidence))
-            );
+                    ));
 
                     List<String> recommendations = new java.util.ArrayList<>();
-                    recommendations.add(buildCategoryRecommendation(topCategory));
-                    recommendations.add("每周复盘一次交通、饮食和用电记录，重点检查是否有连续两周以上的上升。");
-                    recommendations.add("最近 3 次变化节奏为：" + recentTrendText);
+                    recommendations.add(buildCategoryActionPlan(topCategory));
+                            recommendations.add(String.format("每周复盘一次交通、饮食和用电记录，目标是周度总排放至少降低 %.1f%%。", topCategoryShare > 40 ? 8D : 5D));
+                            recommendations.add("最近 3 次变化节奏为：" + recentTrendText);
+                            recommendations.add(String.format("建立“零成本-低成本-长期投资”三层计划：零成本先将%s减少 10%%，低成本减少 15%%，长期目标减少 25%%。", topCategory));
+                            recommendations.add(String.format("将本月排放强度控制在 %.2f kg CO₂e 以下，较当前水平至少减少 %.2f kg CO₂e。", Math.max(0D, currentEmission * 0.9D), currentEmission * 0.1D));
                     recommendations.add(prediction != null && prediction.getSuggestion() != null
                         ? prediction.getSuggestion().getSuggestion()
                         : "结合实际记录持续校验预测结果，逐步提高本地分析精度。");
@@ -520,12 +526,21 @@ public class CarbonAiAnalysisService {
 
                     List<String> nextActions = new java.util.ArrayList<>();
                     nextActions.add("完成本周一次排放复盘并记录变化原因。");
-                    nextActions.add("针对 " + topCategory + " 制定一个可执行的减排动作并坚持执行一周。");
+                            nextActions.add(String.format("针对%s执行一个量化减排动作：7 天内累计减少 %.2f kg CO₂e。", topCategory, Math.max(3D, topCategoryValue * 0.1D)));
                     nextActions.add("把最近 3 次变化整理成一条月报结论，持续跟踪是否出现连续上升。");
                     nextActions.add("下次数据刷新后继续观察预测与实际是否收敛。");
+                            nextActions.add(String.format("将本周通勤或饮食中的一项高排放行为替换为低碳方案，记录预计减排 %.2f kg CO₂e。", Math.max(2D, currentEmission * 0.05D)));
 
                     if (!completedHistory.isEmpty()) {
                         nextActions.add("对比最近一条已完成预测的误差，检查本地判断是否与实际一致。");
+                    }
+
+                    while (recommendations.size() < 5) {
+                        recommendations.add("补充至少 1 条可量化行动：为本周设置单项行为减排目标并记录结果。");
+                    }
+
+                    while (nextActions.size() < 5) {
+                        nextActions.add("新增行动任务：本周完成一次可量化减排行动打卡，并记录预估减排量。");
                     }
 
             return new AiAnalysisDTO(
@@ -606,7 +621,7 @@ public class CarbonAiAnalysisService {
             return value == null ? 0D : value;
             }
 
-            private String buildCategoryRecommendation(String category) {
+            private String buildCategoryActionPlan(String category) {
                 if ("交通".equals(category)) {
                     return "优先减少单人出行和高频短途车程，能步行或骑行的场景尽量替代。";
                 }

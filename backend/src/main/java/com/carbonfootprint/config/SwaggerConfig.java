@@ -17,7 +17,7 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("碳足迹追踪平台 API")
-                        .description("碳足迹追踪平台后端API文档，包含用户认证、碳排放记录、数据报表和减排建议等功能")
+                        .description("碳足迹追踪平台后端API文档，包含用户认证、碳排放记录、数据报表和碳行动计划等功能")
                         .version("1.0.0")
                         .license(new License()
                                 .name("Apache 2.0")

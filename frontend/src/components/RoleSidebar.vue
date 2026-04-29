@@ -39,7 +39,7 @@ const iconMap: Record<string, any> = {
   '/emissions': Compass,
   '/report': DataLine,
   '/ai-analysis': TrendCharts,
-  '/recommendations': Star,
+  '/action-plan': Star,
   '/points': CollectionTag,
   '/dashboard-screen': Monitor,
   '/admin': Setting

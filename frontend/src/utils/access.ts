@@ -24,7 +24,7 @@ const userMenuItems: MenuItemConfig[] = [
     { path: '/emissions', label: '碳排放计算', scope: 'user' },
     { path: '/report', label: '报表展示', scope: 'user' },
     { path: '/ai-analysis', label: 'AI分析预测', scope: 'user' },
-    { path: '/recommendations', label: '减排建议', scope: 'user' },
+    { path: '/action-plan', label: '碳行动计划', scope: 'user' },
     { path: '/points', label: '减碳积分', scope: 'user' }
 ]
 
@@ -47,7 +47,7 @@ const topNavItems: TopNavItemConfig[] = [
 const routeScopes: Array<{ scope: Exclude<RouteScope, 'public'>; paths: string[] }> = [
     {
         scope: 'user',
-        paths: ['/dashboard', '/emissions', '/report', '/ai-analysis', '/recommendations', '/points', '/profile']
+        paths: ['/dashboard', '/emissions', '/report', '/ai-analysis', '/action-plan', '/points', '/profile']
     },
     {
         scope: 'operator',

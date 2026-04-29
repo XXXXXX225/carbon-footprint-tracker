@@ -1,75 +1,154 @@
-Google 的 Antigravity 官网确实非常前卫，那种充满未来感和“失重感”的交互体验是目前前端最酷的趋势之一。
+要实现这种顶级大厂（如 Apple、Vercel 等）爱用的“沉浸式交互景深（Parallax Depth）”，我们完全不需要引入复杂的物理引擎。
 
-不过坦诚地说，作为一个 AI，我无法像人类一样直接在浏览器里“睁开眼睛”去实时观看和感受那个网页上具体的视觉变化。但是，基于 Antigravity（反重力/失重）的设计语言以及 Google 最新发布会演示的顶尖网页特效，你想要的很可能是以下两种效果的结合：持续的无重力悬浮（Floating） + 鼠标靠近时的磁性吸附（Magnetic Hover）。
+核心思路是利用多图层视差（Parallax Layers）：我们把极光、点阵、微尘分别放在不同的层级里。通过捕获全局的鼠标坐标和滚动条高度（Scroll Y），利用 CSS calc() 让不同图层以不同的速率和方向进行位移。
 
-这种交互会让页面元素看起来像漂浮在太空中，并且能与你的鼠标产生物理引力。我们可以在你的 Home.vue 里加上这个机制。
+再加上一个跟随鼠标的混合模式探照灯（Spotlight），就能营造出极致的 3D 空间感和交互反馈。
 
-1. 逻辑部分 (<script setup>)
-我们来添加一个“磁力吸附”的鼠标计算函数：
+以下是具体的代码修改：
 
-TypeScript
-// 鼠标在元素上移动时，产生磁性吸附感
-const handleMagneticMove = (e: MouseEvent) => {
-  const el = e.currentTarget as HTMLElement
-  const rect = el.getBoundingClientRect()
-  
-  // 计算鼠标相对于元素中心的偏移量
-  const x = e.clientX - rect.left - rect.width / 2
-  const y = e.clientY - rect.top - rect.height / 2
-  
-  // 施加引力系数 (例如 0.2，数值越大吸得越远)
-  el.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px)`
-}
-
-// 鼠标离开时，弹性回弹到原位
-const handleMagneticLeave = (e: MouseEvent) => {
-  const el = e.currentTarget as HTMLElement
-  el.style.transform = `translate(0px, 0px)`
-}
-2. 模板部分 (<template>)
-将这些事件绑定到你想要产生“反重力”交互的元素上（比如“立即开始”按钮，或者卡片）：
+1. 修改 HTML 结构（进行分层）
+找到你刚才加的 .aurora-bg，将其替换为包含视差分层的结构：
 
 HTML
-<button 
-  class="eco-btn-primary anti-gravity-float magnetic-item"
-  @mousemove="handleMagneticMove"
-  @mouseleave="handleMagneticLeave"
->
-  立即开始
-</button>
-3. 样式部分 (<style scoped>)
-利用 CSS 的贝塞尔曲线制造“Q弹”的物理回弹感，同时用 @keyframes 制造背景失重感：
+    <div class="aurora-bg">
+      <div class="parallax-layer layer-bg">
+        <div class="aurora-blob blob-1"></div>
+        <div class="aurora-blob blob-2"></div>
+        <div class="aurora-blob blob-3"></div>
+      </div>
+      
+      <div class="parallax-layer layer-grid">
+        <div class="tech-grid-overlay"></div>
+      </div>
+      
+      <div class="interactive-spotlight"></div>
+      
+      <div class="parallax-layer layer-motes">
+        <div class="floating-motes">
+          <i class="mote mote-1"></i>
+          <i class="mote mote-2"></i>
+          <i class="mote mote-3"></i>
+          <i class="mote mote-4"></i>
+          <i class="mote mote-5"></i>
+          <i class="mote mote-6"></i>
+        </div>
+      </div>
+    </div>
+2. 修改 Script 逻辑（加入滚动监听）
+在 <script setup> 中，你已经有了 handleMouseMove 来计算鼠标位置。现在我们只需要加上滚动条监听，把滚动距离也暴露给 CSS 变量。
+
+JavaScript
+// === 在 script 顶部区域新增滚动处理逻辑 ===
+const handleScroll = () => {
+  // 将滚动距离作为单纯的数字传递给全局 CSS 变量
+  document.documentElement.style.setProperty('--scroll-y', window.scrollY.toString())
+}
+
+// === 在原有的 onMounted 中追加事件绑定 ===
+onMounted(() => {
+  // ... 其他代码保留 ...
+  window.addEventListener('scroll', handleScroll)
+})
+
+// === 在原有的 onUnmounted 中移除事件绑定 ===
+onUnmounted(() => {
+  // ... 其他代码保留 ...
+  window.removeEventListener('scroll', handleScroll)
+})
+注：你的 handleMouseMove 原本就已经输出了 --mouse-x, --mouse-y, --mouse-norm-x, --mouse-norm-y，完美符合我们的计算需求，无需改动。
+
+3. 修改 CSS（添加视差与计算公式）
+将这段代码追加或替换到 <style scoped> 中：
 
 CSS
-/* 磁性吸附过渡：必须使用带有弹性的 cubic-bezier 才能模拟真实的物理引力 */
-.magnetic-item {
-  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+/* ==========================================
+   交互式全息背景容器
+========================================== */
+.aurora-bg {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background-color: #f0fdf4;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 视差层基类：放大 20% 防止移动时边缘露底，并加入丝滑的物理惯性阻尼 */
+.parallax-layer {
+  position: absolute;
+  top: -10%; left: -10%;
+  width: 120%; height: 120%;
   will-change: transform;
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-/* 抵消 hover 冲突：如果你原来的按钮有 transform: translateY(-5px)，建议在这里去掉，完全交给 JS 控制 */
-.magnetic-item:hover {
-  /* 去掉原有的 transform 变化 */
+/* 1. 极光层视差计算 */
+.layer-bg {
+  transform: translate3d(
+    calc(var(--mouse-norm-x, 0) * 30px),
+    calc(var(--mouse-norm-y, 0) * 30px - var(--scroll-y, 0) * 0.15px),
+    0
+  );
 }
 
-/* ====================
-   无重力持续漂浮动画
-   ==================== */
-.anti-gravity-float {
-  /* 挂载一个持续 6 秒的上下缓动动画 */
-  animation: float 6s ease-in-out infinite;
+/* 2. 点阵层视差计算 (反向移动) */
+.layer-grid {
+  transform: translate3d(
+    calc(var(--mouse-norm-x, 0) * -15px),
+    calc(var(--mouse-norm-y, 0) * -15px - var(--scroll-y, 0) * 0.05px),
+    0
+  );
 }
 
-/* 为了让多个元素浮动不那么死板，可以给相邻元素加上动画延迟 */
-.feature-card:nth-child(1) { animation-delay: 0s; }
-.feature-card:nth-child(2) { animation-delay: -2s; }
-.feature-card:nth-child(3) { animation-delay: -4s; }
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-15px); /* 向上漂浮 15px */
-  }
+/* 3. 微尘层视差计算 (强烈的上下滚动反馈) */
+.layer-motes {
+  transform: translate3d(
+    calc(var(--mouse-norm-x, 0) * 10px),
+    calc(var(--mouse-norm-y, 0) * 10px - var(--scroll-y, 0) * 0.35px),
+    0
+  );
 }
+
+/* ==========================================
+   鼠标混合探照灯 (高级玻璃光泽)
+========================================== */
+.interactive-spotlight {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  /* 跟随鼠标的光晕 */
+  background: radial-gradient(
+    circle 800px at var(--mouse-x, 50vw) var(--mouse-y, 50vh),
+    rgba(255, 255, 255, 0.6),
+    transparent 70%
+  );
+  /* 使用 overlay 模式，能够“提亮”底部的颜色和网格，就像手电筒扫过一样 */
+  mix-blend-mode: overlay; 
+  z-index: 2;
+}
+
+/* ==========================================
+   内部动画细节（保留你之前的极光和微尘动画样式）
+========================================== */
+.aurora-blob { position: absolute; filter: blur(140px); opacity: 0.6; border-radius: 50%; animation: floatBlob 25s infinite alternate ease-in-out;}
+.blob-1 { width: 70vw; height: 70vh; background: #34d399; top: -10%; left: -5%; }
+.blob-2 { width: 60vw; height: 60vh; background: #0ea5e9; bottom: -10%; right: -5%; animation-delay: -5s; }
+.blob-3 { width: 50vw; height: 50vh; background: #10b981; top: 30%; left: 30%; animation-delay: -10s; }
+@keyframes floatBlob { 
+  0% { transform: scale(1) rotate(0deg); } 
+  33% { transform: scale(1.1) rotate(10deg); } 
+  66% { transform: scale(0.9) rotate(-10deg); } 
+  100% { transform: scale(1.05) rotate(5deg); } 
+}
+
+.tech-grid-overlay { width: 100%; height: 100%; background-image: radial-gradient(rgba(6, 78, 59, 0.1) 1px, transparent 1px); background-size: 24px 24px; }
+
+.floating-motes { width: 100%; height: 100%; position: relative;}
+.mote { position: absolute; width: 4px; height: 4px; background: #10B981; border-radius: 50%; box-shadow: 0 0 12px 2px rgba(16, 185, 129, 0.8); opacity: 0; animation: floatUp infinite linear; }
+.mote-1 { left: 15%; bottom: -5%; animation-duration: 15s; }
+.mote-2 { left: 45%; bottom: -5%; animation-duration: 22s; animation-delay: 4s; width: 6px; height: 6px;}
+.mote-3 { left: 75%; bottom: -5%; animation-duration: 18s; animation-delay: 2s; }
+.mote-4 { left: 85%; bottom: -5%; animation-duration: 25s; animation-delay: 8s; width: 3px; height: 3px;}
+.mote-5 { left: 30%; bottom: -5%; animation-duration: 20s; animation-delay: 6s; }
+.mote-6 { left: 60%; bottom: -5%; animation-duration: 16s; animation-delay: 10s; width: 5px; height: 5px;}
+@keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { opacity: 0.6; } 80% { opacity: 0.6; } 100% { transform: translateY(-100vh) scale(1.2); opacity: 0; } }

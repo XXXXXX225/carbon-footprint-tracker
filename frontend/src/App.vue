@@ -28,9 +28,9 @@ onMounted(() => {
 <style>
 :root {
   --el-font-family: 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  --primary-color: #4CAF50;
-    --secondary-color: #81C784;
-  --accent-color: #2E7D32;
+  --primary-color: #15803d;
+  --secondary-color: #86efac;
+  --accent-color: #065f46;
   --background-color: #F0F8F0;
   --text-color: #333333;
 }
@@ -60,13 +60,21 @@ body {
   min-height: 100vh;
 }
 
-.el-header {
-  background-color: rgba(76, 175, 80, 0.9) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: white;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+/* 移除 .el-header 的全局覆盖，改为仅对 .dashboard-header 生效，避免破坏 AI 推演中心等特殊独立主题 */
+.dashboard-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(244, 250, 246, 0.94) 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: #0f172a;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+  border-bottom: 1px solid rgba(21, 128, 61, 0.12);
 }
 
 .el-aside {
@@ -80,6 +88,35 @@ body {
 .el-main {
   background-color: transparent !important; /* 让 body 的极光流体背景透出 */
   padding: 20px;
+}
+
+.dashboard-header .header-left .logo-link,
+.dashboard-header .header-left .logo-link:visited,
+.dashboard-header .header-left .logo-link:hover,
+.dashboard-header .header-left .logo-link:active {
+  color: var(--accent-color) !important;
+  text-decoration: none;
+}
+
+.dashboard-header .header-left h1 {
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  margin: 0;
+  color: var(--accent-color) !important;
+}
+
+.dashboard-header .user-info {
+  color: #0f172a !important;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard-header .el-icon {
+  color: var(--accent-color);
 }
 
 .page-shell {

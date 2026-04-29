@@ -43,6 +43,17 @@
               <CarbonChart type="pie" :data="categoryPieData" :height="220" :showActions="false" />
             </div>
           </div>
+
+          <div class="cyber-panel action-panel" v-if="actionableRecommendations.length">
+            <h3 class="panel-title">ACTION BRIEF</h3>
+            <div class="action-brief-list">
+              <div v-for="item in actionableRecommendations" :key="item.title + item.detail" class="action-brief-item">
+                <div class="action-brief-label">{{ item.title }}</div>
+                <p>{{ item.detail }}</p>
+              </div>
+            </div>
+            <el-button class="cyber-button action-bridge-button" @click="openActionPlan">查看碳行动计划</el-button>
+          </div>
         </div>
 
         <div class="sandbox-terminal">
@@ -124,11 +135,42 @@
           </ul>
         </div>
 
-        <div class="report-section" v-if="aiAnalysis?.recommendations?.length || prediction?.suggestion">
-          <h2>改善建议与指导</h2>
+        <div class="report-section" v-if="aiAnalysis?.recommendations?.length || prediction?.suggestion || aiAnalysis?.nextActions?.length">
+          <h2>AI 行动建议</h2>
           <ul class="recommendation-list">
-             <li v-if="prediction?.suggestion"><strong>系统优先建议：</strong> {{ prediction.suggestion.suggestion }}</li>
-             <li v-for="(rec, idx) in aiAnalysis?.recommendations || []" :key="'r-'+idx">{{ rec }}</li>
+             <li v-if="prediction?.suggestion">
+               <strong>系统优先建议：</strong> {{ prediction.suggestion.suggestion }}
+               <el-button 
+                 type="primary" 
+                 link 
+                 @click="acceptAiTask(prediction.suggestion.suggestion)"
+                 style="margin-left: 10px;"
+               >
+                 领取任务
+               </el-button>
+             </li>
+             <li v-for="(rec, idx) in aiAnalysis?.recommendations || []" :key="'r-'+idx">
+               {{ rec }}
+               <el-button 
+                 type="primary" 
+                 link 
+                 @click="acceptAiTask(rec)"
+                 style="margin-left: 10px;"
+               >
+                 领取任务
+               </el-button>
+             </li>
+             <li v-for="(action, idx) in aiAnalysis?.nextActions || []" :key="'na-'+idx">
+               {{ action }}
+               <el-button 
+                 type="primary" 
+                 link 
+                 @click="acceptAiTask(action)"
+                 style="margin-left: 10px;"
+               >
+                 领取任务
+               </el-button>
+             </li>
           </ul>
         </div>
 
@@ -155,7 +197,7 @@
 import { computed, onMounted, ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import CarbonChart from '../components/CarbonChart.vue'
-import { aiAnalysisApi, carbonApi, predictionApi } from '../api'
+import { aiAnalysisApi, carbonApi, predictionApi, recommendationApi } from '../api'
 import { TrendCharts, House, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import html2canvas from 'html2canvas'
@@ -186,6 +228,54 @@ const categoryPieData = computed(() => ({
     { name: '用电', value: summary.value?.electricityEmission || 0, itemStyle: { color: '#00ffaa' } }
   ]
 }))
+
+const actionableRecommendations = computed(() => {
+  const items: Array<{ title: string, detail: string }> = []
+
+  if (prediction.value?.suggestion?.suggestion) {
+    items.push({
+      title: '系统优先建议',
+      detail: prediction.value.suggestion.suggestion
+    })
+  }
+
+  if (Array.isArray(aiAnalysis.value?.recommendations)) {
+    aiAnalysis.value.recommendations.slice(0, 2).forEach((recommendation: string, index: number) => {
+      items.push({
+        title: index === 0 ? 'AI 建议 1' : 'AI 建议 2',
+        detail: recommendation
+      })
+    })
+  }
+
+  if (Array.isArray(aiAnalysis.value?.nextActions)) {
+    aiAnalysis.value.nextActions.slice(0, 1).forEach((action: string) => {
+      items.push({
+        title: '下一步行动',
+        detail: action
+      })
+    })
+  }
+
+  return items.slice(0, 3)
+})
+
+const openActionPlan = () => {
+  router.push('/action-plan')
+}
+
+const acceptAiTask = async (taskText: string) => {
+  try {
+    // 调用新增接口或现有的任务跟踪接口
+    await recommendationApi.addAiTask({ content: taskText });
+    ElMessage.success('成功加入碳行动清单！');
+    
+    // 可选：提示后跳转
+    // router.push('/recommendations');
+  } catch (error) {
+    ElMessage.error('领取失败');
+  }
+}
 
 // --- 流式打字机沙盘核心逻辑 ---
 const terminalBody = ref<HTMLElement | null>(null)
@@ -231,10 +321,16 @@ const startAiInference = async () => {
   
   await typeLine('Initiating neural network analysis module...', 30)
   await sleep(400)
-  await typeLine('Extracting historical carbon footprint data... <span style="color:#34d399">[SUCCESS]</span>', 10)
+  await typeLine('Scanning historical database (Last 8 months)... <span style="color:#34d399">[OK]</span>', 10)
+  await sleep(450)
+  await typeLine('Cross-referencing global carbon benchmarks... <span style="color:#34d399">[OK]</span>', 10)
+  await sleep(500)
+  await typeLine('Calculating behavioral correlation coefficients...', 40)
   await sleep(600)
-  await typeLine('Applying predictive models...', 40)
-  await sleep(800)
+  await typeLine('Building quarter-ahead volatility projection matrix...', 28)
+  await sleep(500)
+  await typeLine('Quantifying environmental footprint equivalence...', 32)
+  await sleep(600)
   
   // 结合真实的后端数据输出
   const nextMonthPred = prediction.value?.predictedEmission?.toFixed(2) || 'N/A'
@@ -268,6 +364,29 @@ const startAiInference = async () => {
   }
 
   await sleep(500)
+  await typeLine(`<br><span style="color:#facc15; font-weight:bold;">[EXPERT DIAGNOSIS]</span>`, 20)
+  await sleep(300)
+  await typeLine('- Evaluating root causes behind dominant emission categories...', 18)
+  await sleep(280)
+  await typeLine('- Assessing next-quarter uncertainty and rebound risks...', 18)
+  await sleep(280)
+  await typeLine('- Drafting tiered action plan: zero-cost / low-cost / long-term investment.', 18)
+  await sleep(350)
+
+  await typeLine(`<br><span style="background: linear-gradient(135deg, #6ee7b7, #10b981); -webkit-background-clip: text; color: transparent; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: 1px; display: inline-block;">>> DIAGNOSTIC INSIGHTS:</span>`, 20)
+  await sleep(240)
+
+  if (aiAnalysis.value?.insights?.length) {
+    await typeLine(`[INSIGHT COUNT] ${aiAnalysis.value.insights.length} expert observations synchronized.`, 16)
+    await sleep(220)
+  }
+
+  await typeLine(`[RECOMMENDATION PIPELINE] tiered action engine ready.`, 16)
+  await sleep(220)
+
+  await typeLine(`[NEXT-ACTION LOOP] measurable tasks mapped with expected carbon impact.`, 16)
+  await sleep(260)
+
   await typeLine(`<br><span style="background: linear-gradient(135deg, #6ee7b7, #10b981); -webkit-background-clip: text; color: transparent; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: 1px; display: inline-block;">>> GENERATING ACTIONABLE INTELLIGENCE:</span>`, 20)
   
   if (aiAnalysis.value?.insights && aiAnalysis.value.insights.length > 0) {
@@ -290,7 +409,7 @@ const startAiInference = async () => {
   
   if (aiAnalysis.value?.recommendations && aiAnalysis.value.recommendations.length > 0) {
     await sleep(400)
-    await typeLine(`<br><span style="color:#38bdf8; font-weight:bold;">[RECOMMENDATIONS]</span>`, 20)
+    await typeLine(`<br><span style="color:#38bdf8; font-weight:bold;">[ACTION BRIEF]</span>`, 20)
     for (const rec of aiAnalysis.value.recommendations) {
        await sleep(300)
        await typeLine(`  * ${rec}`, 20)
@@ -518,6 +637,24 @@ onMounted(() => {
 }
 
 .sandbox-sidebar { width: 320px; display: flex; flex-direction: column; gap: 24px; }
+.action-panel { display: grid; gap: 16px; }
+.action-brief-list { display: grid; gap: 12px; }
+.action-brief-item {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(0, 229, 255, 0.06);
+  border: 1px solid rgba(0, 229, 255, 0.14);
+}
+.action-brief-label {
+  color: #6ee7b7;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.action-brief-item p { margin: 0; color: #cbd5e1; line-height: 1.7; }
+.action-bridge-button { width: 100%; }
 .status-indicator { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 14px; color: #a4d8d8; font-weight: 600; }
 .led { width: 10px; height: 10px; border-radius: 50%; background: #1a3a3a; border: 1px solid #00ffaa; }    
 .led-active { background: #00ffaa; box-shadow: 0 0 10px #00ffaa, 0 0 20px #00ffaa; border: none; animation: pulse 2s infinite; }
@@ -652,10 +789,13 @@ onMounted(() => {
 }
 .summary-text {
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.8;
   color: #334155;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   text-align: justify;
+  padding: 15px;
+  background: #f8fafc;
+  border-radius: 4px;
 }
 .insight-list, .recommendation-list, .action-list {
   padding-left: 25px;
@@ -663,7 +803,11 @@ onMounted(() => {
   line-height: 1.8;
   color: #334155;
 }
-.insight-list li { margin-bottom: 10px; }
+.insight-list li {
+  margin-bottom: 15px;
+  border-bottom: 1px dashed #e2e8f0;
+  padding-bottom: 10px;
+}
 .recommendation-list li, .action-list li { margin-bottom: 8px; }
 
 .report-footer {

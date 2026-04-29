@@ -70,16 +70,16 @@ CREATE TABLE IF NOT EXISTS electricity_emissions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 碳足迹汇总表
-CREATE TABLE IF NOT EXISTS footprint_summaries (
+CREATE TABLE IF NOT EXISTS footprint_summary (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
     period ENUM('DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY') NOT NULL,
     period_start_date DATE NOT NULL,
     period_end_date DATE NOT NULL,
-    total_emission DOUBLE DEFAULT 0,
     transport_emission DOUBLE DEFAULT 0,
     diet_emission DOUBLE DEFAULT 0,
     electricity_emission DOUBLE DEFAULT 0,
+    total_emission DOUBLE DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -87,8 +87,27 @@ CREATE TABLE IF NOT EXISTS footprint_summaries (
     INDEX idx_summary_period (period, period_start_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 减排建议表
-CREATE TABLE IF NOT EXISTS recommendations (
+-- 预测历史表
+CREATE TABLE IF NOT EXISTS carbon_prediction_history (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    target_month VARCHAR(7) NOT NULL,
+    prediction_date DATE NOT NULL,
+    predicted_emission DOUBLE NOT NULL,
+    confidence DOUBLE NOT NULL,
+    trend VARCHAR(100),
+    actual_emission DOUBLE,
+    absolute_error DOUBLE,
+    error_rate DOUBLE,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT uk_prediction_user_target_month UNIQUE (user_id, target_month),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 碳行动计划表
+CREATE TABLE IF NOT EXISTS action_plans (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     category ENUM('TRANSPORT', 'DIET', 'ELECTRICITY', 'OTHER') NOT NULL,
     title VARCHAR(100) NOT NULL,
@@ -98,38 +117,37 @@ CREATE TABLE IF NOT EXISTS recommendations (
     cost ENUM('LOW', 'MEDIUM', 'HIGH') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_category (category)
+    INDEX idx_action_plan_category (category)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 用户建议关联表
-CREATE TABLE IF NOT EXISTS user_recommendations (
+-- 用户行动计划关联表
+CREATE TABLE IF NOT EXISTS user_action_plans (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
-    recommendation_id BIGINT NOT NULL,
+    action_plan_id BIGINT NOT NULL,
     status ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED') NOT NULL DEFAULT 'PENDING',
+    adopted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (recommendation_id) REFERENCES recommendations(id) ON DELETE CASCADE,
-    INDEX idx_user_recommendations_user_id (user_id),
-    INDEX idx_user_recommendations_status (status)
+    FOREIGN KEY (action_plan_id) REFERENCES action_plans(id) ON DELETE CASCADE,
+    INDEX idx_user_action_plans_user_id (user_id),
+    INDEX idx_user_action_plans_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 插入默认用户 (密码: BCrypt加密后的值)
--- admin123: $2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iK7OGq
--- user123: $2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iK7OGq
+-- 插入默认用户
 INSERT INTO users (username, password, name, email, role) VALUES
 ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iK7OGq', '管理员', 'admin@carbonfootprint.com', 'ADMIN'),
 ('user', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iK7OGq', '普通用户', 'user@carbonfootprint.com', 'INDIVIDUAL');
 
--- 插入一些基础的减排建议数据
-INSERT INTO recommendations (category, title, description, impact, difficulty, cost)
+-- 插入基础碳行动计划
+INSERT INTO action_plans (category, title, description, impact, difficulty, cost)
 VALUES
-('TRANSPORT', '每周步行或骑行2次', '对于3公里内的短途出行,选择步行或骑行代替交通工具,减少碳排放', 5.2, 'LOW', 'LOW'),
-('TRANSPORT', '使用公共交通工具', '每周使用公共交通工具代替私家车1-2次,减少交通拥堵和碳排放', 8.7, 'MEDIUM', 'LOW'),
-('DIET', '每周增加2顿素食', '减少肉类消费,每周增加2顿素食,降低饮食碳足迹', 7.5, 'LOW', 'LOW'),
-('DIET', '减少食物浪费', '合理规划采购,使用剩余食材,减少食物浪费', 3.2, 'LOW', 'LOW'),
-('ELECTRICITY', '使用节能电器', '更换为节能灯具和电器,减少待机功耗', 4.8, 'MEDIUM', 'MEDIUM'),
-('ELECTRICITY', '调整空调温度', '夏季空调设置26°C,冬季20°C,减少能源消耗', 6.3, 'LOW', 'LOW'),
+('TRANSPORT', '每周步行或骑行2次', '对于3公里内的短途出行，选择步行或骑行代替交通工具，减少碳排放', 5.2, 'LOW', 'LOW'),
+('TRANSPORT', '使用公共交通工具', '每周使用公共交通工具代替私家车1-2次，减少交通拥堵和碳排放', 8.7, 'MEDIUM', 'LOW'),
+('DIET', '每周增加2顿素食', '减少肉类消费，每周增加2顿素食，降低饮食碳足迹', 7.5, 'LOW', 'LOW'),
+('DIET', '减少食物浪费', '合理规划采购，使用剩余食材，减少食物浪费', 3.2, 'LOW', 'LOW'),
+('ELECTRICITY', '使用节能电器', '更换为节能灯具和电器，减少待机功耗', 4.8, 'MEDIUM', 'MEDIUM'),
+('ELECTRICITY', '调整空调温度', '夏季空调设置26°C，冬季20°C，减少能源消耗', 6.3, 'LOW', 'LOW'),
 ('OTHER', '参与碳抵消项目', '通过植树或购买碳信用额度来抵消无法减少的碳排放', 10.0, 'HIGH', 'HIGH'),
-('OTHER', '推广环保理念', '向家人朋友宣传低碳生活方式,扩大环保影响', 2.5, 'LOW', 'LOW');
+('OTHER', '推广环保理念', '向家人朋友宣传低碳生活方式，扩大环保影响', 2.5, 'LOW', 'LOW');

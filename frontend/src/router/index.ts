@@ -43,8 +43,8 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
   },
   {
-    path: '/recommendations',
-    name: 'Recommendations',
+    path: '/action-plan',
+    name: 'ActionPlan',
     component: () => import('../views/Recommendations.vue'),
     meta: { requiresAuth: true, roles: ['INDIVIDUAL', 'ENTERPRISE', 'ADMIN'] }
   },

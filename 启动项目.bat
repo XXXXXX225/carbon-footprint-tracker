@@ -28,7 +28,7 @@ echo Waiting...
 timeout /t 10 /nobreak >nul
 
 echo [2/2] Starting Frontend...
-start "Frontend" /D "%~dp0" cmd /k npm run dev
+start "Frontend" /D "%~dp0frontend" cmd /k npm run dev
 
 echo.
 echo Started!

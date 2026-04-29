@@ -114,7 +114,7 @@
           <router-link to="/">首页</router-link>
           <router-link to="/dashboard">仪表盘</router-link>
           <router-link to="/news">资讯中心</router-link>
-          <router-link to="/recommendations">减排建议</router-link>
+          <router-link to="/action-plan">碳行动计划</router-link>
           <router-link to="/login">登录/注册</router-link>
         </div>
         <div class="footer-contact">

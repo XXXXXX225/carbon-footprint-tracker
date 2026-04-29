@@ -40,10 +40,5 @@ frontend/target/
 frontend-from-server.tar.gz
 frontend-src.tar.gz
 
-# Script files
-*.ps1
-*.sh
-*.bat
-
 # Other
 frontend.zip
