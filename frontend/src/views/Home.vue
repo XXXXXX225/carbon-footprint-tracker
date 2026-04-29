@@ -152,48 +152,42 @@
       <div class="features-container">
         <h3 class="section-title">核心功能</h3>
         <div class="features-grid">
-          <div class="feature-card fade-in" data-aos="fade-up"
-          @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
+          <div class="feature-card reveal-blur" style="--delay: 0s" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
             <div class="feature-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
             </div>
             <h4>交通排放追踪</h4>
             <p>记录您的日常出行，计算并分析交通方式对环境的长期影响与减排潜力。</p>
           </div>
-          <div class="feature-card fade-in" data-aos="fade-up" data-aos-delay="100"
-          @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
+          <div class="feature-card reveal-blur" style="--delay: 0.15s" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
             <div class="feature-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
             </div>
             <h4>饮食排放分析</h4>
             <p>深入了解您的饮食习惯产生的碳足迹，获取量身定制的健康环保饮食建议。</p>
           </div>
-          <div class="feature-card fade-in" data-aos="fade-up" data-aos-delay="200"
-          @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
+          <div class="feature-card reveal-blur" style="--delay: 0.3s" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
             <div class="feature-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
             </div>
             <h4>用电排放监测</h4>
             <p>全天候追踪您的家庭用电量，智能分析能源使用效率，发掘潜在的节能机会。</p>
           </div>
-          <div class="feature-card fade-in" data-aos="fade-up" data-aos-delay="300"
-          @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
+          <div class="feature-card reveal-blur" style="--delay: 0.45s" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
             <div class="feature-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
             </div>
             <h4>碳行动计划</h4>
             <p>协助您设定个人减排目标，动态跟踪进展，生成真正可执行的低碳生活方案。</p>
           </div>
-          <div class="feature-card fade-in" data-aos="fade-up" data-aos-delay="400"
-          @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
+          <div class="feature-card reveal-blur" style="--delay: 0.6s" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
             <div class="feature-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
             </div>
             <h4>排放报告生成</h4>
             <p>一键生成专业详尽的碳排放评估报告，清晰展示您的环保成就与社会价值。</p>
           </div>
-          <div class="feature-card fade-in" data-aos="fade-up" data-aos-delay="500"
-          @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
+          <div class="feature-card reveal-blur" style="--delay: 0.75s" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
             <div class="feature-icon">
               <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=carbon%20action%20plan%20recommendations%20icon%2C%20clean%20modern%20design%2C%20minimalist%2C%20professional&image_size=square" alt="行动方案" />
             </div>
@@ -208,42 +202,42 @@
       <div class="why-us-container">
         <h3 class="section-title">为什么选择我们的平台</h3>
         <div class="why-us-grid">
-          <div class="why-us-item fade-in" data-aos="fade-up" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
+          <div class="why-us-item reveal-blur" style="--delay: 0.1s" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
             <div class="why-us-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
             </div>
             <h4>数据驱动</h4>
             <p>基于权威科学计算模型，提供最精确、可追溯的碳排放数据体系与深度图表分析。</p>
           </div>
-          <div class="why-us-item fade-in" data-aos="fade-up" data-aos-delay="100" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
+          <div class="why-us-item reveal-blur" style="--delay: 0.25s" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
             <div class="why-us-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
             </div>
             <h4>用户友好</h4>
             <p>极简直观的玻璃态 UI 界面设计，剔除复杂概念，让碳排放追踪变得轻松且赏心悦目。</p>
           </div>
-          <div class="why-us-item fade-in" data-aos="fade-up" data-aos-delay="200" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
+          <div class="why-us-item reveal-blur" style="--delay: 0.4s" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
             <div class="why-us-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
             <h4>个性化服务</h4>
             <p>算法将根据您独有的生活习惯与出行规律，动态调整并生成专属您的减排挑战计划。</p>
           </div>
-          <div class="why-us-item fade-in" data-aos="fade-up" data-aos-delay="300" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
+          <div class="why-us-item reveal-blur" style="--delay: 0.55s" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
             <div class="why-us-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             </div>
             <h4>绝对安全</h4>
             <p>采用企业级加密协议，承诺绝不滥用隐私，全面保障您的个人碳排放数据资产安全。</p>
           </div>
-          <div class="why-us-item fade-in" data-aos="fade-up" data-aos-delay="400" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
+          <div class="why-us-item reveal-blur" style="--delay: 0.7s" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
             <div class="why-us-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
             </div>
             <h4>生态互联</h4>
             <p>链接全球绿色环保达人，在社区中分享心得与成就，共同构建可持续的零碳生态圈。</p>
           </div>
-          <div class="why-us-item fade-in" data-aos="fade-up" data-aos-delay="500" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
+          <div class="why-us-item reveal-blur" style="--delay: 0.85s" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
             <div class="why-us-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
             </div>
@@ -426,17 +420,46 @@ const initThreeEarth = () => {
 
   const earthGeo = new THREE.IcosahedronGeometry(4, 2)
   const earthMat = new THREE.MeshBasicMaterial({ 
-    color: 0x064e3b, 
+    color: 0x10b981,         
     wireframe: true,
     transparent: true,
-    opacity: 0.3
+    opacity: 0.15,           
+    blending: THREE.AdditiveBlending 
   })
   earthMesh = new THREE.Mesh(earthGeo, earthMat)
   scene.add(earthMesh)
 
-  const solidMat = new THREE.MeshBasicMaterial({ color: 0x022c22 })
-  const solidEarth = new THREE.Mesh(new THREE.IcosahedronGeometry(3.9, 2), solidMat)
+  const solidMat = new THREE.MeshBasicMaterial({ 
+    color: 0x064e3b, 
+    transparent: true,
+    opacity: 0.05,           
+    side: THREE.FrontSide    
+  })
+  const solidEarth = new THREE.Mesh(new THREE.IcosahedronGeometry(3.95, 2), solidMat)
   earthMesh.add(solidEarth)
+
+  const cloudMat = new THREE.PointsMaterial({
+    color: 0x10b981,
+    size: 0.02,
+    transparent: true,
+    opacity: 0.2,
+    blending: THREE.AdditiveBlending
+  })
+  const cloudGeo = new THREE.BufferGeometry()
+  const cloudPositions = []
+  for (let i = 0; i < 200; i++) {
+    const phi = Math.random() * Math.PI * 2
+    const theta = Math.random() * Math.PI
+    const r = 4.5 + Math.random() * 0.3
+    cloudPositions.push(
+      r * Math.sin(theta) * Math.cos(phi),
+      r * Math.cos(theta),
+      r * Math.sin(theta) * Math.sin(phi)
+    )
+  }
+  cloudGeo.setAttribute('position', new THREE.Float32BufferAttribute(cloudPositions, 3))
+  const dataCloud = new THREE.Points(cloudGeo, cloudMat)
+  earthMesh.add(dataCloud)
 
   const spawnDynamicNode = () => {
     const lat = (Math.random() - 0.5) * 160
@@ -457,9 +480,10 @@ const initThreeEarth = () => {
     pillarGeo.translate(0, targetHeight / 2, 0)
     
     const pillarMat = new THREE.MeshBasicMaterial({ 
-      color: 0x10b981, 
+      color: 0x34d399,         
       transparent: true, 
-      opacity: 0 
+      opacity: 0,
+      blending: THREE.AdditiveBlending 
     })
     
     const pillar = new THREE.Mesh(pillarGeo, pillarMat)
@@ -475,6 +499,54 @@ const initThreeEarth = () => {
       geometry: pillarGeo,
       age: 0,
       lifespan: lifespan
+    })
+  }
+
+  const addDataArc = () => {
+    const getRandomPoint = (radius: number) => {
+      const phi = Math.random() * Math.PI * 2
+      const theta = Math.random() * Math.PI
+      return new THREE.Vector3(
+        radius * Math.sin(theta) * Math.cos(phi),
+        radius * Math.cos(theta),
+        radius * Math.sin(theta) * Math.sin(phi)
+      )
+    }
+
+    const start = getRandomPoint(4)
+    const end = getRandomPoint(4)
+
+    const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5)
+    const midLen = mid.length()
+    mid.setLength(midLen * 2)
+
+    const curve = new THREE.QuadraticBezierCurve3(start, mid, end)
+    const points = curve.getPoints(50)
+    const geometry = new THREE.BufferGeometry().setFromPoints(points)
+
+    const material = new THREE.LineBasicMaterial({
+      color: 0x34d399,
+      transparent: true,
+      opacity: 0.2,
+      blending: THREE.AdditiveBlending
+    })
+
+    const line = new THREE.Line(geometry, material)
+    earthMesh.add(line)
+
+    const lightGeo = new THREE.SphereGeometry(0.02, 8, 8)
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending })
+    const light = new THREE.Mesh(lightGeo, lightMat)
+    earthMesh.add(light)
+
+    activeDataNodes.push({
+      line,
+      light,
+      curve,
+      progress: 0,
+      speed: 0.005 + Math.random() * 0.01,
+      age: 0,
+      lifespan: 200
     })
   }
 
@@ -504,7 +576,7 @@ const initThreeEarth = () => {
 
   const animate = () => {
     animationId = requestAnimationFrame(animate)
-    
+
     if (!isDragging) {
       earthMesh.rotation.y += autoRotationSpeed
     }
@@ -513,25 +585,46 @@ const initThreeEarth = () => {
       spawnDynamicNode()
     }
 
+    if (Math.random() < 0.01) {
+      addDataArc()
+    }
+
     for (let i = activeDataNodes.length - 1; i >= 0; i--) {
       const node = activeDataNodes[i]
       node.age++
-      
-      const progress = node.age / node.lifespan
 
-      if (progress >= 1) {
-        earthMesh.remove(node.mesh)
-        node.geometry.dispose()
-        node.material.dispose()
-        activeDataNodes.splice(i, 1)
+      if (node.curve) {
+        node.progress += node.speed
+        if (node.progress >= 1) {
+          earthMesh.remove(node.line)
+          earthMesh.remove(node.light)
+          node.line.geometry.dispose()
+          node.line.material.dispose()
+          node.light.geometry.dispose()
+          node.light.material.dispose()
+          activeDataNodes.splice(i, 1)
+        } else {
+          const pos = node.curve.getPoint(node.progress)
+          node.light.position.copy(pos)
+          node.light.material.opacity = Math.sin(node.progress * Math.PI)
+        }
       } else {
-        const wave = Math.sin(progress * Math.PI)
-        
-        node.mesh.scale.y = wave
-        node.material.opacity = wave * 0.9
+        const progress = node.age / node.lifespan
+
+        if (progress >= 1) {
+          earthMesh.remove(node.mesh)
+          node.geometry.dispose()
+          node.material.dispose()
+          activeDataNodes.splice(i, 1)
+        } else {
+          const wave = Math.sin(progress * Math.PI)
+
+          node.mesh.scale.y = wave
+          node.material.opacity = wave * 0.9
+        }
       }
     }
-    
+
     renderer.render(scene, camera)
   }
   
@@ -728,9 +821,12 @@ onMounted(() => {
         entry.target.classList.add('visible')
       }
     })
-  }, { threshold: 0.15 })
+  }, { 
+    threshold: 0.1, 
+    rootMargin: "0px 0px -50px 0px" 
+  })
 
-  document.querySelectorAll('.fade-in, .fade-up').forEach(el => observer.observe(el))
+  document.querySelectorAll('.reveal-blur').forEach(el => observer.observe(el))
 })
 
 onUnmounted(() => {
@@ -792,6 +888,9 @@ body {
   align-items: center;
   background: radial-gradient(circle at center, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
   cursor: grab;
+  box-shadow: inset 0 0 50px rgba(16, 185, 129, 0.1);
+  border-radius: 50%;
+  mix-blend-mode: plus-lighter;
 }
 
 .three-earth-container:active {
@@ -829,8 +928,10 @@ body {
 .text-green { color: #10B981; } .text-yellow { color: #F59E0B; } .text-red { color: #EF4444; }
 
 .canvas-panel {
-  background: rgba(0, 0, 0, 0.03); border-radius: 24px; position: relative; overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(8px);
+  border-radius: 24px; position: relative; overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   min-height: 400px;
 }
 .data-particle-network { width: 100%; height: 100%; display: block; }
@@ -1172,11 +1273,28 @@ body {
 .feature-card h4, .why-us-item h4 { font-size: 1.4rem; color: #064E3B; margin-bottom: 1rem; font-weight: 700;}
 .feature-card p, .why-us-item p { font-size: 1rem; color: #047857; line-height: 1.6; transform: translateZ(15px);}
 
-.fade-up { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.fade-up.visible { opacity: 1; transform: translateY(0); }
+/* ==========================================
+   高级滚动入场动画：3D 毛玻璃聚焦浮现
+========================================== */
+.reveal-blur {
+  opacity: 0;
+  transform: translateY(50px) scale(0.95) perspective(1000px) rotateX(-5deg);
+  will-change: transform, opacity;
+}
 
-.fade-in { opacity: 0; transform: translateY(40px) scale(0.95); transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.fade-in.visible { opacity: 1; transform: translateY(0) scale(1); }
+.reveal-blur.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1) perspective(1000px) rotateX(0deg);
+  transition: opacity 0.8s ease-out, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--delay, 0s);
+}
+
+.feature-card.visible:hover,
+.why-us-item.visible:hover,
+.mini-calc-panel.visible:hover {
+  transition-delay: 0s;
+  transition: transform 0.15s ease-out, box-shadow 0.3s ease;
+}
 
 .anti-gravity-float { animation: float 6s ease-in-out infinite; }
 @keyframes float { 0%, 100% {transform: translateY(0);} 50% {transform: translateY(-10px);} }
