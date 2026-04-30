@@ -118,6 +118,9 @@
       </div>
     </section>
     <section class="interactive-sandbox-section">
+      <div style="max-width: 1200px; margin: 0 auto; padding: 0 2rem; width: 100%;">
+        <h3 class="section-title">实时交互体验</h3>
+      </div>
       <div class="sandbox-container">
         
         <div class="mini-calc-panel fade-in" data-aos="fade-up" @mousemove="handleCardMouseMove" @mouseleave="handleCardMouseLeave">
