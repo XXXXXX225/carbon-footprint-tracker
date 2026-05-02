@@ -94,6 +94,34 @@
           </div>
         </el-card>
 
+        <!-- AI闯关任务 -->
+        <el-card class="quest-card" style="margin-top: 20px;">
+          <template #header>
+            <div class="card-header quest-header">
+              <span><el-icon><CollectionTag /></el-icon> AI 闯关任务</span>
+              <el-tag type="warning" effect="dark" round>完成可解锁额外积分奖励</el-tag>
+            </div>
+          </template>
+          <div class="quest-content">
+            <el-row :gutter="20">
+              <el-col :xs="24" :sm="12" :md="8" v-for="quest in challengeCards" :key="quest.title">
+                <div class="quest-item" :class="quest.styleClass">
+                  <div class="quest-topline">
+                    <span class="quest-tier">{{ quest.tier }}</span>
+                    <span class="quest-reward">+{{ quest.reward }} 分</span>
+                  </div>
+                  <h4>{{ quest.title }}</h4>
+                  <p>{{ quest.description }}</p>
+                  <div class="quest-meta">{{ quest.hint }}</div>
+                  <el-button type="warning" plain size="small" @click="startQuest(quest)">
+                    领取挑战
+                  </el-button>
+                </div>
+              </el-col>
+            </el-row>
+          </div>
+        </el-card>
+
         <!-- 积分规则说明 -->
         <el-card class="rules-card" style="margin-top: 20px;">
           <template #header>
@@ -208,6 +236,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarbonStore } from '../store'
 import RoleSidebar from '../components/RoleSidebar.vue'
+import { pointsApi } from '../api'
 import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, Download, Calendar, TrendCharts, CollectionTag, ShoppingCart } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -223,34 +252,40 @@ onMounted(() => {
 
 const user = computed(() => carbonStore.user)
 
-// 积分商城数据
+// 积分商城数据 (升级为真实的商业闭环羊毛)
 const storeItems = ref([
-  { id: 1, name: '数字梭梭树 (1棵)', icon: '🌳', cost: 500 },
-  { id: 2, name: '环保帆布袋包邮', icon: '🛍️', cost: 1200 },
-  { id: 3, name: '地铁/公交 5元抵扣券', icon: '🎫', cost: 800 }
+  { id: 1, name: '滴滴打车 5元环保立减券', icon: '🚕', cost: 100, badge: '高频', description: '把减碳直接转成出行优惠' },
+  { id: 2, name: '瑞幸咖啡 免费兑换券', icon: '☕', cost: 300, badge: '羊毛', description: '需使用个人自带杯前往门店核销兑换' },
+  { id: 3, name: '蚂蚁森林 500g能量球', icon: '🌲', cost: 50, badge: '社交', description: '立即同步到支付宝，保护能量不被偷' }
 ])
 
-const exchangeItem = (item: any) => {
+const exchangeItem = async (item: any) => {
   if (totalPoints.value < item.cost) {
     ElMessage.warning(`积分不足！还需要 ${item.cost - totalPoints.value} 积分。`)
     return
   }
-  ElMessageBox.confirm(`确认消耗 ${item.cost} 积分兑换【${item.name}】吗？`, '积分兑换', {
-    confirmButtonText: '确定兑换',
-    cancelButtonText: '暂不兑换',
-    type: 'success'
-  }).then(() => {
-    totalPoints.value -= item.cost
-    ElMessage.success(`恭喜您成功兑换【${item.name}】！`)
-    // 若有真实后端可在此处加上扣积分API调用记录
-    pointsHistory.value.unshift({
-      date: new Date().toISOString().split('T')[0],
-      reason: `兑换商城商品: ${item.name}`,
-      emissionReduced: 0,
-      pointsChange: -item.cost,
-      totalPoints: totalPoints.value
+
+  try {
+    await ElMessageBox.confirm(`确认消耗 ${item.cost} 积分兑换【${item.name}】吗？`, '积分兑换', {
+      confirmButtonText: '确定兑换',
+      cancelButtonText: '暂不兑换',
+      type: 'success'
     })
-  }).catch(() => {})
+
+    const result = await pointsApi.redeemPoints({
+      pointsSpent: item.cost,
+      reason: `兑换商城商品: ${item.name}`
+    })
+
+    totalPoints.value = result.remainingPoints
+    refreshLevel(totalPoints.value)
+    await loadPointsData()
+    ElMessage.success(`恭喜您成功兑换【${item.name}】！`)
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('兑换失败，请稍后重试')
+    }
+  }
 }
 
 // 积分相关数据
@@ -280,6 +315,103 @@ const pointsHistory = ref([
   { date: '2026-01-31', reason: '用电减碳', emissionReduced: 1.3, pointsChange: 13, totalPoints: 1081 },
   { date: '2026-01-30', reason: '交通出行减碳', emissionReduced: 2.6, pointsChange: 26, totalPoints: 1068 }
 ])
+
+type ChallengeCard = {
+  title: string
+  description: string
+  hint: string
+  tier: string
+  reward: number
+  styleClass: string
+}
+
+const challengeCards = computed<ChallengeCard[]>(() => {
+  const primaryTask = totalPoints.value >= 1000
+    ? '将 AI 诊断中的最高风险项转成一次真实兑换或减排行动'
+    : '先完成 AI 诊断后解锁定制任务'
+  const secondaryTask = Array.isArray(pointsHistory.value) && pointsHistory.value.length > 0
+    ? `最近 ${Math.min(pointsHistory.value.length, 5)} 条积分记录已接入挑战系统`
+    : '完成一次减碳行为后即可刷新任务奖励'
+
+  return [
+    {
+      title: 'AI 诊断首通',
+      description: primaryTask,
+      hint: '完成后可在 AI 分析页领取对应任务并累计积分',
+      tier: '新手关',
+      reward: 120,
+      styleClass: 'quest-primary'
+    },
+    {
+      title: '连续减碳挑战',
+      description: '连续完成 3 次减碳记录，解锁加速奖励',
+      hint: secondaryTask,
+      tier: '进阶关',
+      reward: 180,
+      styleClass: 'quest-secondary'
+    },
+    {
+      title: '兑换满额加成',
+      description: '累计兑换任意 2 次绿色商品，解锁神秘徽章',
+      hint: '适合把积分转成生活方式奖励的用户',
+      tier: '隐藏关',
+      reward: 260,
+      styleClass: 'quest-elite'
+    }
+  ]
+})
+
+const refreshLevel = (points: number) => {
+  if (points >= 5000) {
+    currentLevel.value = '碳中和大使'
+    currentLevelId.value = 6
+  } else if (points >= 3000) {
+    currentLevel.value = '环保大师'
+    currentLevelId.value = 5
+  } else if (points >= 1500) {
+    currentLevel.value = '环保领袖'
+    currentLevelId.value = 4
+  } else if (points >= 500) {
+    currentLevel.value = '环保先锋'
+    currentLevelId.value = 3
+  } else if (points >= 100) {
+    currentLevel.value = '环保爱好者'
+    currentLevelId.value = 2
+  } else {
+    currentLevel.value = '环保新手'
+    currentLevelId.value = 1
+  }
+}
+
+const refreshStatsFromHistory = () => {
+  const records = pointsHistory.value
+  totalEmissionReduced.value = Number(records.reduce((sum, record) => sum + (record.emissionReduced || 0), 0).toFixed(2))
+  monthlyPoints.value = records
+    .filter(record => record.date.startsWith(new Date().toISOString().slice(0, 7)))
+    .reduce((sum, record) => sum + (record.pointsChange || 0), 0)
+  monthlyEmissionReduced.value = Number(records
+    .filter(record => record.date.startsWith(new Date().toISOString().slice(0, 7)))
+    .reduce((sum, record) => sum + (record.emissionReduced || 0), 0)
+    .toFixed(2))
+  treesPlanted.value = Math.max(1, Math.round(totalEmissionReduced.value / 30))
+}
+
+const startQuest = (quest: ChallengeCard) => {
+  if (quest.title === 'AI 诊断首通') {
+    router.push('/ai-analysis')
+    return
+  }
+
+  ElMessage.success(`${quest.title} 已领取，建议先完成对应减碳动作再回来兑换奖励。`)
+}
+
+const mapHistoryRecord = (record: any) => ({
+  date: record.createdAt ? new Date(record.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+  reason: record.reason,
+  emissionReduced: Number(record.emissionReduced || 0),
+  pointsChange: Number(record.pointsChange || 0),
+  totalPoints: Number(record.totalPoints || 0)
+})
 
 // 积分等级
 const levels = ref([
@@ -330,11 +462,21 @@ const levels = ref([
 // 加载积分数据
 const loadPointsData = async () => {
   try {
-    // 这里应该调用API获取积分数据
-    // 暂时使用模拟数据
-    console.log('Loading points data...')
+    const [total, records] = await Promise.all([
+      pointsApi.getTotalPoints(),
+      pointsApi.getPointsRecords()
+    ])
+
+    totalPoints.value = total ?? 0
+    pointsHistory.value = (records || []).map(mapHistoryRecord).sort((a, b) => b.date.localeCompare(a.date))
+    totalHistory.value = pointsHistory.value.length
+    refreshLevel(totalPoints.value)
+    refreshStatsFromHistory()
   } catch (error) {
     console.error('Failed to load points data:', error)
+    totalHistory.value = pointsHistory.value.length
+    refreshLevel(totalPoints.value)
+    refreshStatsFromHistory()
   }
 }
 

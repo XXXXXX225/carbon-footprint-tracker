@@ -4,9 +4,9 @@
 
     <el-header height="60px" class="dashboard-header">
       <div class="header-left">
-        <router-link to="/home" class="logo-link">
+        <a href="/home" class="logo-link">
           <h1>碳足迹追踪平台</h1>
-        </router-link>
+        </a>
       </div>
       <div class="header-right">
         <el-dropdown>
@@ -648,7 +648,7 @@ const handleResize = () => {
 }
 
 const goHome = () => {
-  router.push('/home')
+  window.location.href = '/home'
 }
 
 // 编辑用户

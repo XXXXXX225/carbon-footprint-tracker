@@ -75,6 +75,24 @@ public class PointsController {
         Integer pointsEarned = pointsService.calculateAndAwardPoints(userId, emissionReduced, reason);
         return ResponseEntity.ok(pointsEarned);
     }
+
+    /**
+     * 兑换积分
+     * @param request 兑换请求
+     * @return 兑换后剩余积分
+     */
+    @PostMapping("/redeem")
+    public ResponseEntity<RedeemResponse> redeemPoints(@RequestBody RedeemRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        Long userId = getUserIdFromAuthentication(auth);
+        if (userId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Integer remainingPoints = pointsService.redeemPoints(userId, request.getPointsSpent(), request.getReason());
+        return ResponseEntity.ok(new RedeemResponse(remainingPoints));
+    }
     
     /**
      * 从Authentication对象中获取用户ID
@@ -91,5 +109,38 @@ public class PointsController {
         
         User user = (User) principal;
         return user.getId();
+    }
+
+    public static class RedeemRequest {
+        private Integer pointsSpent;
+        private String reason;
+
+        public Integer getPointsSpent() {
+            return pointsSpent;
+        }
+
+        public void setPointsSpent(Integer pointsSpent) {
+            this.pointsSpent = pointsSpent;
+        }
+
+        public String getReason() {
+            return reason;
+        }
+
+        public void setReason(String reason) {
+            this.reason = reason;
+        }
+    }
+
+    public static class RedeemResponse {
+        private final Integer remainingPoints;
+
+        public RedeemResponse(Integer remainingPoints) {
+            this.remainingPoints = remainingPoints;
+        }
+
+        public Integer getRemainingPoints() {
+            return remainingPoints;
+        }
     }
 }

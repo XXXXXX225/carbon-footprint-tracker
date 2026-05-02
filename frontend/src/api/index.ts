@@ -447,6 +447,38 @@ export const aiAnalysisApi = {
     }
 }
 
+// 积分相关API
+export const pointsApi = {
+    getTotalPoints: () => {
+        return request<number>('/api/points/total')
+    },
+    getPointsRecords: () => {
+        return request<Array<{
+            id: number
+            userId: number
+            pointsChange: number
+            totalPoints: number
+            emissionReduced: number
+            reason: string
+            createdAt: string
+        }>>('/api/points/records')
+    },
+    calculatePoints: (emissionReduced: number, reason: string) => {
+        return request<number>(`/api/points/calculate?emissionReduced=${emissionReduced}&reason=${encodeURIComponent(reason)}`, {
+            method: 'POST'
+        })
+    },
+    redeemPoints: (data: { pointsSpent: number, reason: string }) => {
+        return request<{ remainingPoints: number }>('/api/points/redeem', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+    }
+}
+
 // 数据大屏相关API
 export const dashboardApi = {
     // 获取大屏数据
@@ -543,22 +575,22 @@ export const goalApi = {
 
 // 建议相关API
 export const recommendationApi = {
-  // 从AI建议添加行动
-  addAiTask: (data: { content: string }) => 
-    request('/api/recommendations/add-from-ai', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    }),
-  // 更新用户建议状态
-  updateUserRecommendation: (data: { id: number, status: string, completedAt?: string }) => 
-    request('/api/recommendations/update', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    }),
+    // 从AI建议添加行动
+    addAiTask: (data: { content: string }) =>
+        request('/api/recommendations/add-from-ai', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        }),
+    // 更新用户建议状态
+    updateUserRecommendation: (data: { id: number, status: string, completedAt?: string }) =>
+        request('/api/recommendations/update', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        }),
 }

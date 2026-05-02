@@ -54,6 +54,22 @@
             </div>
             <el-button class="cyber-button action-bridge-button" @click="openActionPlan">查看碳行动计划</el-button>
           </div>
+
+          <div class="cyber-panel quest-panel" v-if="challengeCards.length">
+            <h3 class="panel-title">GAME QUESTS</h3>
+            <div class="quest-list">
+              <div v-for="quest in challengeCards" :key="quest.title" class="quest-card" :class="quest.styleClass">
+                <div class="quest-meta-line">
+                  <span class="quest-tier">{{ quest.tier }}</span>
+                  <span class="quest-reward">+{{ quest.reward }} pts</span>
+                </div>
+                <div class="quest-title">{{ quest.title }}</div>
+                <p class="quest-desc">{{ quest.description }}</p>
+                <el-button class="cyber-button quest-button" @click="claimQuest(quest)">领取挑战</el-button>
+              </div>
+            </div>
+            <div class="quest-footnote">领取后会自动加入行动清单，完成后可前往积分中心兑换奖励。</div>
+          </div>
         </div>
 
         <div class="sandbox-terminal">
@@ -259,6 +275,54 @@ const actionableRecommendations = computed(() => {
 
   return items.slice(0, 3)
 })
+
+type ChallengeCard = {
+  title: string
+  description: string
+  actionText: string
+  tier: string
+  reward: number
+  styleClass: string
+}
+
+const challengeCards = computed<ChallengeCard[]>(() => {
+  const recommendations = Array.isArray(aiAnalysis.value?.recommendations) ? aiAnalysis.value.recommendations : []
+  const nextActions = Array.isArray(aiAnalysis.value?.nextActions) ? aiAnalysis.value.nextActions : []
+  const primaryAction = prediction.value?.suggestion?.suggestion || recommendations[0] || '先启动一次 AI 诊断'
+  const secondaryAction = recommendations[1] || nextActions[0] || '完成一项低碳操作并记录结果'
+  const finalAction = nextActions[1] || '把本月最耗碳的行为替换为低碳方案'
+
+  return [
+    {
+      title: '零成本首通',
+      description: primaryAction,
+      actionText: primaryAction,
+      tier: '新手关',
+      reward: 80,
+      styleClass: 'quest-primary'
+    },
+    {
+      title: '低成本连击',
+      description: secondaryAction,
+      actionText: secondaryAction,
+      tier: '进阶关',
+      reward: 120,
+      styleClass: 'quest-secondary'
+    },
+    {
+      title: '冲刺关卡',
+      description: finalAction,
+      actionText: finalAction,
+      tier: '挑战关',
+      reward: 180,
+      styleClass: 'quest-elite'
+    }
+  ]
+})
+
+const claimQuest = async (quest: ChallengeCard) => {
+  await acceptAiTask(quest.actionText)
+}
 
 const openActionPlan = () => {
   router.push('/action-plan')
@@ -655,6 +719,57 @@ onMounted(() => {
 }
 .action-brief-item p { margin: 0; color: #cbd5e1; line-height: 1.7; }
 .action-bridge-button { width: 100%; }
+.quest-panel { display: grid; gap: 12px; }
+.quest-list { display: grid; gap: 12px; }
+.quest-card {
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 229, 255, 0.14);
+  background: linear-gradient(180deg, rgba(0, 229, 255, 0.06), rgba(0, 255, 170, 0.04));
+}
+.quest-card.quest-secondary {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.08), rgba(0, 229, 255, 0.04));
+}
+.quest-card.quest-elite {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.08), rgba(0, 229, 255, 0.04));
+}
+.quest-meta-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.quest-tier {
+  color: #6ee7b7;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.quest-reward {
+  color: #facc15;
+  font-weight: 700;
+}
+.quest-title {
+  color: #e0f8ff;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.quest-desc {
+  margin: 0 0 10px;
+  color: #cbd5e1;
+  line-height: 1.7;
+}
+.quest-button { width: 100%; }
+.quest-footnote {
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.6;
+  border-top: 1px solid rgba(0, 229, 255, 0.12);
+  padding-top: 10px;
+}
 .status-indicator { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 14px; color: #a4d8d8; font-weight: 600; }
 .led { width: 10px; height: 10px; border-radius: 50%; background: #1a3a3a; border: 1px solid #00ffaa; }    
 .led-active { background: #00ffaa; box-shadow: 0 0 10px #00ffaa, 0 0 20px #00ffaa; border: none; animation: pulse 2s infinite; }

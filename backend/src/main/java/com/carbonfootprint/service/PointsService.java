@@ -85,6 +85,44 @@ public class PointsService {
     }
 
     /**
+     * 兑换积分并记录扣减流水
+     *
+     * @param userId 用户ID
+     * @param pointsSpent 扣减积分
+     * @param reason 兑换原因
+     * @return 兑换后剩余积分
+     */
+    @Transactional
+    @CacheEvict(value = "userPoints", key = "#userId")
+    public Integer redeemPoints(Long userId, Integer pointsSpent, String reason) {
+        if (pointsSpent == null || pointsSpent <= 0) {
+            throw new IllegalArgumentException("兑换积分必须大于0");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+
+        int currentTotalPoints = user.getTotalPoints() == null ? 0 : user.getTotalPoints();
+        if (currentTotalPoints < pointsSpent) {
+            throw new IllegalStateException("积分不足");
+        }
+
+        int newTotalPoints = currentTotalPoints - pointsSpent;
+        user.setTotalPoints(newTotalPoints);
+        userRepository.save(user);
+
+        PointsRecord record = new PointsRecord();
+        record.setUserId(userId);
+        record.setPointsChange(-pointsSpent);
+        record.setTotalPoints(newTotalPoints);
+        record.setEmissionReduced(0D);
+        record.setReason(reason);
+        pointsRecordRepository.save(record);
+
+        return newTotalPoints;
+    }
+
+    /**
      * 获取用户的积分记录
      * 
      * @param userId 用户ID

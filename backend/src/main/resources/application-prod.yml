@@ -49,7 +49,7 @@ springdoc:
 ai:
   provider: ${AI_PROVIDER:zhipu}
   base-url: ${AI_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
-  api-key: ${AI_API_KEY:95b7418745ee47da966f17f9bf5a4d48.BI9EnuPdpt0khKtx}
+  api-key: ${AI_API_KEY:e228506735934d6f83299192705bd921.08VVDcY3ODpO3uwx}
   model: ${AI_MODEL:glm-4-flash}
   timeout-seconds: ${AI_TIMEOUT_SECONDS:45}
 

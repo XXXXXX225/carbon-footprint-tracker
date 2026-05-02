@@ -260,7 +260,7 @@ public class CarbonAiAnalysisService {
                     + "4. 【阶梯式减排建议】提供“零成本”“低成本”“长期投资”三个等级的个性化改进方案；\n"
                     + "5. 【任务闭环建议】在 recommendations 中提供至少 5 条具体、可量化（含预计减排数值）的打卡任务。\n"
                     + "JSON 必须包含字段：headline, summary, riskLevel, confidence, insights, recommendations, nextActions, source。\n"
-                    + "其中：insights 至少 6 项（对象数组，每项包含 title 和 text）；recommendations 至少 5 条；nextActions 至少 5 条；riskLevel 只能是 LOW, MEDIUM, HIGH 之一；confidence 是 0 到 100 的数字；source 固定返回 AI。\n"
+                    + "其中，insights 至少 6 项（对象数组，每项包含 title 和 text）；recommendations 至少 5 条纯字符串（字符串数组）；nextActions 至少 5 条纯字符串（字符串数组）；riskLevel 只能是 LOW, MEDIUM, HIGH 之一；confidence 是 0 到 100 的数字；source 固定返回 AI。\n"
                     + "请用简体中文输出，语言风格需专业、严谨且具备行动启发性。\n\n"
                     + "数据如下：\n"
                     + contextJson;
@@ -282,6 +282,8 @@ public class CarbonAiAnalysisService {
             if (isOllamaProvider()) {
                 body.put("format", "json");
                 body.put("stream", false);
+            } else if (isOpenAiCompatibleProvider()) {
+                body.put("response_format", Map.of("type", "json_object"));
             }
 
             String requestBody = objectMapper.writeValueAsString(body);
@@ -333,6 +335,7 @@ public class CarbonAiAnalysisService {
     }
 
     private AiAnalysisDTO parseAnalysis(String content, String modelName) {
+        log.info("RAW AI Response: {}", content);
         try {
             String normalizedContent = content.trim();
             if (normalizedContent.startsWith("```")) {

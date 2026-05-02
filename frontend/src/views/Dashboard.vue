@@ -180,6 +180,45 @@
                 </el-card>
               </el-col>
             </el-row>
+            
+            <!-- 新增：社交与等效转换视窗 -->
+            <el-row :gutter="20" class="social-hero-row" style="margin-top: 20px;">
+              <el-col :xs="24" :md="8" class="stagger-item delay-5">
+                <el-card class="overview-card glow-card" style="height: 100%; border-left: 4px solid #4CAF50; display: flex; flex-direction: column; justify-content: center;">
+                  <div class="mbti-container">
+                    <div class="overview-label">碳足迹标签</div>
+                    <div class="mbti-title" style="font-size: 24px; font-weight: bold; margin: 10px 0; color: #2c3e50;">{{ carbonMBTI.title }}</div>
+                    <div class="mbti-desc" style="color: #7f8c8d; font-size: 14px; line-height: 1.5;">{{ carbonMBTI.desc }}</div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :xs="24" :md="16" class="stagger-item delay-6">
+                <el-card class="overview-card glow-card" style="height: 100%;">
+                  <div class="overview-label" style="display:flex; justify-content: space-between;">
+                    <span>累计减排等效收益 ({{ totalEmissionReduced }} kg)</span>
+                    <el-tag size="small" type="warning" round>可前往积分商城兑换</el-tag>
+                  </div>
+                  <el-row :gutter="20" style="margin-top: 15px; text-align: center; align-items: center;">
+                    <el-col :span="12" style="border-right: 1px dashed #ebeef5;">
+                      <div class="eq-item">
+                        <div style="font-size: 32px; font-weight: 800; color: #f56c6c; display: flex; align-items: baseline; justify-content: center;">
+                          <span style="font-size:18px; margin-right:4px;">¥</span>{{ equivalentMoney }}
+                        </div>
+                        <div style="color: #909399; font-size: 13px; margin-top: 5px;">约合节省生活开支 (如油费/电费等)</div>
+                      </div>
+                    </el-col>
+                    <el-col :span="12">
+                      <div class="eq-item">
+                        <div style="font-size: 32px; font-weight: 800; color: #e6a23c; display: flex; align-items: baseline; justify-content: center;">
+                          {{ equivalentMilkTea }} <span style="font-size:16px; margin-left:4px;">杯</span>
+                        </div>
+                        <div style="color: #909399; font-size: 13px; margin-top: 5px;">相当于多燃烧了同等卡路理的奶茶</div>
+                      </div>
+                    </el-col>
+                  </el-row>
+                </el-card>
+              </el-col>
+            </el-row>
           </section>
 
           <section class="page-section saas-enhanced-section">
@@ -423,6 +462,30 @@ const dietChange = ref(-1.8)
 const electricityChange = ref(2.5)
 const totalPoints = ref(0)
 const totalEmissionReduced = ref(0)
+
+// 衍生计算：碳足迹标签与等效收益
+const carbonMBTI = computed(() => {
+  const t = footprint.value.transport || 0
+  const d = footprint.value.diet || 0
+  const e = footprint.value.electricity || 0
+  const total = totalFootprint.value || 0
+  if (total === 0) return { title: '🌱 神秘隐身人', desc: '暂时还没有记录排放足迹' }
+  const max = Math.max(t, d, e)
+  if (max === t) return { title: '🚗 暴走流浪者', desc: '主要的排碳来自于出行，是在四处奔波吗？' }
+  if (max === d) return { title: '🍔 高能干饭王', desc: '唯有美食与碳排不可辜负' }
+  return { title: '⚡ 赛博充能狂', desc: '耗电大户，永远与屏幕灯光同在' }
+})
+
+const equivalentMoney = computed(() => {
+  // 1kg = 省约 5.2 元 (电/油/综合参考)
+  return (totalEmissionReduced.value * 5.2).toFixed(1)
+})
+
+const equivalentMilkTea = computed(() => {
+  // 1kg 减碳相当于运动消耗补充的 120 千焦，一杯全糖奶茶约 300 千焦
+  const kj = totalEmissionReduced.value * 120
+  return (kj / 300).toFixed(1)
+})
 
 const selectedRange = ref('month')
 const timeRanges = [
