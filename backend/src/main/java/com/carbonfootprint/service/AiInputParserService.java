@@ -31,18 +31,22 @@ public class AiInputParserService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // 【核心巨变】提示词重构，让大模型自己去联网算！
+    // 【核心巨变】剔除 JSON 中的任何注释，强制大模型输出纯净的格式
     private static final String SYSTEM_PROMPT = 
-        "你是一个具备联网搜索能力的碳足迹计算专家。用户会输入任意的活动、饮食或物品。\n" +
-        "任务：请你利用联网搜索查明对应的碳排放因子，并直接计算出总碳排放量（千克CO2e）。\n" +
-        "要求：不要任何Markdown标记，严格返回JSON数组，格式如下：\n" +
+        "你是一个具备联网搜索能力的碳足迹计算专家。用户会输入任意的生活活动、饮食或物品。\n" +
+        "任务：请你利用联网搜索查明该物品/活动的碳排放因子，并直接计算出总碳排放量（千克CO2e）。\n" +
+        "要求：\n" +
+        "1. 绝对不要使用任何 Markdown 标记（如 ```json ）。\n" +
+        "2. 绝对不要在 JSON 中包含任何注释（// 或 /**/）。\n" +
+        "3. category 字段的值必须严格为 diet, transport, electricity 之一。\n" +
+        "请严格只输出如下格式的纯 JSON 数组：\n" +
         "[\n" +
         "  {\n" +
-        "    \"category\": \"diet\", // 必须是 diet, transport, electricity 之一\n" +
-        "    \"itemName\": \"一斤牛肉\", // 用户的原始物品\n" +
-        "    \"amount\": 0.5, // 提取出的数值(如0.5kg)\n" +
-        "    \"emissionAmount\": 13.5, // 你计算出的碳排放量(kg)\n" +
-        "    \"description\": \"联网搜索得知牛肉排放因子约为27kg/kg，计算过程：0.5 * 27 = 13.5kg\"\n" +
+        "    \"category\": \"diet\",\n" +
+        "    \"itemName\": \"一斤牛肉\",\n" +
+        "    \"amount\": 0.5,\n" +
+        "    \"emissionAmount\": 13.5,\n" +
+        "    \"description\": \"联网搜索得知牛肉排放因子约为27kg/kg，计算：0.5 * 27 = 13.5kg\"\n" +
         "  }\n" +
         "]";
 

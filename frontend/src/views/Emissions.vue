@@ -51,6 +51,7 @@
         @dragleave.prevent="isDragging = false"
         @drop.prevent="handleDrop"
       >
+      
         <transition name="fade-slide">
           <div v-if="previewImage" class="image-preview-badge">
             <img :src="previewImage" alt="Preview" />
@@ -95,6 +96,33 @@
           </div>
         </div>
       </section>
+
+      <transition name="fade-slide">
+        <div v-if="isLoading || showResultCard" class="ai-terminal-card">
+          <div v-if="isLoading" class="terminal-thinking">
+            <div class="glow-dot"></div>
+            <span>AI 正在启动全网知识库检索与碳因子推演...</span>
+          </div>
+          
+          <div v-else class="terminal-typing">
+            <div class="terminal-header">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+              <span class="terminal-title">GreenTrace AI Analysis</span>
+            </div>
+            <div class="typewriter-content">
+              <p style="white-space: pre-wrap; line-height: 1.8;">{{ aiResponseText }}<span v-if="isTyping" class="cursor-blink">|</span></p>
+            </div>
+            
+            <transition name="fade-slide">
+              <button v-if="!isTyping" @click="router.push('/dashboard')" class="btn-terminal-action">
+                数据已入库，前往控制台查看 ➔
+              </button>
+            </transition>
+          </div>
+        </div>
+      </transition>
 
       <div class="premium-divider">
         <span>OR MANUAL ENTRY</span>
@@ -157,6 +185,11 @@ const isLoading = ref(false)
 const isFocused = ref(false)
 const fileInput = ref(null)
 
+const showResultCard = ref(false)
+const aiResponseText = ref('')
+const isTyping = ref(false)
+let typingInterval = null
+
 // --- 鼠标交互动效逻辑 ---
 const mouseX = ref(0)
 const mouseY = ref(0)
@@ -213,11 +246,15 @@ const clearImage = () => {
 
 const submitAiData = async () => {
   if (!inputText.value && !base64Image.value) return
+  
   isLoading.value = true
+  showResultCard.value = false
+  aiResponseText.value = ''
+  if(typingInterval) clearInterval(typingInterval)
 
   try {
     let token = localStorage.getItem('token')
-    if (!token) console.warn("未获取到 Token，请求可能会被后端拦截！")
+    if (!token) console.warn("未获取到 Token！")
     else token = token.replace(/^"(.*)"$/, '$1')
 
     const authHeader = token ? (token.startsWith('Bearer') ? token : `Bearer ${token}`) : ''
@@ -235,7 +272,7 @@ const submitAiData = async () => {
     })
 
     if (!response.ok) {
-      alert('❌ 录入失败：大模型响应异常，请检查后端日志！')
+      startTypewriter("❌ 分析中断：服务器大模型链路异常，请检查网络或后端日志。")
       isLoading.value = false
       return
     }
@@ -243,21 +280,49 @@ const submitAiData = async () => {
     const resData = await response.json()
     
     if (resData.code && resData.code !== 200) {
-       alert('录入失败: ' + resData.message)
+       startTypewriter(`❌ 识别失败：${resData.message}`)
+       isLoading.value = false
        return
     }
 
-    console.log('AI 解析成功:', resData)
-    inputText.value = ''
+    let finalSpeech = "✨ 解析完成，数据已成功同步至您的碳足迹链。\n\n"
+    
+    if (resData.data && Array.isArray(resData.data)) {
+      resData.data.forEach(item => {
+        finalSpeech += `[录入项] ${item.itemName}\n`
+        finalSpeech += `[碳排放] +${item.emissionAmount} kg CO2e\n`
+        finalSpeech += `[AI洞察] ${item.description}\n`
+        finalSpeech += `---------------------------\n`
+      })
+    }
+
+    isLoading.value = false
     clearImage()
-    router.push('/dashboard')
+    inputText.value = ''
+    startTypewriter(finalSpeech)
     
   } catch (error) {
     console.error('录入失败', error)
-    alert('网络请求失败，请稍后重试！')
-  } finally {
     isLoading.value = false
+    startTypewriter("❌ 网络请求崩溃，请稍后重试！")
   }
+}
+
+const startTypewriter = (text) => {
+  showResultCard.value = true
+  isTyping.value = true
+  aiResponseText.value = ''
+  
+  let i = 0
+  typingInterval = setInterval(() => {
+    if (i < text.length) {
+      aiResponseText.value += text.charAt(i)
+      i++
+    } else {
+      clearInterval(typingInterval)
+      isTyping.value = false
+    }
+  }, 35)
 }
 </script>
 
@@ -792,6 +857,112 @@ const submitAiData = async () => {
   background: rgba(255, 255, 255, 0.1) !important;
   border-color: #ef4444 !important;
   color: #ef4444 !important;
+}
+
+.ai-terminal-card {
+  width: 100%;
+  max-width: 800px;
+  margin: 1.5rem auto 0;
+  background: rgba(9, 9, 11, 0.85);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(0, 220, 130, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 220, 130, 0.1);
+  overflow: hidden;
+  z-index: 10;
+  position: relative;
+}
+
+.terminal-thinking {
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: #00dc82;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.glow-dot {
+  width: 12px;
+  height: 12px;
+  background-color: #00dc82;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #00dc82, 0 0 20px #00dc82;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.5; }
+}
+
+.terminal-header {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.8rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.terminal-header .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+}
+.dot.red { background: #ff5f56; }
+.dot.yellow { background: #ffbd2e; }
+.dot.green { background: #27c93f; }
+
+.terminal-title {
+  margin-left: 10px;
+  font-size: 0.8rem;
+  color: #71717a;
+  letter-spacing: 1px;
+}
+
+.typewriter-content {
+  padding: 1.5rem;
+  color: #f4f4f5;
+  font-size: 1rem;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.cursor-blink {
+  display: inline-block;
+  width: 8px;
+  background-color: #00dc82;
+  color: #00dc82;
+  animation: blink 1s step-end infinite;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.btn-terminal-action {
+  display: block;
+  width: calc(100% - 3rem);
+  margin: 0 1.5rem 1.5rem;
+  padding: 1rem;
+  background: rgba(0, 220, 130, 0.1);
+  border: 1px dashed #00dc82;
+  color: #00dc82;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-terminal-action:hover {
+  background: #00dc82;
+  color: #09090b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 220, 130, 0.4);
 }
 
 /* 动画过渡 */
