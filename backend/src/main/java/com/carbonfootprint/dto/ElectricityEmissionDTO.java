@@ -10,6 +10,7 @@ public class ElectricityEmissionDTO {
     private Double power;
     private Double usageTime;
     private Integer usageDays;
+    private Double cost;
     private LocalDate emissionDate;
     private String description;
 }

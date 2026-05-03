@@ -45,6 +45,11 @@ springdoc:
 ai:
   provider: ${AI_PROVIDER:zhipu}
   base-url: ${AI_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
+  # 原来的 key 继续留着，用来做纯文本处理
   api-key: ${AI_API_KEY:e228506735934d6f83299192705bd921.08VVDcY3ODpO3uwx}
+  # 新增一个 vision key，用来做图片解析
+  vision-api-key: ${8622f339ebc54568a096820d43d12970.NIcVdGN7oCmnqfD2}
+  # 也可以顺便把 vision 的模型名配置抽出来，更规范
   model: ${AI_MODEL:glm-4-flash}
+  vision-model: ${AI_VISION_MODEL:glm-4v-flash}
   timeout-seconds: ${AI_TIMEOUT_SECONDS:45}

@@ -53,7 +53,7 @@ public class EmissionService {
          * @param dto    交通排放DTO
          * @return 交通排放记录
          */
-        @CacheEvict(value = {"userTransportEmissions", "userEmissionsSummary"}, key = "#userId")
+        @CacheEvict(value = {"userTransportEmissions", "userTransportSummary", "userEmissionsSummary"}, allEntries = true)
         @Transactional
         public TransportEmission recordTransportEmission(Long userId, TransportEmissionDTO dto) {
                 double emissionAmount = emissionCalculator.calculateTransportEmission(dto.getTransportType(),
@@ -90,7 +90,7 @@ public class EmissionService {
          * @param dto    饮食排放DTO
          * @return 饮食排放记录
          */
-        @CacheEvict(value = {"userDietEmissions", "userEmissionsSummary"}, key = "#userId")
+        @CacheEvict(value = {"userDietEmissions", "userDietSummary", "userEmissionsSummary"}, allEntries = true)
         @Transactional
         public DietEmission recordDietEmission(Long userId, DietEmissionDTO dto) {
                 double emissionAmount = emissionCalculator.calculateDietEmission(dto.getFoodType(), dto.getAmount());
@@ -126,7 +126,7 @@ public class EmissionService {
          * @param dto    用电排放DTO
          * @return 用电排放记录
          */
-        @CacheEvict(value = {"userElectricityEmissions", "userEmissionsSummary"}, key = "#userId")
+        @CacheEvict(value = {"userElectricityEmissions", "userElectricitySummary", "userEmissionsSummary"}, allEntries = true)
         @Transactional
         public ElectricityEmission recordElectricityEmission(Long userId, ElectricityEmissionDTO dto) {
                 double electricityAmount = emissionCalculator.calculateElectricityAmount(dto.getPower(),
@@ -332,7 +332,54 @@ public class EmissionService {
                         case "week" -> endDate.minusWeeks(1);
                         case "month" -> endDate.minusMonths(1);
                         case "year" -> endDate.minusYears(1);
-                        default -> endDate.minusWeeks(1); // 默认一周
+                        default -> endDate.minusWeeks(1);
                 };
+        }
+
+        @CacheEvict(value = {"userDietEmissions", "userDietSummary", "userEmissionsSummary"}, allEntries = true)
+        @Transactional
+        public void recordAiDietEmission(Long userId, String itemName, double amount, double emissionAmount, String desc) {
+                DietEmission emission = new DietEmission();
+                emission.setUserId(userId);
+                emission.setFoodType("AI智能识别");
+                emission.setSpecificFood(itemName);
+                emission.setAmount(amount);
+                emission.setEmissionAmount(emissionAmount);
+                emission.setEmissionDate(LocalDate.now());
+                emission.setDescription(desc);
+                dietEmissionRepository.save(emission);
+                pointsService.calculateAndAwardPoints(userId, 5.0, "使用 AI 智能测算饮食碳足迹");
+        }
+
+        @CacheEvict(value = {"userTransportEmissions", "userTransportSummary", "userEmissionsSummary"}, allEntries = true)
+        @Transactional
+        public void recordAiTransportEmission(Long userId, String itemName, double amount, double emissionAmount, String desc) {
+                TransportEmission emission = new TransportEmission();
+                emission.setUserId(userId);
+                emission.setTransportType("AI智能识别");
+                emission.setDistance(amount);
+                emission.setFuelType("未知");
+                emission.setEmissionAmount(emissionAmount);
+                emission.setEmissionDate(LocalDate.now());
+                emission.setDescription("交通方式：" + itemName + " | " + desc);
+                transportEmissionRepository.save(emission);
+                pointsService.calculateAndAwardPoints(userId, 5.0, "使用 AI 智能测算出行碳足迹");
+        }
+
+        @CacheEvict(value = {"userElectricityEmissions", "userElectricitySummary", "userEmissionsSummary"}, allEntries = true)
+        @Transactional
+        public void recordAiElectricityEmission(Long userId, String itemName, double amount, double emissionAmount, String desc) {
+                ElectricityEmission emission = new ElectricityEmission();
+                emission.setUserId(userId);
+                emission.setDeviceType("AI智能识别");
+                emission.setPower(0.0);
+                emission.setUsageTime(0.0);
+                emission.setUsageDays(1);
+                emission.setElectricityAmount(amount);
+                emission.setEmissionAmount(emissionAmount);
+                emission.setEmissionDate(LocalDate.now());
+                emission.setDescription("耗能对象：" + itemName + " | " + desc);
+                electricityEmissionRepository.save(emission);
+                pointsService.calculateAndAwardPoints(userId, 5.0, "使用 AI 智能测算能源碳足迹");
         }
 }

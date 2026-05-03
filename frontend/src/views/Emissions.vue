@@ -1,628 +1,805 @@
 <template>
-  <el-container class="emissions-container">
-    <el-header height="60px" class="dashboard-header">
-      <div class="header-left">
-        <router-link to="/home" class="logo-link">
-          <h1>碳足迹追踪平台</h1>
-        </router-link>
+  <div class="emissions-premium-page" @mousemove="handleMouseMove">
+    <!-- 1. 鼠标跟随探照光晕 -->
+    <div 
+      class="mouse-glow" 
+      :style="{ left: `${mousePixelX}px`, top: `${mousePixelY}px` }"
+    ></div>
+
+    <!-- 2. 极客风抗重力视差背景 -->
+    <div class="antigravity-bg">
+      <!-- 为每个球增加独立的视差计算层，互不干扰 -->
+      <div class="orb-layer" :style="{ transform: `translate(${mouseX * -40}px, ${mouseY * -40}px)` }">
+        <div class="orb orb-1"></div>
       </div>
-      <div class="header-right">
-        <el-dropdown>
-          <span class="user-info">
-            {{ user.name }}
-            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item @click="navigateToProfile">个人中心</el-dropdown-item>
-              <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+      <div class="orb-layer" :style="{ transform: `translate(${mouseX * 50}px, ${mouseY * 50}px)` }">
+        <div class="orb orb-2"></div>
       </div>
-    </el-header>
-    <el-container>
-      <el-aside width="200px" class="dashboard-aside">
-        <RoleSidebar />
-      </el-aside>
-      <el-main class="emissions-main">
-        <div class="page-title-box">
-          <div class="title-header">
-            <div>
-              <h2>碳排放计算与记录</h2>
-              <p class="subtitle">记录您的日常碳排放，共同为地球减负。</p>
-            </div>
-            <div class="today-progress" v-if="user.role !== 'admin'">
-              <div class="progress-title">今日碳限额 ({{ dailyQuota }}kg) <span>{{ todayEmissions.toFixed(1) }} kg</span></div>
-              <el-progress 
-                :percentage="todayProgress" 
-                :status="progressStatus"
-                :stroke-width="10"
-                style="width: 250px"
-                :show-text="false"
-              />
-              <div class="progress-hint" :class="todayProgress >= 100 ? 'danger-text' : ''">
-                {{ progressHint }}
-              </div>
-            </div>
+      <div class="orb-layer" :style="{ transform: `translate(${mouseX * -20}px, ${mouseY * -20}px)` }">
+        <div class="orb orb-3"></div>
+      </div>
+      <div class="noise-overlay"></div>
+    </div>
+
+    <!-- 3. 玻璃态顶部导航栏 -->
+    <nav class="glass-navbar">
+      <div class="nav-left">
+        <button @click="router.push('/dashboard')" class="nav-icon-btn">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          <span>控制台</span>
+        </button>
+      </div>
+      <div class="nav-right">
+        <button @click="router.push('/ai-analysis')" class="nav-glow-btn">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+          深度 AI 分析
+        </button>
+      </div>
+    </nav>
+
+    <!-- 4. 主体内容区 -->
+    <main class="content-wrapper">
+      <header class="page-header">
+        <h2 class="magic-title">Chat to track AI</h2>
+        <p class="magic-subtitle">What did you do for the earth today?</p>
+      </header>
+
+      <!-- AI 核心超级输入框 (Omnibox) -->
+      <section 
+        class="ai-omnibox-container"
+        @dragover.prevent="isDragging = true"
+        @dragleave.prevent="isDragging = false"
+        @drop.prevent="handleDrop"
+      >
+        <transition name="fade-slide">
+          <div v-if="previewImage" class="image-preview-badge">
+            <img :src="previewImage" alt="Preview" />
+            <button @click="clearImage" class="btn-close-img">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+        </transition>
+
+        <div class="omnibox" :class="{ 'is-focused': isFocused, 'is-dragging': isDragging }">
+          <input 
+            v-model="inputText" 
+            type="text" 
+            placeholder="试试输入：“今天骑共享单车 5 公里” 或 拖拽截图至此..." 
+            @keyup.enter="submitAiData"
+            @focus="isFocused = true"
+            @blur="isFocused = false"
+            :disabled="isLoading"
+            class="magic-input"
+          />
+          
+          <div class="omnibox-actions">
+            <button @click="triggerFileInput" class="btn-icon" title="上传账单/行程截图" :disabled="isLoading">
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </button>
+            
+            <button @click="submitAiData" class="btn-submit" :disabled="isLoading || (!inputText && !base64Image)">
+              <span v-if="!isLoading">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              </span>
+              <span v-else class="loader"></span>
+            </button>
           </div>
         </div>
-
-        <el-card class="quick-checkin-card" shadow="never" v-if="user.role !== 'admin'">
-          <div class="quick-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <div><el-icon><Location /></el-icon> <span>常用情景一键打卡</span></div>
-            <el-button type="primary" size="small" round @click="showCustomScenarioDialog = true"><el-icon><Plus /></el-icon> 添加自定义</el-button>
+        
+        <input type="file" ref="fileInput" @change="handleFileUpload" accept="image/*" style="display: none" />
+        
+        <div v-if="isDragging" class="drag-glass-overlay">
+          <div class="drag-content">
+            <svg viewBox="0 0 24 24" width="48" height="48" stroke="#00dc82" stroke-width="1.5" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            <h3>松开鼠标，让 AI 提取数据</h3>
           </div>
-          <div class="quick-actions">
-            <el-button class="eco-btn eco-btn-transport" round @click="quickAdd('transport', 1.2, '坐地铁通勤 (中等距离)')">🚇 地铁通勤</el-button>
-            <el-button class="eco-btn eco-btn-diet" round @click="quickAdd('diet', 0.5, '纯素食一餐')">🥗 素食一餐</el-button>
-            <el-button class="eco-btn eco-btn-electric" round @click="quickAdd('electricity', 0.3, '随手关灯/拔掉插头')">💡 节电小事</el-button>
-            <el-button class="eco-btn eco-btn-bike" round @click="quickAdd('transport', 0.0, '骑行/步行 3公里')">🚲 绿色出行</el-button>
-            <el-button 
-              v-for="(scenario, index) in customScenarios" 
-              :key="index"
-              class="eco-btn" 
-              :class="scenario.category === 'electricity' ? 'eco-btn-electric' : `eco-btn-${scenario.category}`"
-              round 
-              @click="quickAdd(scenario.category, scenario.value, scenario.name)">
-              {{ scenario.category === 'transport' ? '🚌' : scenario.category === 'diet' ? '🥗' : scenario.category === 'electricity' ? '💡' : '💧' }} {{ scenario.name }}
-            </el-button>
-          </div>
-        </el-card>
-
-        <el-dialog v-model="showCustomScenarioDialog" title="添加自定义快捷打卡" width="400px">
-          <el-form :model="newScenario" label-width="100px">
-            <el-form-item label="情景名称">
-              <el-input v-model="newScenario.name" placeholder="例如：喝了一杯奶茶" />
-            </el-form-item>
-            <el-form-item label="分类">
-              <el-select v-model="newScenario.category" style="width: 100%" @change="newScenario.subCategory = ''; newScenario.amount = 0">
-                <el-option label="交通出行" value="transport" />
-                <el-option label="饮食记录" value="diet" />
-                <el-option label="家庭用电" value="electricity" />
-                <el-option label="水资源" value="water" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="项目" v-if="newScenario.category">
-              <el-select v-model="newScenario.subCategory" style="width: 100%">
-                <template v-if="newScenario.category === 'transport'">
-                  <el-option label="公交车" value="bus" />
-                  <el-option label="地铁" value="subway" />
-                  <el-option label="出租车" value="taxi" />
-                  <el-option label="网约车" value="rideshare" />
-                  <el-option label="私家车" value="private_car" />
-                  <el-option label="自行车" value="bike" />
-                  <el-option label="步行" value="walk" />
-                </template>
-                <template v-else-if="newScenario.category === 'diet'">
-                  <el-option label="牛肉" value="beef" />
-                  <el-option label="猪肉" value="pork" />
-                  <el-option label="鸡肉" value="chicken" />
-                  <el-option label="鱼肉" value="fish" />
-                  <el-option label="鸡蛋" value="eggs" />
-                  <el-option label="牛奶" value="milk" />
-                  <el-option label="奶酪" value="cheese" />
-                  <el-option label="米饭" value="rice" />
-                  <el-option label="面食" value="wheat" />
-                  <el-option label="蔬菜" value="vegetables" />
-                  <el-option label="水果" value="fruits" />
-                  <el-option label="纯素" value="pure_veg" />
-                </template>
-                <template v-else-if="newScenario.category === 'electricity'">
-                  <el-option label="台式电脑" value="desktop" />
-                  <el-option label="笔记本电脑" value="laptop" />
-                  <el-option label="显示器" value="monitor" />
-                  <el-option label="打印机/复印机" value="printer" />
-                  <el-option label="电视" value="tv" />
-                  <el-option label="空调" value="ac" />
-                  <el-option label="电暖器" value="heater" />
-                  <el-option label="洗衣机" value="washing_machine" />
-                  <el-option label="冰箱" value="fridge" />
-                  <el-option label="LED灯" value="light_led" />
-                  <el-option label="白炽灯" value="light_incandescent" />
-                </template>
-                <template v-else-if="newScenario.category === 'water'">
-                  <el-option label="自来水" value="tap" />
-                  <el-option label="桶装水" value="bottled" />
-                  <el-option label="热水" value="hot" />
-                </template>
-              </el-select>
-            </el-form-item>
-            <el-form-item :label="amountLabel" v-if="newScenario.category && newScenario.subCategory">
-              <el-input-number v-model="newScenario.amount" :min="0" :step="0.1" style="width: 100%" />
-            </el-form-item>
-          </el-form>
-          <template #footer>
-            <div class="dialog-footer" style="display: flex; justify-content: center; gap: 15px; margin-top: 10px;">
-              <el-button round @click="showCustomScenarioDialog = false" style="min-width: 120px;">取消</el-button>
-              <el-button type="primary" round style="min-width: 120px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border: none; font-weight: bold; color: #111; display:flex; align-items:center; justify-content:center; gap:5px;" @click="saveCustomScenario">
-                <el-icon><Check /></el-icon> 确认保存
-              </el-button>
-            </div>
-          </template>
-        </el-dialog>
-
-        <el-alert
-          :title="currentTip.title"
-          :description="currentTip.desc"
-          :type="currentTip.type as any"
-          show-icon
-          class="dynamic-tip"
-          :closable="false"
-          v-if="user.role !== 'admin'"
-        />
-
-        <div class="emissions-grid">
-          <el-tabs type="border-card" class="emissions-tabs" v-model="activeTab">
-            <el-tab-pane name="transport">
-              <template #label>
-                <div class="tab-label"><el-icon><Van /></el-icon> 交通出行</div>
-              </template>
-              <div class="tab-content-wrapper">
-                <TransportForm />
-              </div>
-            </el-tab-pane>
-            <el-tab-pane name="diet">
-              <template #label>
-                <div class="tab-label"><el-icon><KnifeFork /></el-icon> 饮食记录</div>
-              </template>
-              <div class="tab-content-wrapper">
-                <DietForm />
-              </div>
-            </el-tab-pane>
-            <el-tab-pane name="electricity">
-              <template #label>
-                <div class="tab-label"><el-icon><Lightning /></el-icon> 家庭用电</div>
-              </template>
-              <div class="tab-content-wrapper">
-                <ElectricityForm />
-              </div>
-            </el-tab-pane>
-            <el-tab-pane name="water">
-              <template #label>
-                <div class="tab-label"><el-icon><Odometer /></el-icon> 水资源</div>
-              </template>
-              <div class="tab-content-wrapper">
-                <WaterForm />
-              </div>
-            </el-tab-pane>
-          </el-tabs>
         </div>
-      </el-main>
-    </el-container>
-  </el-container>
+      </section>
+
+      <div class="premium-divider">
+        <span>OR MANUAL ENTRY</span>
+      </div>
+
+      <section class="manual-entry-section">
+        <div class="glass-tabs">
+          <button 
+            class="tab-btn" 
+            :class="{ active: activeTab === 'transport' }" 
+            @click="activeTab = 'transport'"
+          >
+            🚗 交通出行
+          </button>
+          <button 
+            class="tab-btn" 
+            :class="{ active: activeTab === 'diet' }" 
+            @click="activeTab = 'diet'"
+          >
+            🍔 饮食消费
+          </button>
+          <button 
+            class="tab-btn" 
+            :class="{ active: activeTab === 'electricity' }" 
+            @click="activeTab = 'electricity'"
+          >
+            ⚡ 能源用电
+          </button>
+        </div>
+        
+        <div class="glass-form-container">
+          <transition name="fade-slide" mode="out-in">
+            <TransportForm v-if="activeTab === 'transport'" />
+            <DietForm v-else-if="activeTab === 'diet'" />
+            <ElectricityForm v-else-if="activeTab === 'electricity'" />
+          </transition>
+        </div>
+      </section>
+    </main>
+  </div>
 </template>
 
-<script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useCarbonStore } from '../store'
-import RoleSidebar from '../components/RoleSidebar.vue'
-import { Van, KnifeFork, Lightning, ArrowDown, Location, Odometer, Plus, Check } from '@element-plus/icons-vue'  
-import { ElMessage } from 'element-plus'
-import { carbonApi } from '../api'
 
-import TransportForm from '../components/emissions/TransportForm.vue'
-import DietForm from '../components/emissions/DietForm.vue'
-import ElectricityForm from '../components/emissions/ElectricityForm.vue'       
-import WaterForm from '../components/emissions/WaterForm.vue'
+import TransportForm from '@/components/emissions/TransportForm.vue'
+import DietForm from '@/components/emissions/DietForm.vue'
+import ElectricityForm from '@/components/emissions/ElectricityForm.vue'
 
-const router = useRouter()
-const carbonStore = useCarbonStore()
 const activeTab = ref('transport')
 
-const user = computed(() => carbonStore.user)
+const router = useRouter()
 
-// --- 方案A：今日碳限额进度 ---
-const dailyQuota = 15 // 每日提示限额 15kg
-const todayEmissions = computed(() => {
-  const today = new Date().toISOString().split('T')[0]
-  return carbonStore.records
-    .filter(r => r.date.startsWith(today))
-    .reduce((sum, r) => sum + r.value, 0)
-})
-const todayProgress = computed(() => {
-  return Math.min((todayEmissions.value / dailyQuota) * 100, 100)
-})
-const progressStatus = computed(() => {
-  if (todayProgress.value < 60) return 'success'
-  if (todayProgress.value < 100) return 'warning'
-  return 'exception'
-})
-const progressHint = computed(() => {
-  if (todayProgress.value >= 100) return '⚠️ 哎呀，今天超标啦，请注意减排！'
-  if (todayProgress.value >= 60) return '注意控制接下来的排放哦～'
-  return '低碳达人，继续保持！'
-})
+const inputText = ref('')
+const previewImage = ref(null)
+const base64Image = ref('')
+const isDragging = ref(false)
+const isLoading = ref(false)
+const isFocused = ref(false)
+const fileInput = ref(null)
 
-// --- 方案B：快捷打卡 ---
-const customScenarios = ref<{category: string, name: string, value: number}[]>([])
-const showCustomScenarioDialog = ref(false)
-const newScenario = ref({
-  category: 'transport',
-  subCategory: '',
-  amount: 0,
-  name: ''
-})
+// --- 鼠标交互动效逻辑 ---
+const mouseX = ref(0)
+const mouseY = ref(0)
+const mousePixelX = ref(window.innerWidth / 2) // 初始在屏幕中间
+const mousePixelY = ref(window.innerHeight / 2)
 
-const amountLabel = computed(() => {
-  switch (newScenario.value.category) {
-    case 'transport': return '距离(公里)'
-    case 'diet': return '重量(kg)'
-    case 'electricity': return '用电量(度)'
-    case 'water': return '水量(吨)'
-    default: return '数量'
-  }
-})
-
-const emissionFactors: Record<string, Record<string, number>> = {
-  transport: { bus: 0.068, subway: 0.046, taxi: 0.23, rideshare: 0.15, private_car: 0.27, bike: 0, walk: 0 },
-  diet: { beef: 27.0, pork: 12.1, chicken: 6.9, fish: 6.1, eggs: 4.8, milk: 3.2, cheese: 21.2, rice: 4.0, wheat: 1.5, vegetables: 2.0, fruits: 0.9, pure_veg: 1.5 },
-  electricity: { desktop: 0.15, laptop: 0.05, monitor: 0.03, printer: 0.02, tv: 0.1, ac: 0.8, heater: 1.5, washing_machine: 0.5, fridge: 0.05, light_led: 0.01, light_incandescent: 0.06 },
-  water: { tap: 0.25, bottled: 2.5, hot: 12.5 }
-}
-
-onMounted(() => {
-  const stored = localStorage.getItem('custom_scenarios')
-  if (stored) {
-    try {
-      customScenarios.value = JSON.parse(stored)
-    } catch (e) {}
-  }
-})
-
-const saveCustomScenario = () => {
-  if (!newScenario.value.name) {
-    ElMessage.warning('请输入情景名称')
-    return
-  }
-  if (!newScenario.value.subCategory) {
-    ElMessage.warning('请选择项目')
-    return
-  }
-  if (newScenario.value.amount <= 0 && newScenario.value.subCategory !== 'bike' && newScenario.value.subCategory !== 'walk') {
-    ElMessage.warning('请输入有效数量')
-    return
-  }
+const handleMouseMove = (e) => {
+  // 记录真实的像素坐标，给光晕用
+  mousePixelX.value = e.clientX
+  mousePixelY.value = e.clientY
   
-  const factor = emissionFactors[newScenario.value.category]?.[newScenario.value.subCategory] || 0
-  const value = factor * newScenario.value.amount
-
-  const scenarioToSave = {
-    category: newScenario.value.category,
-    name: newScenario.value.name,
-    value: parseFloat(value.toFixed(2))
-  }
-
-  customScenarios.value.push(scenarioToSave)
-  localStorage.setItem('custom_scenarios', JSON.stringify(customScenarios.value))
-  showCustomScenarioDialog.value = false
-  ElMessage.success('已添加自定义场景')
+  // 归一化坐标 (-1 到 1)，给视差背景用
+  mouseX.value = (e.clientX / window.innerWidth) * 2 - 1
+  mouseY.value = (e.clientY / window.innerHeight) * 2 - 1
 }
 
-const quickAdd = async (type: string, value: number, desc: string) => {
+// 确保组件销毁时清理事件（虽然绑在div上一般不会漏，但好习惯）
+onMounted(() => {
+  window.addEventListener('mousemove', handleMouseMove)
+})
+onUnmounted(() => {
+  window.removeEventListener('mousemove', handleMouseMove)
+})
+// ----------------------
+
+const triggerFileInput = () => {
+  fileInput.value.click()
+}
+
+const processFile = (file) => {
+  if (!file || !file.type.startsWith('image/')) return
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    previewImage.value = e.target.result
+    base64Image.value = e.target.result 
+  }
+  reader.readAsDataURL(file)
+}
+
+const handleFileUpload = (e) => {
+  processFile(e.target.files[0])
+}
+
+const handleDrop = (e) => {
+  isDragging.value = false
+  processFile(e.dataTransfer.files[0])
+}
+
+const clearImage = () => {
+  previewImage.value = null
+  base64Image.value = ''
+  if (fileInput.value) fileInput.value.value = ''
+}
+
+const submitAiData = async () => {
+  if (!inputText.value && !base64Image.value) return
+  isLoading.value = true
+
   try {
-    const dStr = new Date().toISOString()
-    // 模拟将自定义固定排放量换算为接口参数
-    if (type === 'transport') {
-      let tCode = 0 // 默认步行
-      if (desc.includes('地铁')) tCode = 3
-      // 这里传距离时稍微模拟一下计算结果反推，实际上后端可能有固定因子，这里只是示例
-      await carbonApi.addTransportRecord({ transportType: tCode, distance: value > 0 ? value * 5 : 10, emissionDate: dStr, description: `[快捷打卡] ${desc}` })
-    } else if (type === 'diet') {
-      await carbonApi.addDietRecord({ foodType: desc.includes('素食') ? 2 : 0, specificFood: '快捷打卡', amount: value > 0 ? value : 1, cookingMethod: '标准', emissionDate: dStr, description: `[快捷打卡] ${desc}` })
-    } else if (type === 'electricity') {
-      await carbonApi.addElectricityRecord({ deviceType: '综合用电', power: 100, usageTime: value > 0 ? value * 10 : 1, usageDays: 1, emissionDate: dStr, description: `[快捷打卡] ${desc}` })
-    } else if (type === 'water') {
-      const records = JSON.parse(localStorage.getItem('mock_water_emissions') || '[]')
-      records.unshift({
-        id: Date.now(),
-        waterType: '自定义',
-        amount: value,
-        unit: '自定义',
-        date: dStr.split('T')[0],
-        description: `[快捷打卡] ${desc}`,
-        emission: value
+    let token = localStorage.getItem('token')
+    if (!token) console.warn("未获取到 Token，请求可能会被后端拦截！")
+    else token = token.replace(/^"(.*)"$/, '$1')
+
+    const authHeader = token ? (token.startsWith('Bearer') ? token : `Bearer ${token}`) : ''
+
+    const response = await fetch('/api/ai/chat-to-track', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader
+      },
+      body: JSON.stringify({
+        text: inputText.value,
+        image: base64Image.value
       })
-      localStorage.setItem('mock_water_emissions', JSON.stringify(records))
+    })
+
+    if (!response.ok) {
+      alert('❌ 录入失败：大模型响应异常，请检查后端日志！')
+      isLoading.value = false
+      return
     }
     
-    await carbonStore.fetchAllRecords()
-    activeTab.value = type
+    const resData = await response.json()
+    
+    if (resData.code && resData.code !== 200) {
+       alert('录入失败: ' + resData.message)
+       return
+    }
 
-    ElMessage({
-      message: `打卡成功！已快捷记录：${desc} (+${value}kg)`,
-      type: 'success',
-      plain: true
-    })
-  } catch (err) {
-    ElMessage.error(`打卡失败`)
+    console.log('AI 解析成功:', resData)
+    inputText.value = ''
+    clearImage()
+    router.push('/dashboard')
+    
+  } catch (error) {
+    console.error('录入失败', error)
+    alert('网络请求失败，请稍后重试！')
+  } finally {
+    isLoading.value = false
   }
-}
-
-// --- 方案C：动态小贴士 ---
-const currentTip = computed(() => {
-  switch (activeTab.value) {
-    case 'transport':
-      return { title: '绿色出行贴士 🚲', desc: '尽量选择公共交通哦！轮胎气压不足会增加汽车5%的碳排放。', type: 'info' }
-    case 'diet':
-      return { title: '低碳饮食贴士 🥗', desc: '生产1kg牛肉的碳排放是1kg猪肉的4倍。多吃素食，为地球减负！', type: 'success' }
-    case 'electricity':
-      return { title: '家庭节能贴士 💡', desc: '待机状态下的电器依然会消耗电量，拔掉不用的插头也能减碳！', type: 'warning' }
-    case 'water':
-      return { title: '节水贴士 💧', desc: '洗澡时间缩短1分钟，就能节约不少水资源和加热消耗的能源哦！', type: 'info' }
-    default:
-      return { title: '小贴士', desc: '多采取低碳行动，保护我们的地球。', type: 'info' }
-  }
-})
-
-const handleLogout = () => {
-  router.push('/login')
-}
-
-const navigateToProfile = () => {
-  router.push('/profile')
 }
 </script>
 
 <style scoped>
-.emissions-container {
+.emissions-premium-page {
+  position: relative;
   min-height: 100vh;
-}
-
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  background-color: #4CAF50;
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.header-left .logo-link {
-  text-decoration: none;
-  color: inherit;
-  display: inline-block;
-  transition: color 0.3s ease, transform 0.3s ease;
-}
-
-.header-left .logo-link:hover {
-  color: #ffffff;
-  transform: translateY(-2px);
-}
-
-.header-left h1 {
-  font-size: 20px;
-  margin: 0;
-}
-
-.user-info {
-  color: white;
-  cursor: pointer;
-}
-
-.dashboard-aside {
-  background-color: #fff;
-  border-right: 1px solid #e6e6e6;
-}
-
-.emissions-main {
-  padding: 24px 30px;
-  background-color: #f7f9fa;
-}
-
-.page-title-box {
-  margin-bottom: 24px;
-}
-
-.title-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.page-title-box h2 {
-  margin: 0 0 8px 0;
-  font-size: 24px;
-  color: #303133;
-}
-
-.subtitle {
-  margin: 0;
-  font-size: 14px;
-  color: #909399;
-}
-
-.today-progress {
-  text-align: right;
-  background: white;
-  padding: 10px 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-}
-
-.progress-title {
-  font-size: 13px;
-  color: #606266;
-  margin-bottom: 6px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.progress-title span {
-  font-weight: bold;
-  font-size: 14px;
-  color: #303133;
-}
-
-.progress-hint {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 6px;
-}
-
-.danger-text {
-  color: #f56c6c;
-  font-weight: bold;
-}
-
-.quick-checkin-card {
-  margin-bottom: 16px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #f0f9eb 0%, #e1f3d8 100%);
-  border: 1px solid #dcdfe6;
-}
-
-.quick-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: bold;
-  color: #4CAF50;
-  margin-bottom: 12px;
-  font-size: 15px;
-}
-
-.quick-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.eco-btn {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  border-radius: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
-  font-weight: 600 !important;
-  transition: all 0.3s ease !important;
-}
-
-.eco-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
-}
-
-/* Sub-themes for Eco Buttons */
-.eco-btn-transport { color: #009688 !important; border: 1px solid #80cbc4 !important; }
-.eco-btn-transport:hover { background-color: #009688 !important; color: #fff !important; border-color: #009688 !important; }
-
-.eco-btn-diet { color: #4CAF50 !important; border: 1px solid #a5d6a7 !important; }
-.eco-btn-diet:hover { background-color: #4CAF50 !important; color: #fff !important; border-color: #4CAF50 !important; }
-
-.eco-btn-electric { color: #e6a23c !important; border: 1px solid #f3d19e !important; }
-.eco-btn-electric:hover { background-color: #e6a23c !important; color: #fff !important; border-color: #e6a23c !important; }
-
-.eco-btn-bike { color: #67c23a !important; border: 1px solid #b3e19d !important; }
-.eco-btn-bike:hover { background-color: #67c23a !important; color: #fff !important; border-color: #67c23a !important; }
-
-.eco-btn-water { color: #409EFF !important; border: 1px solid #c6e2ff !important; }
-.eco-btn-water:hover { background-color: #409EFF !important; color: #fff !important; border-color: #409EFF !important; }
-
-.dynamic-tip {
-  margin-bottom: 20px;
-  border-radius: 8px;
-}
-
-.emissions-grid {
-  margin-top: 5px;
-}
-
-.emissions-tabs {
-  border-radius: 12px;
+  background-color: #09090b; 
   overflow: hidden;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.04);
-  border: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-.emissions-tabs :deep(.el-tabs__header) {
-  background-color: #f7f9fa;
-  border-bottom: 1px solid #ebeef5;
-}
-
-.emissions-tabs :deep(.el-tabs__item) {
-  font-size: 16px;
-  color: #606266;
-  height: 54px;
-  line-height: 54px;
-  padding: 0 30px;
-  transition: all 0.3s;
-}
-
-.emissions-tabs :deep(.el-tabs__item.is-active) {
-  color: #4CAF50;
-  background-color: #fff;
-  border-right-color: #ebeef5;
-  border-left-color: #ebeef5;
-  font-weight: bold;
-}
-
-.emissions-tabs :deep(.el-tabs__item.is-active::before) {
-  content: '';
+/* --- 极客鼠标跟随光晕 --- */
+.mouse-glow {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background-color: #4CAF50;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(0, 220, 130, 0.08) 0%, rgba(0, 0, 0, 0) 60%);
+  border-radius: 50%;
+  pointer-events: none; /* 绝对不能挡住点击事件 */
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  transition: opacity 0.3s ease;
+  will-change: left, top;
 }
 
-.tab-label {
+/* --- 动态抗重力背景 (加入了视差层) --- */
+.antigravity-bg {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none; 
+  overflow: hidden;
+}
+
+.orb-layer {
+  position: absolute;
+  width: 100%; height: 100%;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.5;
+  animation: float 20s infinite ease-in-out alternate;
+}
+
+.orb-1 {
+  width: 500px; height: 500px;
+  background: #00dc82; 
+  top: -150px; left: -150px;
+}
+
+.orb-2 {
+  width: 400px; height: 400px;
+  background: #0047e1; 
+  bottom: -100px; right: -100px;
+  animation-delay: -5s;
+  animation-duration: 25s;
+}
+
+.orb-3 {
+  width: 300px; height: 300px;
+  background: #36e4da; 
+  top: 40%; left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: -10s;
+  animation-duration: 30s;
+}
+
+.noise-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+  z-index: 1;
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(50px, 80px) scale(1.1); }
+  100% { transform: translate(-50px, 40px) scale(0.9); }
+}
+
+/* --- 顶部毛玻璃导航栏 --- */
+.glass-navbar {
+  position: relative;
+  z-index: 50;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: rgba(9, 9, 11, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.nav-icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: #a1a1aa;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.nav-icon-btn:hover {
+  color: #f4f4f5;
+}
+
+.nav-glow-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(0, 220, 130, 0.1);
+  color: #00dc82;
+  border: 1px solid rgba(0, 220, 130, 0.2);
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 0 15px rgba(0, 220, 130, 0);
+}
+
+.nav-glow-btn:hover {
+  background: rgba(0, 220, 130, 0.2);
+  border-color: rgba(0, 220, 130, 0.5);
+  box-shadow: 0 0 20px rgba(0, 220, 130, 0.3);
+  transform: translateY(-1px);
+}
+
+/* --- 主体内容区 --- */
+.content-wrapper {
+  position: relative;
+  z-index: 10;
+  padding: 4rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.magic-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  background: linear-gradient(135deg, #00dc82, #36e4da, #f4f4f5);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.5rem;
+  animation: shine 6s linear infinite;
+}
+
+@keyframes shine {
+  to { background-position: 200% center; }
+}
+
+.magic-subtitle {
+  font-size: 1.2rem;
+  color: #a1a1aa; 
+  font-weight: 500;
+}
+
+/* 核心输入框容器 */
+.ai-omnibox-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.omnibox {
+  position: relative;
+  width: 100%;
+  background: rgba(24, 24, 27, 0.6); 
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 10px 10px 10px 24px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+}
+
+.omnibox.is-focused {
+  border-color: #00dc82;
+  background: rgba(24, 24, 27, 0.8);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px #00dc82, 0 0 30px rgba(0, 220, 130, 0.2);
+  transform: translateY(-2px);
+}
+
+.omnibox.is-dragging {
+  border-color: #36e4da;
+  transform: scale(1.02);
+}
+
+.magic-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  outline: none;
+}
+
+.magic-input::placeholder {
+  color: #71717a; 
+}
+
+.omnibox-actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.tab-label .el-icon {
-  font-size: 20px;
-}
-
-.tab-content-wrapper {
-  padding: 10px;
-}
-
-/* 统一内部表单和表格样式 */
-.tab-content-wrapper :deep(.el-card) {
+/* 按钮样式 */
+.btn-icon {
+  background: transparent;
   border: none;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.02);
+  color: #a1a1aa;
+  padding: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon:hover:not(:disabled) {
+  color: #00dc82;
+  background: rgba(0, 220, 130, 0.15);
+}
+
+.btn-submit {
+  background: #f4f4f5; 
+  color: #09090b;
+  border: none;
+  border-radius: 20px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.omnibox.is-focused .btn-submit {
+  background: linear-gradient(135deg, #00dc82, #10b981);
+  color: white;
+  box-shadow: 0 4px 14px rgba(0, 220, 130, 0.4);
+}
+
+.btn-submit:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 加载动画 */
+.loader {
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top: 3px solid currentColor;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* 图片预览徽章 */
+.image-preview-badge {
+  align-self: flex-start;
+  margin-left: 24px;
+  margin-bottom: -16px;
+  position: relative;
+  z-index: 1;
+  padding: 4px;
+  background: rgba(24, 24, 27, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 12px;
-  margin-bottom: 20px;
+  border-bottom: none;
+  padding-bottom: 20px;
 }
 
-.tab-content-wrapper :deep(.el-card__header) {
-  font-size: 16px;
-  font-weight: bold;
-  border-bottom: 1px solid #f0f2f5;
-  padding: 18px 24px;
-  background: white;
+.image-preview-badge img {
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
 }
 
-.tab-content-wrapper :deep(.el-form-item__label) {
+.btn-close-img {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+}
+
+/* 拖拽蒙层 */
+.drag-glass-overlay {
+  position: absolute;
+  top: -20px; left: -20px; right: -20px; bottom: -20px;
+  background: rgba(9, 9, 11, 0.7);
+  backdrop-filter: blur(12px);
+  border: 2px dashed #00dc82;
+  border-radius: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.drag-content {
+  text-align: center;
+  color: #00dc82;
+}
+
+.drag-content h3 {
+  margin-top: 1rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+/* 分割线与底部 */
+.premium-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 4rem 0;
+  color: rgba(255,255,255,0.2);
+}
+
+.premium-divider::before, .premium-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.premium-divider span {
+  padding: 0 1.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+}
+
+.manual-placeholder {
+  text-align: center;
+  padding: 3rem;
+  border: 1px dashed rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 16px;
+  color: #71717a;
+}
+
+.manual-entry-section {
+  width: 100%;
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  z-index: 2;
+  position: relative;
+}
+
+.glass-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(24, 24, 27, 0.4);
+  backdrop-filter: blur(12px);
+  padding: 6px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.tab-btn {
+  background: transparent;
+  color: #a1a1aa;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-btn:hover {
+  color: #f4f4f5;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.active {
+  background: rgba(0, 220, 130, 0.15);
+  color: #00dc82;
+  box-shadow: inset 0 0 0 1px rgba(0, 220, 130, 0.3);
+}
+
+.glass-form-container {
+  background: rgba(24, 24, 27, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  min-height: 300px;
+}
+
+.glass-form-container :deep(.el-card),
+.glass-form-container :deep(.box-card) {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.glass-form-container :deep(h1),
+.glass-form-container :deep(h2),
+.glass-form-container :deep(h3),
+.glass-form-container :deep(h4),
+.glass-form-container :deep(span),
+.glass-form-container :deep(p) {
+  color: #f4f4f5 !important;
+}
+
+.glass-form-container :deep(.el-form-item__label),
+.glass-form-container :deep(.el-radio__label),
+.glass-form-container :deep(.el-checkbox__label),
+.glass-form-container :deep(.el-descriptions__label) {
+  color: #a1a1aa !important;
   font-weight: 500;
-  color: #606266;
 }
 
-.tab-content-wrapper :deep(.el-input__wrapper),
-.tab-content-wrapper :deep(.el-select) {
-  border-radius: 6px;
-  box-shadow: 0 0 0 1px #dcdfe6 inset;
+.glass-form-container :deep(.el-input__wrapper),
+.glass-form-container :deep(.el-textarea__inner) {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) inset !important;
+  color: #f4f4f5 !important;
 }
 
-.tab-content-wrapper :deep(.el-button) {
-  border-radius: 6px;
+.glass-form-container :deep(.el-input__inner) {
+  color: #f4f4f5 !important;
+}
+.glass-form-container :deep(.el-input__inner::placeholder),
+.glass-form-container :deep(.el-textarea__inner::placeholder) {
+  color: #52525b !important;
 }
 
-@media (max-width: 768px) {
-  .dashboard-aside {
-    display: none;
-  }
-  .emissions-main {
-    padding: 15px;
-  }
-  .emissions-tabs :deep(.el-tabs__item) {
-    padding: 0 15px;
-    font-size: 14px;
-  }
+.glass-form-container :deep(.el-table),
+.glass-form-container :deep(.el-table__expanded-cell) {
+  background-color: transparent !important;
+}
+
+.glass-form-container :deep(.el-table tr),
+.glass-form-container :deep(.el-table td.el-table__cell) {
+  background-color: #18181b !important;
+  color: #e4e4e7 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.glass-form-container :deep(.el-table th.el-table__cell) {
+  background-color: #09090b !important;
+  color: #00dc82 !important;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(0, 220, 130, 0.3) !important;
+}
+
+.glass-form-container :deep(.el-table::before),
+.glass-form-container :deep(.el-table::after),
+.glass-form-container :deep(.el-table__inner-wrapper::before) {
+  display: none !important;
+}
+
+.glass-form-container :deep(.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell) {
+  background-color: #27272a !important;
+}
+
+.glass-form-container :deep(.el-button--primary),
+.glass-form-container :deep(.el-button--success) {
+  background: linear-gradient(135deg, #00dc82, #10b981) !important;
+  border: none !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(0, 220, 130, 0.3) !important;
+}
+.glass-form-container :deep(.el-button--primary:hover),
+.glass-form-container :deep(.el-button--success:hover) {
+  box-shadow: 0 6px 20px rgba(0, 220, 130, 0.5) !important;
+  transform: translateY(-1px);
+}
+
+.glass-form-container :deep(.el-button--default) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #a1a1aa !important;
+}
+.glass-form-container :deep(.el-button--default:hover) {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}
+
+/* 动画过渡 */
+.fade-slide-enter-active, .fade-slide-leave-active {
+  transition: all 0.3s ease;
+}
+.fade-slide-enter-from, .fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
 }
 </style>
