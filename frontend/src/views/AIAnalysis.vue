@@ -599,6 +599,10 @@ onMounted(() => {
    ========================================= */
 .cyber-sandbox-container {
   height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 4rem;
+  box-sizing: border-box;
   background-color: #020b14;
   background-image: 
     linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
@@ -700,7 +704,36 @@ onMounted(() => {
   text-shadow: 0 0 8px rgba(0, 229, 255, 0.6); text-transform: uppercase;
 }
 
-.sandbox-sidebar { width: 320px; display: flex; flex-direction: column; gap: 24px; }
+.sandbox-sidebar { 
+  width: 320px; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 24px; 
+  max-height: 100%; 
+  overflow-y: auto; 
+  overflow-x: hidden;
+  padding-right: 8px; 
+}
+
+.sandbox-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sandbox-sidebar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2); 
+  border-radius: 4px;
+}
+
+.sandbox-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.3); 
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.sandbox-sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 229, 255, 0.8); 
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+}
 .action-panel { display: grid; gap: 16px; }
 .action-brief-list { display: grid; gap: 12px; }
 .action-brief-item {
@@ -933,5 +966,24 @@ onMounted(() => {
   font-size: 12px;
   color: #94a3b8;
   line-height: 1.5;
+}
+
+.cyber-sandbox-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cyber-sandbox-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cyber-sandbox-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+.cyber-sandbox-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 220, 130, 0.6);
+  box-shadow: 0 0 10px rgba(0, 220, 130, 0.4);
 }
 </style>
