@@ -24,11 +24,11 @@ public class DashboardService {
     private final ElectricityEmissionRepository electricityEmissionRepository;
     private final PointsRecordRepository pointsRecordRepository;
 
-    public DashboardDataDTO getDashboardData() {
+    public DashboardDataDTO getDashboardData(String range) {
         DashboardDataDTO dashboard = new DashboardDataDTO();
         
-        dashboard.setOverview(getOverviewStats());
-        dashboard.setEmissionTrends(getEmissionTrends());
+        dashboard.setOverview(getOverviewStats(range));
+        dashboard.setEmissionTrends(getEmissionTrends(range));
         dashboard.setCategoryDistribution(getCategoryDistribution());
         dashboard.setTopUsers(getTopUsers());
         dashboard.setRegionalStats(getRegionalStats());
@@ -37,40 +37,42 @@ public class DashboardService {
         return dashboard;
     }
 
-    private DashboardDataDTO.OverviewStats getOverviewStats() {
+    private DashboardDataDTO.OverviewStats getOverviewStats(String range) {
         long totalUsers = userRepository.count();
         
         LocalDate today = LocalDate.now();
-        LocalDate monthStart = today.withDayOfMonth(1);
+        LocalDate startDate;
+        int daysDivisor = 30;
         
-        double totalTransport = transportEmissionRepository.findAll()
-                .stream()
-                .mapToDouble(TransportEmission::getEmissionAmount)
-                .sum();
+        switch (range != null ? range.toLowerCase() : "month") {
+            case "day": startDate = today; daysDivisor = 1; break;
+            case "week": startDate = today.minusWeeks(1); daysDivisor = 7; break;
+            case "month": startDate = today.minusMonths(1); daysDivisor = 30; break;
+            case "year": startDate = today.minusYears(1); daysDivisor = 365; break;
+            default: startDate = today.minusMonths(1); daysDivisor = 30; break;
+        }
         
-        double totalDiet = dietEmissionRepository.findAll()
-                .stream()
-                .mapToDouble(DietEmission::getEmissionAmount)
-                .sum();
+        double totalTransport = transportEmissionRepository.findAll().stream()
+                .filter(e -> !e.getEmissionDate().isBefore(startDate))
+                .mapToDouble(TransportEmission::getEmissionAmount).sum();
         
-        double totalElectricity = electricityEmissionRepository.findAll()
-                .stream()
-                .mapToDouble(ElectricityEmission::getEmissionAmount)
-                .sum();
+        double totalDiet = dietEmissionRepository.findAll().stream()
+                .filter(e -> !e.getEmissionDate().isBefore(startDate))
+                .mapToDouble(DietEmission::getEmissionAmount).sum();
+        
+        double totalElectricity = electricityEmissionRepository.findAll().stream()
+                .filter(e -> !e.getEmissionDate().isBefore(startDate))
+                .mapToDouble(ElectricityEmission::getEmissionAmount).sum();
         
         double totalEmission = totalTransport + totalDiet + totalElectricity;
         
-        long totalPoints = pointsRecordRepository.findAll()
-                .stream()
-                .mapToLong(PointsRecord::getPointsChange)
-                .sum();
+        long totalPoints = pointsRecordRepository.findAll().stream().mapToLong(PointsRecord::getPointsChange).sum();
+                
+        double totalReduction = pointsRecordRepository.findAll().stream()
+                .filter(e -> e.getCreatedAt() != null && !e.getCreatedAt().toLocalDate().isBefore(startDate))
+                .mapToDouble(PointsRecord::getEmissionReduced).sum();
         
-        double totalReduction = pointsRecordRepository.findAll()
-                .stream()
-                .mapToDouble(PointsRecord::getEmissionReduced)
-                .sum();
-        
-        double avgDailyEmission = totalUsers > 0 ? totalEmission / totalUsers / 30 : 0;
+        double avgDailyEmission = totalUsers > 0 ? totalEmission / totalUsers / daysDivisor : 0;
         
         long activeUsersToday = transportEmissionRepository.findByEmissionDate(today).stream()
                 .map(TransportEmission::getUserId)
@@ -87,38 +89,93 @@ public class DashboardService {
         );
     }
 
-    private List<DashboardDataDTO.EmissionTrend> getEmissionTrends() {
+    private List<DashboardDataDTO.EmissionTrend> getEmissionTrends(String range) {
         List<DashboardDataDTO.EmissionTrend> trends = new ArrayList<>();
         LocalDate today = LocalDate.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd");
+        DateTimeFormatter formatter;
+        int daysToFetch = 30;
         
-        for (int i = 29; i >= 0; i--) {
-            LocalDate date = today.minusDays(i);
-            
-            double transportEmission = transportEmissionRepository.findByEmissionDate(date)
-                    .stream()
-                    .mapToDouble(TransportEmission::getEmissionAmount)
-                    .sum();
-            
-            double dietEmission = dietEmissionRepository.findByEmissionDate(date)
-                    .stream()
-                    .mapToDouble(DietEmission::getEmissionAmount)
-                    .sum();
-            
-            double electricityEmission = electricityEmissionRepository.findByEmissionDate(date)
-                    .stream()
-                    .mapToDouble(ElectricityEmission::getEmissionAmount)
-                    .sum();
-            
-            double totalEmission = transportEmission + dietEmission + electricityEmission;
-            
-            trends.add(new DashboardDataDTO.EmissionTrend(
-                    date.format(formatter),
-                    Math.round(totalEmission * 100.0) / 100.0,
-                    Math.round(transportEmission * 100.0) / 100.0,
-                    Math.round(dietEmission * 100.0) / 100.0,
-                    Math.round(electricityEmission * 100.0) / 100.0
-            ));
+        switch (range != null ? range.toLowerCase() : "month") {
+            case "day": 
+                daysToFetch = 1;
+                formatter = DateTimeFormatter.ofPattern("MM-dd");
+                break;
+            case "week": 
+                daysToFetch = 7;
+                formatter = DateTimeFormatter.ofPattern("MM-dd");
+                break;
+            case "month": 
+                daysToFetch = 30;
+                formatter = DateTimeFormatter.ofPattern("MM-dd");
+                break;
+            case "year": 
+                daysToFetch = 365;
+                formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+                break;
+            default:
+                formatter = DateTimeFormatter.ofPattern("MM-dd");
+                break;
+        }
+        
+        if ("year".equalsIgnoreCase(range)) {
+            // Group by month
+            for (int i = 11; i >= 0; i--) {
+                LocalDate date = today.minusMonths(i);
+                LocalDate startOfMonth = date.withDayOfMonth(1);
+                LocalDate endOfMonth = date.withDayOfMonth(date.lengthOfMonth());
+                
+                double transportEmission = transportEmissionRepository.findAll().stream()
+                        .filter(e -> !e.getEmissionDate().isBefore(startOfMonth) && !e.getEmissionDate().isAfter(endOfMonth))
+                        .mapToDouble(TransportEmission::getEmissionAmount).sum();
+                
+                double dietEmission = dietEmissionRepository.findAll().stream()
+                        .filter(e -> !e.getEmissionDate().isBefore(startOfMonth) && !e.getEmissionDate().isAfter(endOfMonth))
+                        .mapToDouble(DietEmission::getEmissionAmount).sum();
+                
+                double electricityEmission = electricityEmissionRepository.findAll().stream()
+                        .filter(e -> !e.getEmissionDate().isBefore(startOfMonth) && !e.getEmissionDate().isAfter(endOfMonth))
+                        .mapToDouble(ElectricityEmission::getEmissionAmount).sum();
+                        
+                double totalEmission = transportEmission + dietEmission + electricityEmission;
+                
+                trends.add(new DashboardDataDTO.EmissionTrend(
+                        date.format(formatter),
+                        Math.round(totalEmission * 100.0) / 100.0,
+                        Math.round(transportEmission * 100.0) / 100.0,
+                        Math.round(dietEmission * 100.0) / 100.0,
+                        Math.round(electricityEmission * 100.0) / 100.0
+                ));
+            }
+        } else {
+            // Group by day for day, week, month
+            for (int i = daysToFetch - 1; i >= 0; i--) {
+                LocalDate date = today.minusDays(i);
+                
+                double transportEmission = transportEmissionRepository.findByEmissionDate(date)
+                        .stream()
+                        .mapToDouble(TransportEmission::getEmissionAmount)
+                        .sum();
+                
+                double dietEmission = dietEmissionRepository.findByEmissionDate(date)
+                        .stream()
+                        .mapToDouble(DietEmission::getEmissionAmount)
+                        .sum();
+                
+                double electricityEmission = electricityEmissionRepository.findByEmissionDate(date)
+                        .stream()
+                        .mapToDouble(ElectricityEmission::getEmissionAmount)
+                        .sum();
+                
+                double totalEmission = transportEmission + dietEmission + electricityEmission;
+                
+                trends.add(new DashboardDataDTO.EmissionTrend(
+                        date.format(formatter),
+                        Math.round(totalEmission * 100.0) / 100.0,
+                        Math.round(transportEmission * 100.0) / 100.0,
+                        Math.round(dietEmission * 100.0) / 100.0,
+                        Math.round(electricityEmission * 100.0) / 100.0
+                ));
+            }
         }
         
         return trends;

@@ -482,7 +482,7 @@ export const pointsApi = {
 // 数据大屏相关API
 export const dashboardApi = {
     // 获取大屏数据
-    getDashboardData: () => {
+    getDashboardData: (range: string = 'month') => {
         return request<{
             overview: {
                 totalUsers: number
@@ -524,7 +524,7 @@ export const dashboardApi = {
                 emission: number
                 type: string
             }>
-        }>('/api/dashboard/data')
+        }>(`/api/dashboard/data?range=${range}`)
     }
 }
 

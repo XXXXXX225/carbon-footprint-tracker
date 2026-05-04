@@ -20,7 +20,7 @@ public interface FootprintSummaryRepository extends JpaRepository<FootprintSumma
 
     List<FootprintSummary> findByUserIdAndPeriodOrderByPeriodStartDateDesc(Long userId, FootprintSummary.Period period);
 
-    List<FootprintSummary> findByUserIdAndPeriod(Long userId, String period);
+    List<FootprintSummary> findByUserIdAndPeriod(Long userId, FootprintSummary.Period period);
 
     List<FootprintSummary> findByUserIdAndPeriodStartDateAfter(Long userId, LocalDate periodStartDate);
 }

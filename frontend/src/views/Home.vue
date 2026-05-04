@@ -286,8 +286,11 @@
 import slide1 from '../assets/slide1.jpg'
 import slide2 from '../assets/slide2.jpg'
 import slide3 from '../assets/slide3.jpg'
+import slide4 from '../assets/slide4.jpg'
+import earthTexture from '../assets/earth-bg.jpg'
 import { CountUp } from 'countup.js'
-import * as THREE from 'three'
+import * as echarts from 'echarts'
+import 'echarts-gl'
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useCarbonStore } from '../store'
 import { UserFilled, User, House, CollectionTag, SwitchButton, ArrowDown, Setting, DataLine } from '@element-plus/icons-vue'
@@ -392,255 +395,189 @@ const animateCursorTrail = () => {
 
 
 // ==========================================
-// 2. Three.js 低多边形 (Low-Poly) 地球与光柱
+// 2. ECharts 3D 地球模型升级
 // ==========================================
 const threeContainer = ref<HTMLElement | null>(null)
-let scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer
-let earthMesh: THREE.Mesh
+let earthChart: echarts.ECharts | null = null
 let animationId: number
-
-let isDragging = false
-let previousMouseX = 0
-let previousMouseY = 0
-const autoRotationSpeed = 0.003
-let activeDataNodes: any[] = []
 
 const initThreeEarth = () => {
   if (!threeContainer.value) return
   const container = threeContainer.value
-  const width = container.clientWidth
-  const height = container.clientHeight || 400
 
-  scene = new THREE.Scene()
-  camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000)
-  camera.position.z = 12
-  
-  renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
-  renderer.setSize(width, height)
-  renderer.setPixelRatio(window.devicePixelRatio)
-  container.innerHTML = ''
-  container.appendChild(renderer.domElement)
+  earthChart = echarts.init(container)
 
-  const earthGeo = new THREE.IcosahedronGeometry(4, 2)
-  const earthMat = new THREE.MeshBasicMaterial({ 
-    color: 0x10b981,         
-    wireframe: true,
-    transparent: true,
-    opacity: 0.15,           
-    blending: THREE.AdditiveBlending 
-  })
-  earthMesh = new THREE.Mesh(earthGeo, earthMat)
-  scene.add(earthMesh)
-
-  const solidMat = new THREE.MeshBasicMaterial({ 
-    color: 0x064e3b, 
-    transparent: true,
-    opacity: 0.05,           
-    side: THREE.FrontSide    
-  })
-  const solidEarth = new THREE.Mesh(new THREE.IcosahedronGeometry(3.95, 2), solidMat)
-  earthMesh.add(solidEarth)
-
-  const cloudMat = new THREE.PointsMaterial({
-    color: 0x10b981,
-    size: 0.02,
-    transparent: true,
-    opacity: 0.2,
-    blending: THREE.AdditiveBlending
-  })
-  const cloudGeo = new THREE.BufferGeometry()
-  const cloudPositions = []
-  for (let i = 0; i < 200; i++) {
-    const phi = Math.random() * Math.PI * 2
-    const theta = Math.random() * Math.PI
-    const r = 4.5 + Math.random() * 0.3
-    cloudPositions.push(
-      r * Math.sin(theta) * Math.cos(phi),
-      r * Math.cos(theta),
-      r * Math.sin(theta) * Math.sin(phi)
-    )
-  }
-  cloudGeo.setAttribute('position', new THREE.Float32BufferAttribute(cloudPositions, 3))
-  const dataCloud = new THREE.Points(cloudGeo, cloudMat)
-  earthMesh.add(dataCloud)
-
-  const spawnDynamicNode = () => {
-    const lat = (Math.random() - 0.5) * 160
-    const lon = (Math.random() - 0.5) * 360
-    
-    const phi = (90 - lat) * (Math.PI / 180)
-    const theta = (lon + 180) * (Math.PI / 180)
-    const r = 4 
-    
-    const x = -(r * Math.sin(phi) * Math.cos(theta))
-    const z = (r * Math.sin(phi) * Math.sin(theta))
-    const y = (r * Math.cos(phi))
-
-    const targetHeight = Math.random() * 2.0 + 0.5
-    const lifespan = Math.floor(Math.random() * 120 + 80) 
-
-    const pillarGeo = new THREE.CylinderGeometry(0.04, 0.04, targetHeight, 8)
-    pillarGeo.translate(0, targetHeight / 2, 0)
-    
-    const pillarMat = new THREE.MeshBasicMaterial({ 
-      color: 0x34d399,         
-      transparent: true, 
-      opacity: 0,
-      blending: THREE.AdditiveBlending 
-    })
-    
-    const pillar = new THREE.Mesh(pillarGeo, pillarMat)
-    pillar.position.set(x, y, z)
-    pillar.lookAt(0, 0, 0)
-    pillar.rotateX(Math.PI / 2)
-    
-    earthMesh.add(pillar)
-
-    activeDataNodes.push({
-      mesh: pillar,
-      material: pillarMat,
-      geometry: pillarGeo,
-      age: 0,
-      lifespan: lifespan
-    })
-  }
-
-  const addDataArc = () => {
-    const getRandomPoint = (radius: number) => {
-      const phi = Math.random() * Math.PI * 2
-      const theta = Math.random() * Math.PI
-      return new THREE.Vector3(
-        radius * Math.sin(theta) * Math.cos(phi),
-        radius * Math.cos(theta),
-        radius * Math.sin(theta) * Math.sin(phi)
-      )
-    }
-
-    const start = getRandomPoint(4)
-    const end = getRandomPoint(4)
-
-    const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5)
-    const midLen = mid.length()
-    mid.setLength(midLen * 2)
-
-    const curve = new THREE.QuadraticBezierCurve3(start, mid, end)
-    const points = curve.getPoints(50)
-    const geometry = new THREE.BufferGeometry().setFromPoints(points)
-
-    const material = new THREE.LineBasicMaterial({
-      color: 0x34d399,
-      transparent: true,
-      opacity: 0.2,
-      blending: THREE.AdditiveBlending
-    })
-
-    const line = new THREE.Line(geometry, material)
-    earthMesh.add(line)
-
-    const lightGeo = new THREE.SphereGeometry(0.02, 8, 8)
-    const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending })
-    const light = new THREE.Mesh(lightGeo, lightMat)
-    earthMesh.add(light)
-
-    activeDataNodes.push({
-      line,
-      light,
-      curve,
-      progress: 0,
-      speed: 0.005 + Math.random() * 0.01,
-      age: 0,
-      lifespan: 200
-    })
-  }
-
-  const onMouseDown = (e: MouseEvent) => {
-    isDragging = true
-    previousMouseX = e.clientX
-    previousMouseY = e.clientY
-  }
-
-  const onMouseMove = (e: MouseEvent) => {
-    if (!isDragging || !earthMesh) return
-    const deltaX = e.clientX - previousMouseX
-    const deltaY = e.clientY - previousMouseY
-    earthMesh.rotation.y += deltaX * 0.005
-    earthMesh.rotation.x += deltaY * 0.005
-    previousMouseX = e.clientX
-    previousMouseY = e.clientY
-  }
-
-  const onMouseUp = () => {
-    isDragging = false
-  }
-
-  container.addEventListener('mousedown', onMouseDown)
-  window.addEventListener('mousemove', onMouseMove)
-  window.addEventListener('mouseup', onMouseUp)
-
-  const animate = () => {
-    animationId = requestAnimationFrame(animate)
-
-    if (!isDragging) {
-      earthMesh.rotation.y += autoRotationSpeed
-    }
-
-    if (Math.random() < 0.04) {
-      spawnDynamicNode()
-    }
-
-    if (Math.random() < 0.01) {
-      addDataArc()
-    }
-
-    for (let i = activeDataNodes.length - 1; i >= 0; i--) {
-      const node = activeDataNodes[i]
-      node.age++
-
-      if (node.curve) {
-        node.progress += node.speed
-        if (node.progress >= 1) {
-          earthMesh.remove(node.line)
-          earthMesh.remove(node.light)
-          node.line.geometry.dispose()
-          node.line.material.dispose()
-          node.light.geometry.dispose()
-          node.light.material.dispose()
-          activeDataNodes.splice(i, 1)
-        } else {
-          const pos = node.curve.getPoint(node.progress)
-          node.light.position.copy(pos)
-          node.light.material.opacity = Math.sin(node.progress * Math.PI)
-        }
-      } else {
-        const progress = node.age / node.lifespan
-
-        if (progress >= 1) {
-          earthMesh.remove(node.mesh)
-          node.geometry.dispose()
-          node.material.dispose()
-          activeDataNodes.splice(i, 1)
-        } else {
-          const wave = Math.sin(progress * Math.PI)
-
-          node.mesh.scale.y = wave
-          node.material.opacity = wave * 0.9
+  const option = {
+    globe: {
+      baseTexture: earthTexture,
+      shading: 'color',
+      environment: 'none',
+      viewControl: {
+        autoRotate: true,
+        targetCoord: [116.46, 39.92], // 北京坐标作为默认视角
+        distance: 200,
+        minDistance: 100,
+        maxDistance: 400,
+        rotateSensitivity: 0.8,
+        zoomSensitivity: 0.8
+      },
+      light: {
+        ambient: {
+          intensity: 0.4
+        },
+        main: {
+          intensity: 0.8,
+          shadow: false
         }
       }
-    }
-
-    renderer.render(scene, camera)
+    },
+    series: [
+      // 数据节点 - 全球监控点
+      {
+        type: 'scatter3D',
+        coordinateSystem: 'globe',
+        blendMode: 'lighter',
+        symbolSize: 8,
+        itemStyle: {
+          color: '#34d399',
+          opacity: 0.8
+        },
+        label: {
+          show: false
+        },
+        data: [
+          // 主要城市监控节点
+          [116.46, 39.92, 100], // 北京
+          [121.47, 31.23, 100], // 上海
+          [113.26, 23.13, 100], // 广州
+          [114.06, 22.54, 100], // 深圳
+          [120.16, 30.29, 100], // 杭州
+          [108.37, 22.82, 100], // 南宁
+          [103.83, 36.06, 100], // 兰州
+          [91.11, 29.65, 100], // 拉萨
+          [87.62, 43.83, 100], // 乌鲁木齐
+          [126.64, 45.75, 100], // 哈尔滨
+          [123.43, 41.80, 100], // 沈阳
+          [117.20, 39.13, 100], // 天津
+          [106.55, 29.57, 100], // 重庆
+          [104.07, 30.67, 100], // 成都
+          [112.98, 28.20, 100], // 长沙
+          [118.80, 32.06, 100], // 南京
+          [117.29, 31.86, 100], // 合肥
+          [119.30, 26.08, 100], // 福州
+          [115.86, 28.68, 100], // 南昌
+          [113.65, 34.76, 100], // 郑州
+          [111.27, 30.70, 100], // 武汉
+          [110.78, 32.65, 100], // 西安
+          [101.72, 36.62, 100], // 西宁
+          [106.27, 38.47, 100], // 银川
+          [111.65, 40.82, 100], // 呼和浩特
+          [115.48, 38.87, 100]  // 石家庄
+        ]
+      },
+      // 数据连接线 - 动态光弧
+      {
+        type: 'lines3D',
+        coordinateSystem: 'globe',
+        effect: {
+          show: true,
+          trailWidth: 2,
+          trailLength: 0.2,
+          trailOpacity: 0.8
+        },
+        blendMode: 'lighter',
+        lineStyle: {
+          color: '#34d399',
+          width: 1,
+          opacity: 0.6
+        },
+        data: [
+          // 主要连接线
+          [
+            [116.46, 39.92, 100], // 北京
+            [121.47, 31.23, 100]  // 上海
+          ],
+          [
+            [121.47, 31.23, 100], // 上海
+            [113.26, 23.13, 100]  // 广州
+          ],
+          [
+            [113.26, 23.13, 100], // 广州
+            [114.06, 22.54, 100]  // 深圳
+          ],
+          [
+            [116.46, 39.92, 100], // 北京
+            [120.16, 30.29, 100]  // 杭州
+          ],
+          [
+            [116.46, 39.92, 100], // 北京
+            [117.20, 39.13, 100]  // 天津
+          ]
+        ]
+      }
+    ]
   }
-  
-  animate()
 
-  window.addEventListener('resize', () => {
-    if (!threeContainer.value) return
-    const w = threeContainer.value.clientWidth
-    const h = threeContainer.value.clientHeight || 400
-    camera.aspect = w / h
-    camera.updateProjectionMatrix()
-    renderer.setSize(w, h)
-  })
+  earthChart.setOption(option)
+
+  // 动态添加新的数据节点
+  const addDynamicNode = () => {
+    if (!earthChart) return
+
+    const cities = [
+      [116.46, 39.92], // 北京
+      [121.47, 31.23], // 上海
+      [113.26, 23.13], // 广州
+      [114.06, 22.54], // 深圳
+      [120.16, 30.29], // 杭州
+      [108.37, 22.82], // 南宁
+      [103.83, 36.06], // 兰州
+      [91.11, 29.65],  // 拉萨
+      [87.62, 43.83],  // 乌鲁木齐
+      [126.64, 45.75], // 哈尔滨
+      [123.43, 41.80], // 沈阳
+      [117.20, 39.13], // 天津
+      [106.55, 29.57], // 重庆
+      [104.07, 30.67], // 成都
+      [112.98, 28.20], // 长沙
+      [118.80, 32.06], // 南京
+      [117.29, 31.86], // 合肥
+      [119.30, 26.08], // 福州
+      [115.86, 28.68], // 南昌
+      [113.65, 34.76], // 郑州
+      [111.27, 30.70], // 武汉
+      [110.78, 32.65], // 西安
+      [101.72, 36.62], // 西宁
+      [106.27, 38.47], // 银川
+      [111.65, 40.82], // 呼和浩特
+      [115.48, 38.87]  // 石家庄
+    ]
+
+    const randomCity = cities[Math.floor(Math.random() * cities.length)]
+    const newNode = [randomCity[0], randomCity[1], 100]
+
+    const currentOption = earthChart.getOption()
+    const scatterSeries = currentOption.series[0]
+    if (scatterSeries && scatterSeries.data) {
+      scatterSeries.data.push(newNode)
+      earthChart.setOption(currentOption)
+    }
+  }
+
+  // 每隔一段时间添加新节点
+  const nodeInterval = setInterval(addDynamicNode, 3000)
+
+  // 清理函数
+  const cleanup = () => {
+    clearInterval(nodeInterval)
+    if (earthChart) {
+      earthChart.dispose()
+      earthChart = null
+    }
+  }
+
+  // 存储清理函数以便后续清理
+  ;(container as any)._cleanup = cleanup
 }
 
 // === 1. 打字机逻辑 ===
@@ -778,7 +715,7 @@ const carouselTransform = computed(() => {
 })
 
 const currentSlide = ref(0)
-const carouselImages = [ slide1, slide2, slide3 ]
+const carouselImages = [ slide1, slide2, slide3, slide4 ]
 let carouselInterval: number | null = null
 
 const startCarousel = () => {
@@ -833,8 +770,10 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (animationId) cancelAnimationFrame(animationId)
-  if (renderer) renderer.dispose()
+  if (earthChart) {
+    earthChart.dispose()
+    earthChart = null
+  }
   if (carouselInterval) clearInterval(carouselInterval)
   if (typeInterval) clearTimeout(typeInterval)
   if (updateInterval) clearInterval(updateInterval)

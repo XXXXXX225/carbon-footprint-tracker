@@ -9,20 +9,22 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
-@Tag(name = "数据大屏", description = "数据可视化大屏接口")
+@Tag(name = "Dashboard", description = "Dashboard API")
 public class DashboardController {
 
     private final DashboardService dashboardService;
 
     @GetMapping("/data")
-    @Operation(summary = "获取大屏数据", description = "获取数据可视化大屏所需的所有数据")
-    public ResponseEntity<ApiResult<DashboardDataDTO>> getDashboardData() {
-        DashboardDataDTO data = dashboardService.getDashboardData();
-        return ResponseEntity.ok(ApiResult.success(data, "获取成功"));
+    @Operation(summary = "Get Dashboard Data", description = "Get Dashboard Data")
+    public ResponseEntity<ApiResult<DashboardDataDTO>> getDashboardData(
+            @RequestParam(required = false, defaultValue = "month") String range) {
+        DashboardDataDTO data = dashboardService.getDashboardData(range);
+        return ResponseEntity.ok(ApiResult.success(data, "Success"));
     }
 }

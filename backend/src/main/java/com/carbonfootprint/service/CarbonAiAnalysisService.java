@@ -252,16 +252,17 @@ public class CarbonAiAnalysisService {
 
             String contextJson = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload);
 
-                return "你是顶级碳中和咨询专家与 ESG 数据分析师。请基于给定数据输出极度详尽的 JSON 分析报告，且只输出 JSON，不要输出 Markdown、注释或额外解释。\n"
-                    + "你的任务是提供不少于 800 字的深度见解，必须覆盖以下维度：\n"
-                    + "1. 【核心根因溯源】深度剖析当前最大排放项（如饮食或交通）背后的生活习惯诱因，并给出行业对标视角；\n"
-                    + "2. 【多维趋势预测】不仅预测下月，还要结合历史波动分析未来一季度潜在排放走势及风险点；\n"
-                    + "3. 【环境影响量化】将排放量具象化（例如折算汽油消耗量、树木吸收量等）；\n"
-                    + "4. 【阶梯式减排建议】提供“零成本”“低成本”“长期投资”三个等级的个性化改进方案；\n"
-                    + "5. 【任务闭环建议】在 recommendations 中提供至少 5 条具体、可量化（含预计减排数值）的打卡任务。\n"
+                return "你是顶级碳中和咨询专家与 ESG 数据分析师。请基于给定数据输出极度详尽的 JSON 分析报告，且只输出严格的 JSON 格式，不要包含任何 Markdown 或额外解释。\n"
+                    + "【最高指令】：你生成的所有 JSON 数据中的文本字段（包括 headline, summary，以及 insights 的 title 和 text，还有 recommendations 和 nextActions），必须【全部使用纯正的简体中文】进行撰写。绝对不能输出英文！\n"
+                    + "你的任务是提供不少于 800 字的深度见解，必须覆盖核心根因分析、多维趋势预测、环境影响量化、阶梯式减排建议等维度。\n"
                     + "JSON 必须包含字段：headline, summary, riskLevel, confidence, insights, recommendations, nextActions, source。\n"
-                    + "其中，insights 至少 6 项（对象数组，每项包含 title 和 text）；recommendations 至少 5 条纯字符串（字符串数组）；nextActions 至少 5 条纯字符串（字符串数组）；riskLevel 只能是 LOW, MEDIUM, HIGH 之一；confidence 是 0 到 100 的数字；source 固定返回 AI。\n"
-                    + "请用简体中文输出，语言风格需专业、严谨且具备行动启发性。\n\n"
+                    + "其中：\n"
+                    + "- insights 至少 6 项（对象数组，每项包含 title 和 text，这两个字段的内容必须为中文）；\n"
+                    + "- recommendations 至少 5 条纯字符串（字符串数组，内容必须为中文）；\n"
+                    + "- nextActions 至少 5 条纯字符串（字符串数组，内容必须为中文）；\n"
+                    + "- riskLevel 只能是 LOW, MEDIUM, HIGH 之一；\n"
+                    + "- confidence 是 50 到 100 的数字；\n"
+                    + "- source 固定返回 AI。\n\n"
                     + "数据如下：\n"
                     + contextJson;
         } catch (IOException ex) {
@@ -275,7 +276,7 @@ public class CarbonAiAnalysisService {
             body.put("model", model);
             body.put("temperature", 0.2);
             body.put("messages", List.of(
-                Map.of("role", "system", "content", "你是专业的碳排放分析助手，只输出严格 JSON。"),
+                Map.of("role", "system", "content", "你是专业的碳排放分析助手。请严格遵守以下规则：\n1. 只允许输出纯 JSON。\n2. JSON 内部所有的值、标题、文本和建议，必须严格全是简体中文！不可包含任何英文描述。"),
                 Map.of("role", "user", "content", prompt)));
 
             String endpoint = buildEndpoint();

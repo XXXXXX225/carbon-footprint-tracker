@@ -84,7 +84,7 @@
               @click="startAiInference"
               :disabled="loading"
             >
-              {{ isTyping ? '推理进行中...' : 'INITIATE INFERENCE' }}
+              {{ isTyping ? '推理进行中...' : '启动推演' }}
             </el-button>
           </div>
           
@@ -325,19 +325,18 @@ const claimQuest = async (quest: ChallengeCard) => {
 }
 
 const openActionPlan = () => {
-  router.push('/action-plan')
+  window.location.href = '/action-plan'
 }
 
 const acceptAiTask = async (taskText: string) => {
   try {
-    // 调用新增接口或现有的任务跟踪接口
     await recommendationApi.addAiTask({ content: taskText });
     ElMessage.success('成功加入碳行动清单！');
-    
-    // 可选：提示后跳转
-    // router.push('/recommendations');
-  } catch (error) {
-    ElMessage.error('领取失败');
+  } catch (error: any) {
+    // 1. 把详细错误打印到浏览器控制台
+    console.error('🚨 领取挑战 API 报错：', error);
+    // 2. 把后端真实的错误信息弹在页面上
+    ElMessage.error(`领取失败: ${error.message || '请检查后端接口'}`);
   }
 }
 
@@ -419,39 +418,39 @@ const startAiInference = async () => {
     await sleep(200)
   }
 
-  await typeLine(`[PREDICTION] Projected next month emission: <strong style="color:#34d399; font-size:1.1em;">${nextMonthPred} kg CO₂e</strong>`, 30)
-  await typeLine(`[CONFIDENCE] Model confidence level: ${confidence}%`, 30)
+  await typeLine(`[预测] 预计下个月碳排放量: <strong style="color:#34d399; font-size:1.1em;">${nextMonthPred} kg CO₂e</strong>`, 30)
+  await typeLine(`[置信度] 模型置信区间: ${confidence}%`, 30)
   
   if (aiAnalysis.value?.summary) {
     await sleep(300)
-    await typeLine(`[SUMMARY] ${aiAnalysis.value.summary}`, 20)
+    await typeLine(`[总结] ${aiAnalysis.value.summary}`, 20)
   }
 
   await sleep(500)
-  await typeLine(`<br><span style="color:#facc15; font-weight:bold;">[EXPERT DIAGNOSIS]</span>`, 20)
+  await typeLine(`<br><span style="color:#facc15; font-weight:bold;">[专家诊断]</span>`, 20)
   await sleep(300)
-  await typeLine('- Evaluating root causes behind dominant emission categories...', 18)
+  await typeLine('- 正在评估主要排放类别背后的根本原因...', 18)
   await sleep(280)
-  await typeLine('- Assessing next-quarter uncertainty and rebound risks...', 18)
+  await typeLine('- 正在评估下一季度的不确定性和反弹风险...', 18)
   await sleep(280)
-  await typeLine('- Drafting tiered action plan: zero-cost / low-cost / long-term investment.', 18)
+  await typeLine('- 正在草拟阶梯行动计划：零成本 / 低成本 / 长期投资...', 18)
   await sleep(350)
 
-  await typeLine(`<br><span style="background: linear-gradient(135deg, #6ee7b7, #10b981); -webkit-background-clip: text; color: transparent; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: 1px; display: inline-block;">>> DIAGNOSTIC INSIGHTS:</span>`, 20)
+  await typeLine(`<br><span style="background: linear-gradient(135deg, #6ee7b7, #10b981); -webkit-background-clip: text; color: transparent; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: 1px; display: inline-block;">>> 诊断见解：/span>`, 20)
   await sleep(240)
 
   if (aiAnalysis.value?.insights?.length) {
-    await typeLine(`[INSIGHT COUNT] ${aiAnalysis.value.insights.length} expert observations synchronized.`, 16)
+    await typeLine(`[见解数量] 已同步  条专家观察结论。`, 16)
     await sleep(220)
   }
 
-  await typeLine(`[RECOMMENDATION PIPELINE] tiered action engine ready.`, 16)
+  await typeLine(`[推荐管道] 阶梯式操作引擎已就绪。`, 16)
   await sleep(220)
 
-  await typeLine(`[NEXT-ACTION LOOP] measurable tasks mapped with expected carbon impact.`, 16)
+  await typeLine(`[任务闭环] 具体任务已与预期碳影响建立映射。`, 16)
   await sleep(260)
 
-  await typeLine(`<br><span style="background: linear-gradient(135deg, #6ee7b7, #10b981); -webkit-background-clip: text; color: transparent; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: 1px; display: inline-block;">>> GENERATING ACTIONABLE INTELLIGENCE:</span>`, 20)
+  await typeLine(`<br><span style="background: linear-gradient(135deg, #6ee7b7, #10b981); -webkit-background-clip: text; color: transparent; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: 1px; display: inline-block;">>> 正在生成可操作的情报：/span>`, 20)
   
   if (aiAnalysis.value?.insights && aiAnalysis.value.insights.length > 0) {
     for (const insight of aiAnalysis.value.insights) {

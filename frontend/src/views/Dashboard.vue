@@ -72,7 +72,7 @@
                 <el-card class="overview-card hero-overview-card glow-card">
                   <div class="overview-item">
                     <div class="overview-label">总碳足迹</div>
-                    <div class="overview-value">{{ totalFootprint.toFixed(2) }} kg CO₂e</div>
+                    <div class="overview-value">{{ (realDashboardData?.overview?.totalEmission || 0).toFixed(2) }} kg CO₂e</div>
                     <div class="overview-subtitle">当前周期所有来源的综合排放</div>
                     <div class="overview-change" :class="{ positive: totalChange > 0 }">
                       <el-icon v-if="totalChange > 0"><ArrowDown /></el-icon>
@@ -141,7 +141,7 @@
                 <el-card class="overview-card glow-card">
                   <div class="overview-item">
                     <div class="overview-label">交通排放</div>
-                    <div class="overview-value">{{ footprint.transport.toFixed(2) }} kg CO₂e</div>
+                    <div class="overview-value">{{ realTransportEmission.toFixed(2) }} kg CO₂e</div>
                     <div class="overview-subtitle">出行方式对排放的影响</div>
                     <div class="overview-change" :class="{ positive: transportChange > 0 }">
                       <el-icon v-if="transportChange > 0"><ArrowDown /></el-icon>
@@ -155,7 +155,7 @@
                 <el-card class="overview-card glow-card">
                   <div class="overview-item">
                     <div class="overview-label">饮食排放</div>
-                    <div class="overview-value">{{ footprint.diet.toFixed(2) }} kg CO₂e</div>
+                    <div class="overview-value">{{ realDietEmission.toFixed(2) }} kg CO₂e</div>
                     <div class="overview-subtitle">饮食结构的碳排放变化</div>
                     <div class="overview-change" :class="{ positive: dietChange > 0 }">
                       <el-icon v-if="dietChange > 0"><ArrowDown /></el-icon>
@@ -169,7 +169,7 @@
                 <el-card class="overview-card glow-card">
                   <div class="overview-item">
                     <div class="overview-label">用电排放</div>
-                    <div class="overview-value">{{ footprint.electricity.toFixed(2) }} kg CO₂e</div>
+                    <div class="overview-value">{{ realElectricityEmission.toFixed(2) }} kg CO₂e</div>
                     <div class="overview-subtitle">家庭和办公用电消耗</div>
                     <div class="overview-change" :class="{ positive: electricityChange > 0 }">
                       <el-icon v-if="electricityChange > 0"><ArrowDown /></el-icon>
@@ -338,7 +338,7 @@
           <span class="unit">%</span>
         </el-form-item>
         <el-form-item label="目标期限" prop="deadline">
-          <el-date-picker v-model="goalForm.deadline" type="date" placeholder="选择日期" />
+          <el-date-picker v-model="goalForm.deadline" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -382,7 +382,7 @@ import RoleSidebar from '../components/RoleSidebar.vue'
 import { House, Van, KnifeFork, Lightning, DataLine, Star, ArrowDown, ArrowUp, Download, Document, CollectionTag, TrendCharts, Aim, PieChart, Histogram } from '@element-plus/icons-vue'
 import { ExportService, type ExportData } from '../utils/export'
 import { ElMessage } from 'element-plus'
-import { goalApi, type ReductionGoal } from '@/api'
+import { goalApi, dashboardApi, type ReductionGoal } from '@/api'
 
 const router = useRouter()
 const carbonStore = useCarbonStore()
@@ -435,6 +435,30 @@ const user = computed(() => carbonStore.user)
 const footprint = computed(() => carbonStore.footprint)
 const totalFootprint = computed(() => carbonStore.totalFootprint)
 const reductionGoal = computed(() => carbonStore.reductionGoal)
+
+const realTransportEmission = computed(() => {
+  const data = realDashboardData.value;
+  if (data && data.emissionTrends && data.emissionTrends.length > 0) {
+    return data.emissionTrends.reduce((sum: number, item: any) => sum + (item.transportEmission || 0), 0);
+  }
+  return 0;
+});
+
+const realDietEmission = computed(() => {
+  const data = realDashboardData.value;
+  if (data && data.emissionTrends && data.emissionTrends.length > 0) {
+    return data.emissionTrends.reduce((sum: number, item: any) => sum + (item.dietEmission || 0), 0);
+  }
+  return 0;
+});
+
+const realElectricityEmission = computed(() => {
+  const data = realDashboardData.value;
+  if (data && data.emissionTrends && data.emissionTrends.length > 0) {
+    return data.emissionTrends.reduce((sum: number, item: any) => sum + (item.electricityEmission || 0), 0);
+  }
+  return 0;
+});
 
 const progress = computed(() => {
   const currentMonthRecords = carbonStore.monthlyRecords || []
@@ -505,7 +529,7 @@ const goalRules = ref({
     { required: true, message: '请输入减排百分比', trigger: 'blur' }
   ],
   deadline: [
-    { required: true, message: '请选择目标期限', trigger: 'blur' }
+    { required: true, message: '请选择目标期限', trigger: 'change' }
   ]
 })
 
@@ -545,9 +569,28 @@ const pieData = computed(() => {
 
 // 折线图数据
 const lineData = computed(() => {
-  const labels = getTimeLabels(selectedRange.value)
-  const data = generateTrendData(labels.length)
-  
+  if (!realDashboardData.value || !realDashboardData.value.emissionTrends) {
+    const labels = getTimeLabels(selectedRange.value)
+    return {
+      legend: ['总排放', '交通', '饮食', '用电'],
+      xAxis: labels,
+      series: [
+        { name: '总排放', type: 'line', data: [], smooth: true, areaStyle: { color: 'rgba(76, 175, 80, 0.3)' }, lineStyle: { color: '#4CAF50' } },
+        { name: '交通', type: 'line', data: [], smooth: true, lineStyle: { color: '#2196F3' } },
+        { name: '饮食', type: 'line', data: [], smooth: true, lineStyle: { color: '#FF9800' } },
+        { name: '用电', type: 'line', data: [], smooth: true, lineStyle: { color: '#9C27B0' } }
+      ]
+    }
+  }
+
+  const trends = realDashboardData.value.emissionTrends
+
+  const labels = trends.map((item: any) => item.date)
+  const total = trends.map((item: any) => item.emission)
+  const transport = trends.map((item: any) => item.transportEmission)
+  const diet = trends.map((item: any) => item.dietEmission)
+  const electricity = trends.map((item: any) => item.electricityEmission)
+
   return {
     legend: ['总排放', '交通', '饮食', '用电'],
     xAxis: labels,
@@ -555,7 +598,7 @@ const lineData = computed(() => {
       {
         name: '总排放',
         type: 'line',
-        data: data.total,
+        data: total,
         smooth: true,
         areaStyle: {
           color: new (typeof window !== 'undefined' && window.echarts ? window.echarts.graphic.LinearGradient : function() { return {}})(0, 0, 0, 1, [
@@ -568,21 +611,21 @@ const lineData = computed(() => {
       {
         name: '交通',
         type: 'line',
-        data: data.transport,
+        data: transport,
         smooth: true,
         lineStyle: { color: '#2196F3' }
       },
       {
         name: '饮食',
         type: 'line',
-        data: data.diet,
+        data: diet,
         smooth: true,
         lineStyle: { color: '#FF9800' }
       },
       {
         name: '用电',
         type: 'line',
-        data: data.electricity,
+        data: electricity,
         smooth: true,
         lineStyle: { color: '#9C27B0' }
       }
@@ -642,23 +685,40 @@ const submitGoal = async () => {
   await goalFormRef.value.validate(async (valid: boolean) => {
     if (valid) {
       try {
-        const d = new Date(goalForm.value.deadline);
-        const dateStr = d.toISOString().split('T')[0];
-        await goalApi.createGoal(goalForm.value.reductionGoal, dateStr);
+        await goalApi.createGoal(goalForm.value.reductionGoal, goalForm.value.deadline);
         ElMessage.success('目标设置成功');
         goalDialogVisible.value = false;
         loadActiveGoal();
       } catch (err: any) {
         ElMessage.error(err.message || '目标设置失败');
       }
+    } else {
+      console.warn("表单验证未通过，请检查填写内容");
     }
   })
 }
 
-const handleTimeRangeChange = (range: string) => {
+
+const realDashboardData = ref<any>(null)
+
+const handleTimeRangeChange = async (range: string) => {
   selectedRange.value = range
-  // 这里可以添加数据重新加载逻辑
+  try {
+    const res = await dashboardApi.getDashboardData(range)
+    // 直接赋值！因为你的 request 拦截器已经帮你把 data 提取出来了
+    if (res) {
+      realDashboardData.value = res
+    }
+  } catch (error) {
+    console.error("Failed to fetch real data", error)
+  }
 }
+
+import { onMounted } from "vue"
+onMounted(() => {
+  handleTimeRangeChange(selectedRange.value)
+})
+
 
 const handleChartDrillDown = (params: any) => {
   drillDownTitle.value = `详细数据 - ${params.name}`
@@ -698,36 +758,63 @@ const handleChartDrillDown = (params: any) => {
 
 const handleExportAll = () => {
   const exportData: ExportData[] = []
-  
-  const labels = getTimeLabels(selectedRange.value)
-  const trendData = generateTrendData(labels.length)
-  
-  labels.forEach((label, index) => {
-    exportData.push({
-      date: label,
-      category: '交通',
-      type: '交通排放',
-      amount: trendData.transport[index],
-      description: '日常出行'
+
+  const trends = realDashboardData.value?.emissionTrends || []
+  const labels = trends.length > 0 ? trends.map((item: any) => item.date) : getTimeLabels(selectedRange.value)
+
+  if (trends.length > 0) {
+    trends.forEach((item: any) => {
+      exportData.push({
+        date: item.date,
+        category: '交通',
+        type: '交通排放',
+        amount: item.transportEmission,
+        description: '日常出行'
+      })
+      exportData.push({
+        date: item.date,
+        category: '饮食',
+        type: '饮食排放',
+        amount: item.dietEmission,
+        description: '日常饮食'
+      })
+      exportData.push({
+        date: item.date,
+        category: '用电',
+        type: '用电排放',
+        amount: item.electricityEmission,
+        description: '日常用电'
+      })
     })
-    exportData.push({
-      date: label,
-      category: '饮食',
-      type: '饮食排放',
-      amount: trendData.diet[index],
-      description: '日常饮食'
+  } else {
+    const trendData = generateTrendData(labels.length)
+    labels.forEach((label, index) => {
+      exportData.push({
+        date: label,
+        category: '交通',
+        type: '交通排放',
+        amount: trendData.transport[index],
+        description: '日常出行'
+      })
+      exportData.push({
+        date: label,
+        category: '饮食',
+        type: '饮食排放',
+        amount: trendData.diet[index],
+        description: '日常饮食'
+      })
+      exportData.push({
+        date: label,
+        category: '用电',
+        type: '用电排放',
+        amount: trendData.electricity[index],
+        description: '日常用电'
+      })
     })
-    exportData.push({
-      date: label,
-      category: '用电',
-      type: '用电排放',
-      amount: trendData.electricity[index],
-      description: '日常用电'
-    })
-  })
-  
+  }
+
   ElMessage.success('正在生成报表...')
-  
+
   setTimeout(async () => {
     await ExportService.exportToPDFWithCanvas(exportData, '碳足迹数据报表')
     ElMessage.success('报表导出成功')

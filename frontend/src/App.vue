@@ -1,7 +1,7 @@
 <template>
   <router-view v-slot="{ Component }">
     <transition name="fade-slide" mode="out-in">
-      <component :is="Component" />
+      <component :is="Component" :key="$route.fullPath" />
     </transition>
   </router-view>
   <!-- 全局挂载移动端导航 -->
@@ -348,5 +348,53 @@ body {
 body {
   background-color: var(--page-bg-color);
   color: var(--main-text-color);
+}
+
+/* ========================================================
+   中后台双区域独立滚动布局方案 (修复左侧不滚动，右侧独立滚动)
+   ======================================================== */
+.dashboard-container,
+.points-container,
+.report-container,
+.action-plan-container {
+  height: 100vh !important;
+  min-height: unset !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.dashboard-container > .el-container,
+.points-container > .el-container,
+.report-container > .el-container,
+.action-plan-container > .el-container {
+  flex: 1 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+.dashboard-container .el-aside,
+.points-container .el-aside,
+.report-container .el-aside,
+.action-plan-container .el-aside {
+  height: 100% !important;
+  overflow-y: auto !important;
+  scrollbar-width: none;
+}
+
+.dashboard-container .el-aside::-webkit-scrollbar,
+.points-container .el-aside::-webkit-scrollbar,
+.report-container .el-aside::-webkit-scrollbar,
+.action-plan-container .el-aside::-webkit-scrollbar {
+  display: none;
+}
+
+.dashboard-container .el-main,
+.points-container .el-main,
+.report-container .el-main,
+.action-plan-container .el-main {
+  height: 100% !important;
+  overflow-y: auto !important;
+  scroll-behavior: smooth;
 }
 </style>

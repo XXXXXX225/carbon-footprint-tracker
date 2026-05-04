@@ -66,37 +66,54 @@
     <section class="news-section">
       <div class="news-container">
         <div class="news-grid">
-          <div class="news-card fade-in" v-for="(news, index) in newsList" :key="index" @click="goToNewsDetail(news.id)">
+          <div class="news-card fade-in" v-for="(news, index) in newsList" :key="index" @click="openExternalLink(news.link)">
             <div class="news-image">
-              <img :src="news.image" :alt="news.title" />
+              <img :src="news.coverImage" :alt="news.title" />
             </div>
             <div class="news-content">
               <div class="news-meta">
                 <span class="news-date">{{ news.date }}</span>
                 <span class="news-category">{{ news.category }}</span>
+                <span class="news-source">{{ news.source }}</span>
               </div>
               <h3 class="news-title">{{ news.title }}</h3>
-              <p class="news-excerpt">{{ news.excerpt }}</p>
-              <span class="news-read-more">阅读全文 →</span>
+              <p class="news-excerpt">{{ news.summary }}</p>
+              <span class="news-read-more read-more">阅读全文 &rarr;</span>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 热门资讯 -->
+    <!-- 热门资讯 (全新 Bento Box 布局) -->
     <section class="featured-news-section">
       <div class="featured-news-container">
-        <h3>热门资讯</h3>
-        <div class="featured-news-grid">
-          <div class="featured-news-card" v-for="(news, index) in featuredNews" :key="index" @click="goToNewsDetail(news.id)">
-            <div class="featured-news-image">
-              <img :src="news.image" :alt="news.title" />
+        <div class="section-header">
+          <h3>编辑推荐</h3>
+          <p class="section-subtitle">深度解读碳中和浪潮下的行业变革</p>
+        </div>
+
+        <div class="bento-grid">
+          <div class="bento-card bento-large" @click="goToNewsDetail(featuredNews[0].id)">
+            <div class="bento-image">
+              <img :src="featuredNews[0].image" :alt="featuredNews[0].title" />
+              <div class="bento-overlay"></div>
             </div>
-            <div class="featured-news-content">
-              <h3 class="featured-news-title">{{ news.title }}</h3>
-              <p class="featured-news-excerpt">{{ news.excerpt }}</p>
-              <span class="featured-news-read-more">阅读全文 →</span>
+            <div class="bento-content">
+              <span class="bento-category">{{ featuredNews[0].category }}</span>
+              <h3 class="bento-title">{{ featuredNews[0].title }}</h3>
+              <p class="bento-excerpt">{{ featuredNews[0].excerpt }}</p>
+            </div>
+          </div>
+
+          <div class="bento-card bento-small" v-for="news in featuredNews.slice(1)" :key="news.id" @click="goToNewsDetail(news.id)">
+            <div class="bento-image">
+              <img :src="news.image" :alt="news.title" />
+              <div class="bento-overlay"></div>
+            </div>
+            <div class="bento-content">
+              <span class="bento-category">{{ news.category }}</span>
+              <h3 class="bento-title">{{ news.title }}</h3>
             </div>
           </div>
         </div>
@@ -200,67 +217,62 @@ const handleMouseMove = (event: MouseEvent) => {
 const newsList = ref([
   {
     id: 1,
-    title: '全球碳排放创新低，环保政策成效显著',
-    excerpt: '根据最新数据，全球碳排放在过去一年创新低，这主要归功于各国政府采取的积极环保政策和可再生能源的广泛应用。',
-    date: '2026-03-05',
-    category: '全球趋势',
-    image: 'https://images.unsplash.com/photo-1466611653911-95081537e5b7?w=800&q=80'
+    title: '生态环境部：稳步推进全国碳排放权交易市场建设',
+    summary: '生态环境部指出，全国碳市场是落实碳达峰碳中和目标的核心政策工具。2024年将持续完善碳排放统计核算、配额分配等关键制度，并逐步扩大行业覆盖范围。',
+    date: '2024-02-26',
+    category: '政策前沿',
+    source: '中华人民共和国生态环境部',
+    link: 'https://www.mee.gov.cn/ywdt/hjywnews/',
+    coverImage: 'https://images.unsplash.com/photo-1466611653911-95081537e5b7?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: 2,
-    title: '新能源汽车销量突破历史新高',
-    excerpt: '2025年全球新能源汽车销量突破1000万辆，同比增长35%，成为减少交通领域碳排放的重要力量。',
-    date: '2026-03-04',
-    category: '交通减排',
-    image: 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80'
+    title: '国家发改委：加快推动节能降碳改造和用能设备更新',
+    summary: '国家发展改革委等部门联合印发行动方案，重点推动工业、建筑、交通等领域的关键设备更新，全面提升重点用能设备能效水平，深入挖掘节能降碳潜力。',
+    date: '2024-03-06',
+    category: '产业升级',
+    source: '国家发展和改革委员会',
+    link: 'https://www.ndrc.gov.cn/xwdt/tzgg/',
+    coverImage: 'https://images.unsplash.com/photo-1513828583688-c52646db42da?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: 3,
-    title: '新型碳捕捉技术取得重大突破',
-    excerpt: '科学家开发出一种高效碳捕捉技术，能够从空气中直接捕捉二氧化碳，转化率达到90%以上。',
-    date: '2026-03-03',
-    category: '技术创新',
-    image: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=800&q=80'
-  },
-  {
-    id: 4,
-    title: '可持续饮食成为全球新趋势',
-    excerpt: '越来越多的人选择植物性饮食，减少肉类消费，这一趋势正在显著降低全球农业碳排放。',
-    date: '2026-03-02',
-    category: '饮食减排',
-    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80'
-  },
-  {
-    id: 5,
-    title: '企业碳足迹报告成为投资者关注焦点',
-    excerpt: '越来越多的投资者将企业碳足迹报告作为投资决策的重要依据，推动企业更加重视减排。',
-    date: '2026-03-01',
-    category: '企业责任',
-    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80'
-  },
-  {
-    id: 6,
-    title: '政府推出碳税政策，促进绿色转型',
-    excerpt: '多个国家开始实施碳税政策，通过经济手段鼓励企业和个人减少碳排放，推动绿色经济转型。',
-    date: '2026-02-28',
-    category: '政策法规',
-    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=80'
+    title: '国家能源局：全国可再生能源装机历史性超过火电',
+    summary: '国家能源局发布最新数据，我国可再生能源总装机突破14亿千瓦，在全国发电总装机中的比重超过50%，标志着我国能源结构实现重大历史性转变。',
+    date: '2024-01-25',
+    category: '能源结构',
+    source: '国家能源局',
+    link: 'http://www.nea.gov.cn',
+    coverImage: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?q=80&w=800&auto=format&fit=crop'
   }
 ])
 
-// 热门资讯 - 使用高质量Unsplash大图
+const openExternalLink = (url: string) => {
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+// 热门资讯 - 全新 2026 行业热点数据
 const featuredNews = ref([
   {
-    id: 1,
-    title: '全球100家企业承诺2030年实现碳中和',
-    excerpt: '包括科技、金融、能源等多个行业的100家全球企业联合承诺，到2030年实现碳中和目标，这将对全球减排产生重大影响。',
-    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80'
+    id: 4,
+    category: '行业白皮书',
+    title: '2026全球ESG投资报告：碳足迹追踪系统已成企业合规"标配"',
+    excerpt: '随着国际可持续发展准则理事会(ISSB)新规全面落地，全球超过80%的上市企业已将数字化碳追踪接入核心业务流，高碳排企业正面临前所未有的融资壁垒。',
+    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1200&auto=format&fit=crop'
   },
   {
-    id: 2,
-    title: '城市绿化计划减少城市热岛效应',
-    excerpt: '全球多个城市实施大规模绿化计划，通过增加城市植被覆盖，不仅减少了碳排放，还显著降低了城市热岛效应。',
-    image: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&q=80'
+    id: 5,
+    category: '气候科技',
+    title: 'AI大模型与气候科技深度融合：预测算法如何精准削减20%工业碳排',
+    excerpt: '最新研报显示，引入AI碳推演模型的制造企业，其资源浪费率平均下降了22%。',
+    image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop'
+  },
+  {
+    id: 6,
+    category: '碳普惠机制',
+    title: '碳积分正式打通多地公共交通，个人减排收益实现"闭环"',
+    excerpt: '多城联动推出的"碳普惠2.0"网络，让市民凭借日常的低碳行为积分，直接兑换地铁与公交乘车次卡。',
+    image: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?q=80&w=800&auto=format&fit=crop'
   }
 ])
 
@@ -615,15 +627,14 @@ body {
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(16, 185, 129, 0.05);
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(16, 185, 129, 0.1);
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(16, 185, 129, 0.1);
   position: relative;
   opacity: 0;
   transform: translateY(30px);
-  transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    cursor: pointer;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .news-card.visible {
@@ -632,9 +643,8 @@ body {
 }
 
 .news-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 15px 40px rgba(16, 185, 129, 0.15);
-    border: 1px solid rgba(16, 185, 129, 0.3);
+  transform: translateY(-8px);
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.2);
 }
 
 .news-image {
@@ -647,6 +657,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  aspect-ratio: 16/9;
   transition: transform 0.5s ease;
 }
 
@@ -670,6 +681,15 @@ body {
   font-weight: 500;
 }
 
+.news-source {
+  margin-left: 8px;
+  color: #888;
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .news-category {
   background: rgba(46, 125, 50, 0.1);
   color: #2E7D32;
@@ -677,6 +697,7 @@ body {
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 500;
+  display: inline-block;
 }
 
 .news-title {
@@ -685,6 +706,10 @@ body {
   color: #1B5E20;
   font-weight: 600;
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .news-excerpt {
@@ -692,6 +717,10 @@ body {
   line-height: 1.7;
   margin-bottom: 1.5rem;
   font-size: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .news-read-more {
@@ -723,10 +752,12 @@ body {
   width: 100%;
 }
 
-/* 热门资讯样式 */
+/* =========================================
+   热门资讯 Bento Box 高级网格布局
+   ========================================= */
 .featured-news-section {
   padding: 6rem 0;
-  background-color: white;
+  background-color: #ffffff;
 }
 
 .featured-news-container {
@@ -735,100 +766,155 @@ body {
   padding: 0 2rem;
 }
 
-.featured-news-container h3 {
-  font-size: 2.5rem;
-  margin-bottom: 4rem;
-  color: #1B5E20;
-  font-weight: 700;
-  letter-spacing: -0.5px;
+.section-header {
+  margin-bottom: 3.5rem;
   text-align: center;
 }
 
-.featured-news-grid {
+.section-header h3 {
+  font-size: 2.5rem;
+  color: #1B5E20;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.8rem;
+}
+
+.section-subtitle {
+  color: #6B7280;
+  font-size: 1.15rem;
+  letter-spacing: 1px;
+}
+
+.bento-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-  gap: 3rem;
+  grid-template-columns: 1.6fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 1.5rem;
+  height: 560px;
 }
 
-.featured-news-card {
-  display: flex;
-  background-color: #f8f9fa;
-  border-radius: 16px;
+.bento-card {
+  position: relative;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
   cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
 }
 
-.featured-news-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+.bento-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 25px 50px rgba(16, 185, 129, 0.25);
 }
 
-.featured-news-image {
-  flex: 0 0 40%;
-  height: 250px;
-  overflow: hidden;
+.bento-large {
+  grid-row: 1 / 3;
 }
 
-.featured-news-image img {
+.bento-image {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+}
+
+.bento-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  transition: transform 0.8s ease;
 }
 
-.featured-news-card:hover .featured-news-image img {
-  transform: scale(1.1);
+.bento-card:hover .bento-image img {
+  transform: scale(1.08);
 }
 
-.featured-news-content {
-  flex: 1;
-  padding: 2.5rem;
-}
-
-.featured-news-title {
-  font-size: 1.5rem;
-  margin-bottom: 1.2rem;
-  color: #1B5E20;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.featured-news-excerpt {
-  color: #666;
-  line-height: 1.7;
-  margin-bottom: 1.5rem;
-  font-size: 1rem;
-}
-
-.featured-news-read-more {
-  display: inline-block;
-  color: #2E7D32;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.featured-news-read-more:hover {
-  color: #1B5E20;
-  transform: translateX(5px);
-}
-
-.featured-news-read-more::after {
-  content: '';
+.bento-overlay {
   position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: #2E7D32;
-  transition: width 0.3s ease;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%);
+  transition: opacity 0.3s ease;
 }
 
-.featured-news-read-more:hover::after {
-  width: 100%;
+.bento-card:hover .bento-overlay {
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(16, 185, 129, 0.4) 50%, transparent 100%);
+}
+
+.bento-content {
+  position: absolute;
+  bottom: 0; left: 0; width: 100%;
+  padding: 2.5rem;
+  z-index: 2;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.bento-small .bento-content {
+  padding: 1.5rem 2rem;
+}
+
+.bento-category {
+  background: #10B981;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 1.2rem;
+  align-self: flex-start;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+}
+
+.bento-large .bento-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  line-height: 1.3;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+
+.bento-small .bento-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 0;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+}
+
+.bento-excerpt {
+  font-size: 1.05rem;
+  color: #F3F4F6;
+  line-height: 1.6;
+  opacity: 0.9;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 992px) {
+  .bento-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    height: auto;
+  }
+  .bento-large {
+    grid-row: auto;
+    height: 450px;
+  }
+  .bento-small {
+    height: 280px;
+  }
+  .bento-large .bento-title {
+    font-size: 1.8rem;
+  }
+}
+@media (max-width: 768px) {
+  .bento-large { height: 400px; }
+  .bento-small { height: 250px; }
+  .bento-content { padding: 1.5rem; }
 }
 
 /* 页脚样式 */

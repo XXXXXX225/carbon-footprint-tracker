@@ -1,5 +1,6 @@
 package com.carbonfootprint.service;
 
+import com.carbonfootprint.entity.FootprintSummary;
 import com.carbonfootprint.entity.ReductionGoal;
 import com.carbonfootprint.repository.FootprintSummaryRepository;
 import com.carbonfootprint.repository.ReductionGoalRepository;
@@ -73,7 +74,7 @@ public class GoalTrackingService {
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusMonths(1);
 
-        return summaryRepository.findByUserIdAndPeriod(userId, "MONTH")
+        return summaryRepository.findByUserIdAndPeriod(userId, FootprintSummary.Period.MONTHLY)
                 .stream()
                 .mapToDouble(summary -> summary.getTotalEmission())
                 .findFirst()

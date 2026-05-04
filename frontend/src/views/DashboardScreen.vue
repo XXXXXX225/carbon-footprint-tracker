@@ -23,7 +23,7 @@
 
       <div class="toolbar">
         <button class="toolbar-btn primary" @click="refreshRealTimeData">刷新动态</button>
-        
+        <router-link to="/dashboard" class="toolbar-btn" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">返回主界面</router-link>
       </div>
     </header>
 
@@ -297,6 +297,7 @@ interface EmissionTrend {
   transportEmission: number
   dietEmission: number
   electricityEmission: number
+  reduction: number
 }
 
 interface CategoryDistribution {
@@ -349,7 +350,7 @@ const rightCollapsed = ref(false)
 const isScrolled = ref(false)
 const selectedRegion = ref('全国')
 
-const handleScroll = (e) => {
+const handleScroll = (e: any) => {
   if (!e.target) return;
   isScrolled.value = e.target.scrollTop > 20
 }
@@ -493,25 +494,6 @@ const activeRankIndex = computed(() => {
   return focusIndex.value % size
 })
 
-const coreParticles = computed(() => {
-  return Array.from({ length: 12 }, (_, index) => {
-    const radius = 120 + (index % 4) * 24
-    const angle = (index / 12) * Math.PI * 2
-    const x = Math.cos(angle) * radius
-    const y = Math.sin(angle) * radius
-    return {
-      id: index,
-      style: {
-        '--x': `${x}px`,
-        '--y': `${y}px`,
-        animationDelay: `${index * 0.22}s`,
-        width: `${4 + (index % 3)}px`,
-        height: `${4 + (index % 3)}px`
-      }
-    }
-  })
-})
-
 const activityTypeLabel = (type: string) => {
   const map: Record<string, string> = {
     transport: '交通',
@@ -574,17 +556,17 @@ const getMockEmissionTrends = (): EmissionTrend[] => {
 
     const isoDateStr = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0]
 
-    trends.push({
+ trends.push({
       date: isoDateStr,
       emission: total,
       transportEmission: total * transportShare,
       dietEmission: total * dietShare,
-      electricityEmission: total * electricityShare
+      electricityEmission: total * electricityShare,
+     reduction: Math.random() * 2
     })
   }
   return trends
 }
-
 const getMockCategoryDistribution = (): CategoryDistribution[] => [
   { category: '交通排放', value: 18271.4, percentage: 40 },
   { category: '饮食排放', value: 15987.4, percentage: 35 },
@@ -700,7 +682,17 @@ const fetchDashboardData = async () => {
     }
     regionalStats.value = baseRegionalData
     
-    realTimeActivities.value = Array.isArray(response.realTimeActivities) && response.realTimeActivities.length ? response.realTimeActivities.slice(0, 10) : getMockRealTimeActivities().slice(0, 10)
+   // --- 修改后的 try 块逻辑 ---
+    const rawActivities = Array.isArray(response.realTimeActivities) && response.realTimeActivities.length 
+      ? response.realTimeActivities.slice(0, 10) 
+      : getMockRealTimeActivities().slice(0, 10);
+
+    // 使用 .map 统一补全 region 属性，确保符合 RealTimeActivity 类型定义
+    realTimeActivities.value = rawActivities.map((item: any) => ({
+      ...item,
+      region: item.region || '全域' 
+    }));
+
   } catch (error) {
     console.error('获取大屏数据失败:', error)
     overview.value = getMockOverview()
@@ -708,7 +700,13 @@ const fetchDashboardData = async () => {
     categoryDistribution.value = getMockCategoryDistribution()
     topUsers.value = getMockTopUsers()
     regionalStats.value = getMockRegionalStats()
-    realTimeActivities.value = getMockRealTimeActivities().slice(0, 10)
+    
+    // --- 修改后的 catch 块逻辑 ---
+    // 即使是报错后用的 Mock 数据，也要确保包含 region 字段
+    realTimeActivities.value = getMockRealTimeActivities().slice(0, 10).map((item: any) => ({
+      ...item,
+      region: item.region || '模拟区域'
+    }));
   }
 
   // 保存一份全国的基准备份，用于点击省份时做模拟数据比例缩放
@@ -736,18 +734,25 @@ const startMapAutoPlay = () => {
   autoPlayMapTimer = window.setInterval(() => {
     if (!regionalStats.value.length || !centerMapInstance) return
     
-    // Unselect previous
-    if (selectedRegion.value !== '全国') {
-      const prevName = centerMapInstance.getOption()?.series?.[0]?.data?.find((d: any) => d.name.includes(selectedRegion.value))?.name || selectedRegion.value
-      centerMapInstance.dispatchAction({ type: 'unselect', name: prevName })
-    }
-    
-    currentAutoPlayIndex = (currentAutoPlayIndex + 1) % regionalStats.value.length
-    const nextRegion = regionalStats.value[currentAutoPlayIndex].region
-    
-    const mapDataList: any[] = (centerMapInstance.getOption() as any)?.series?.[0]?.data || []
-    const nextMatch = mapDataList.find(d => d.name.includes(nextRegion))
-    const dispatchName = nextMatch ? nextMatch.name : nextRegion
+    // --- 1. 修改取消选择逻辑 ---
+if (selectedRegion.value !== '全国') {
+  // 核心修复：对 getOption() 的结果进行 (as any) 断言
+  const option = centerMapInstance.getOption() as any;
+  const prevName = option?.series?.[0]?.data?.find((d: any) => 
+    d.name.includes(selectedRegion.value)
+  )?.name || selectedRegion.value;
+  
+  centerMapInstance.dispatchAction({ type: 'unselect', name: prevName });
+}
+
+currentAutoPlayIndex = (currentAutoPlayIndex + 1) % regionalStats.value.length;
+const nextRegion = regionalStats.value[currentAutoPlayIndex].region;
+
+// --- 2. 修改获取地图列表逻辑 ---
+// 核心修复：同样使用 (as any) 确保 series[0] 可以被正常索引
+const mapDataList: any[] = (centerMapInstance.getOption() as any)?.series?.[0]?.data || [];
+const nextMatch = mapDataList.find(d => d.name.includes(nextRegion));
+const dispatchName = nextMatch ? nextMatch.name : nextRegion;
 
     // Auto select
     centerMapInstance.dispatchAction({ type: 'select', name: dispatchName })
@@ -1389,12 +1394,16 @@ watch(selectedRegion, (newVal) => {
 
 const toggleLeftRail = () => {
   leftCollapsed.value = !leftCollapsed.value
-  nextTick(() => renderCharts())
+  setTimeout(() => {
+    handleResize()
+  }, 300)
 }
 
 const toggleRightRail = () => {
   rightCollapsed.value = !rightCollapsed.value
-  nextTick(() => renderCharts())
+  setTimeout(() => {
+    handleResize()
+  }, 300)
 }
 
 const generateSingleActivity = (): RealTimeActivity => {
@@ -1431,7 +1440,7 @@ const refreshRealTimeData = () => {
   // 随机更新排放分布饼图
   if (categoryDistribution.value.length > 0) {
     const rIdx = Math.floor(Math.random() * categoryDistribution.value.length)
-    categoryDistribution.value[rIdx].amount += Math.random() * 5
+    categoryDistribution.value[rIdx].value += Math.random() * 5
   }
 
   // 随机更新省份排行的前几名（让柱状图和地图有肉眼可见变化）
@@ -1508,7 +1517,7 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
+<style  scoped>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Fira+Code:wght@500;700&display=swap');
 
 
@@ -1873,6 +1882,8 @@ onUnmounted(() => {
 }
 
 .rail {
+  position: relative;
+  z-index: 20;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -2016,13 +2027,17 @@ onUnmounted(() => {
 
 .hero-panel {
   display: grid;
-  grid-template-columns: 0.9fr 1.3fr;
-  gap: 40px;
+  /* 🌟 核心魔法：左侧文字锁定在 300px 到 380px 之间，右侧地图独占剩余的 1fr（所有空间） */
+  grid-template-columns: minmax(300px, 380px) 1fr;
+  gap: 32px;
   align-items: center;
   padding: 40px 48px;
   background: radial-gradient(circle at 75% 50%, rgba(10, 18, 30, 0.2), rgba(11, 25, 39, 0.8)), rgba(10, 15, 26, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 24px 64px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .hero-copy h2 {
@@ -2040,9 +2055,9 @@ onUnmounted(() => {
 
 .hero-copy p {
   margin: 0;
-  max-width: 620px;
+  max-width: 100%; 
   color: rgba(255, 255, 255, 0.85);
-  font-size: 15px;
+  font-size: 14px; 
   line-height: 1.75;
 }
 
@@ -2651,6 +2666,9 @@ onUnmounted(() => {
    PREMIUM TOGGLE BUTTON OVERRIDES
    ==================================================== */
 .rail-toggle-btn {
+  position: absolute !important;
+  top: 26px !important;
+  z-index: 1000 !important;
   width: 28px !important;
   height: 64px !important;
   background: linear-gradient(180deg, rgba(16, 24, 38, 0.7), rgba(9, 18, 28, 0.95)) !important;
@@ -2667,11 +2685,11 @@ onUnmounted(() => {
   box-shadow: inset 0 0 0 1px rgba(87, 242, 135, 0.4), 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(87, 242, 135, 0.3) !important;
   border-color: rgba(87, 242, 135, 0.6) !important;
   color: #fff !important;
-  transform: translateY(-50%) scale(1.05) !important;
+  transform: scale(1.08) !important;
 }
 
-.toggle-left { right: -14px !important; }
-.toggle-right { left: -14px !important; }
+.toggle-left { right: -16px !important; }
+.toggle-right { left: -16px !important; }
 
 .rail-toggle-btn .toggle-icon {
   font-size: 14px !important;
