@@ -19,6 +19,13 @@ public class GoalTrackingService {
     private final FootprintSummaryRepository summaryRepository;
 
     public ReductionGoal createGoal(Long userId, Double targetPercentage, LocalDate endDate) {
+        List<ReductionGoal> oldGoals = goalRepository.findByUserId(userId);
+        for (ReductionGoal oldGoal : oldGoals) {
+            if (oldGoal.getStatus() == ReductionGoal.GoalStatus.ACTIVE) {
+                oldGoal.setStatus(ReductionGoal.GoalStatus.CANCELLED);
+                goalRepository.save(oldGoal);
+            }
+        }
         double baselineEmission = calculateBaselineEmission(userId);
         double targetEmission = baselineEmission * (1 - targetPercentage / 100);
 
@@ -60,7 +67,8 @@ public class GoalTrackingService {
     }
 
     public ReductionGoal getActiveGoal(Long userId) {
-        return goalRepository.findActiveGoalByUserId(userId).orElse(null);
+        // ✅ 使用新的防崩查询方法
+        return goalRepository.findFirstByUserIdAndStatusOrderByCreatedAtDesc(userId, ReductionGoal.GoalStatus.ACTIVE).orElse(null);
     }
 
     public void cancelGoal(Long goalId) {

@@ -769,9 +769,13 @@ const startTypewriter = (text) => {
 }
 
 .glass-form-container :deep(.el-card),
-.glass-form-container :deep(.box-card) {
-  background: transparent !important;
-  border: none !important;
+.glass-form-container :deep(.box-card),
+.glass-form-container :deep(.el-alert),
+.glass-form-container :deep(div[class*="result"]),
+.glass-form-container :deep(div[class*="summary"]),
+.glass-form-container :deep(div[style*="background"]) {
+  background: rgba(0, 0, 0, 0.4) !important; /* 换成高级的暗色半透明背景 */
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
   box-shadow: none !important;
 }
 .glass-form-container :deep(h1),
@@ -791,19 +795,27 @@ const startTypewriter = (text) => {
   font-weight: 500;
 }
 
+/* 1. 统一普通输入框、文本域、下拉选择框的【背景色】 */
 .glass-form-container :deep(.el-input__wrapper),
+.glass-form-container :deep(.el-select__wrapper),
 .glass-form-container :deep(.el-textarea__inner) {
   background-color: rgba(0, 0, 0, 0.4) !important;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) inset !important;
+}
+
+/* 2. 统一你输入进去的【真实文字颜色】 */
+.glass-form-container :deep(.el-input__inner),
+.glass-form-container :deep(.el-select__selected-item),
+.glass-form-container :deep(.el-textarea__inner) {
   color: #f4f4f5 !important;
 }
 
-.glass-form-container :deep(.el-input__inner) {
-  color: #f4f4f5 !important;
-}
+/* 3. 统一所有还没输入时的【占位符提示文字颜色】 */
 .glass-form-container :deep(.el-input__inner::placeholder),
-.glass-form-container :deep(.el-textarea__inner::placeholder) {
-  color: #52525b !important;
+.glass-form-container :deep(.el-textarea__inner::placeholder),
+.glass-form-container :deep(.el-select__placeholder.is-transparent),
+.glass-form-container :deep(.el-select__placeholder) {
+  color: #a1a1aa !important; /* 原来的颜色太暗，稍微调亮一点确保在黑底上能看清 */
 }
 
 .glass-form-container :deep(.el-table),
