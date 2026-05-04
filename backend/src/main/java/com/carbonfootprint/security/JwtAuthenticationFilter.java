@@ -27,40 +27,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         String authorizationHeader = request.getHeader("Authorization");
         
-        System.out.println("[JWT Filter] 请求路径: " + request.getRequestURI());
-        System.out.println("[JWT Filter] Authorization头: " + (authorizationHeader != null ? authorizationHeader.substring(0, Math.min(20, authorizationHeader.length())) + "..." : "null"));
-        
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            String token = authorizationHeader.substring(7);
-            System.out.println("[JWT Filter] Token长度: " + token.length());
-            
-            try {
-                String username = jwtUtil.extractUsername(token);
-                System.out.println("[JWT Filter] 提取的用户名: " + username);
-                
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                    System.out.println("[JWT Filter] 用户详情: " + userDetails.getUsername());
-                    
-                    if (jwtUtil.validateToken(token, userDetails.getUsername())) {
-                        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities()
-                        );
-                        authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-                        System.out.println("[JWT Filter] 认证成功，用户: " + username);
-                    } else {
-                        System.out.println("[JWT Filter] Token验证失败");
-                    }
-                }
-            } catch (Exception e) {
-                System.out.println("[JWT Filter] Token处理异常: " + e.getMessage());
-                e.printStackTrace();
-            }
-        } else {
-            System.out.println("[JWT Filter] 没有有效的Authorization头");
+        // 1. 如果没有 Token，或者格式不对，直接放行，交给 SecurityConfig 去判断权限
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            System.out.println("[JWT Filter] 放行无Token请求: " + request.getRequestURI());
+            chain.doFilter(request, response); // 修复了这里的变量名，使用 chain
+            return; // 必须 return，否则会继续往下走
         }
         
+        // 2. 如果有 Token，则提取并验证
+        String token = authorizationHeader.substring(7);
+        System.out.println("[JWT Filter] 开始验证Token, 路径: " + request.getRequestURI());
+        
+        try {
+            String username = jwtUtil.extractUsername(token);
+            
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                
+                if (jwtUtil.validateToken(token, userDetails.getUsername())) {
+                    UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities()
+                    );
+                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    // 验证通过，把用户信息存入上下文
+                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                    System.out.println("[JWT Filter] 认证成功，用户: " + username);
+                } else {
+                    System.out.println("[JWT Filter] Token验证失败 (可能已过期)");
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("[JWT Filter] Token处理异常: " + e.getMessage());
+        }
+        
+        // 3. 验证完毕，继续执行后续的过滤器链
         chain.doFilter(request, response);
     }
 }
